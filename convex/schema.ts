@@ -36,6 +36,7 @@ export default defineSchema({
       v.literal("twilio"),
       v.literal("vonage"),
       v.literal("africas_talking"),
+      v.literal("mtarget"),
       v.literal("custom")
     ),
     isActive: v.boolean(),
@@ -46,8 +47,12 @@ export default defineSchema({
       accountSid: v.optional(v.string()),
       authToken: v.optional(v.string()),
       username: v.optional(v.string()),
+      password: v.optional(v.string()),
       senderId: v.optional(v.string()),
       endpoint: v.optional(v.string()),
+      serviceId: v.optional(v.string()),
+      remoteId: v.optional(v.string()),
+      uniqueId: v.optional(v.string()),
     }),
   }).index("by_active", ["isActive"]),
 

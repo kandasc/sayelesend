@@ -161,6 +161,13 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
       config.username = formData.get("username") as string;
       config.apiKey = formData.get("apiKey") as string;
       config.senderId = formData.get("senderId") as string;
+    } else if (providerType === "mtarget") {
+      config.username = formData.get("username") as string;
+      config.password = formData.get("password") as string;
+      config.senderId = formData.get("senderId") as string;
+      config.serviceId = formData.get("serviceId") as string;
+      config.remoteId = formData.get("remoteId") as string;
+      config.uniqueId = formData.get("uniqueId") as string;
     } else {
       config.endpoint = formData.get("endpoint") as string;
       config.apiKey = formData.get("apiKey") as string;
@@ -170,7 +177,7 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
     try {
       await createProvider({
         name: formData.get("name") as string,
-        type: providerType as "twilio" | "vonage" | "africas_talking" | "custom",
+        type: providerType as "twilio" | "vonage" | "africas_talking" | "mtarget" | "custom",
         costPerSms: Number(formData.get("costPerSms")),
         isActive: formData.get("isActive") === "on",
         config,
@@ -201,6 +208,7 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
               <SelectItem value="twilio">Twilio</SelectItem>
               <SelectItem value="vonage">Vonage</SelectItem>
               <SelectItem value="africas_talking">Africa's Talking</SelectItem>
+              <SelectItem value="mtarget">MTarget</SelectItem>
               <SelectItem value="custom">Custom</SelectItem>
             </SelectContent>
           </Select>
@@ -255,6 +263,31 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
           <div className="space-y-2">
             <Label htmlFor="apiKey">API Key</Label>
             <Input id="apiKey" name="apiKey" type="password" required />
+          </div>
+        </>
+      )}
+
+      {providerType === "mtarget" && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input id="username" name="username" defaultValue="sayele" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" name="password" type="password" defaultValue="831BlSGoiOTp" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="serviceId">Service ID</Label>
+            <Input id="serviceId" name="serviceId" defaultValue="33189" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="remoteId">Remote ID</Label>
+            <Input id="remoteId" name="remoteId" defaultValue="dooci" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="uniqueId">Unique ID</Label>
+            <Input id="uniqueId" name="uniqueId" defaultValue="doocisms05" required />
           </div>
         </>
       )}
@@ -321,6 +354,13 @@ function EditProviderForm({
       config.username = formData.get("username") as string;
       config.apiKey = formData.get("apiKey") as string;
       config.senderId = formData.get("senderId") as string;
+    } else if (provider.type === "mtarget") {
+      config.username = formData.get("username") as string;
+      config.password = formData.get("password") as string;
+      config.senderId = formData.get("senderId") as string;
+      config.serviceId = formData.get("serviceId") as string;
+      config.remoteId = formData.get("remoteId") as string;
+      config.uniqueId = formData.get("uniqueId") as string;
     } else {
       config.endpoint = formData.get("endpoint") as string;
       config.apiKey = formData.get("apiKey") as string;
@@ -425,6 +465,37 @@ function EditProviderForm({
           <div className="space-y-2">
             <Label htmlFor="apiKey">API Key</Label>
             <Input id="apiKey" name="apiKey" type="password" defaultValue={provider.config.apiKey} required />
+          </div>
+        </>
+      )}
+
+      {provider.type === "mtarget" && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input id="username" name="username" defaultValue={provider.config.username} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              defaultValue={provider.config.password}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="serviceId">Service ID</Label>
+            <Input id="serviceId" name="serviceId" defaultValue={provider.config.serviceId} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="remoteId">Remote ID</Label>
+            <Input id="remoteId" name="remoteId" defaultValue={provider.config.remoteId} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="uniqueId">Unique ID</Label>
+            <Input id="uniqueId" name="uniqueId" defaultValue={provider.config.uniqueId} required />
           </div>
         </>
       )}

@@ -82,6 +82,7 @@ export const createProvider = mutation({
       v.literal("twilio"),
       v.literal("vonage"),
       v.literal("africas_talking"),
+      v.literal("mtarget"),
       v.literal("custom")
     ),
     costPerSms: v.number(),
@@ -92,8 +93,12 @@ export const createProvider = mutation({
       accountSid: v.optional(v.string()),
       authToken: v.optional(v.string()),
       username: v.optional(v.string()),
+      password: v.optional(v.string()),
       senderId: v.optional(v.string()),
       endpoint: v.optional(v.string()),
+      serviceId: v.optional(v.string()),
+      remoteId: v.optional(v.string()),
+      uniqueId: v.optional(v.string()),
     }),
   },
   handler: async (ctx, args) => {
@@ -143,8 +148,12 @@ export const updateProvider = mutation({
       accountSid: v.optional(v.string()),
       authToken: v.optional(v.string()),
       username: v.optional(v.string()),
+      password: v.optional(v.string()),
       senderId: v.optional(v.string()),
       endpoint: v.optional(v.string()),
+      serviceId: v.optional(v.string()),
+      remoteId: v.optional(v.string()),
+      uniqueId: v.optional(v.string()),
     })),
   },
   handler: async (ctx, args) => {
@@ -186,8 +195,12 @@ export const updateProvider = mutation({
         accountSid?: string;
         authToken?: string;
         username?: string;
+        password?: string;
         senderId?: string;
         endpoint?: string;
+        serviceId?: string;
+        remoteId?: string;
+        uniqueId?: string;
       };
       costPerSms: number;
       isActive: boolean;

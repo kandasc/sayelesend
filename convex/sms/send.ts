@@ -172,15 +172,19 @@ export const sendSingleMessage = internalAction({
 
 async function sendViaSmsProvider(
   provider: {
-    type: "twilio" | "vonage" | "africas_talking" | "custom";
+    type: "twilio" | "vonage" | "africas_talking" | "mtarget" | "custom";
     config: {
       apiKey?: string;
       apiSecret?: string;
       accountSid?: string;
       authToken?: string;
       username?: string;
+      password?: string;
       senderId?: string;
       endpoint?: string;
+      serviceId?: string;
+      remoteId?: string;
+      uniqueId?: string;
     };
   },
   message: { to: string; from: string; message: string }
@@ -192,6 +196,8 @@ async function sendViaSmsProvider(
       return await sendViaVonage(provider.config, message);
     case "africas_talking":
       return await sendViaAfricasTalking(provider.config, message);
+    case "mtarget":
+      return await sendViaMTarget(provider.config, message);
     case "custom":
       return await sendViaCustomProvider(provider.config, message);
     default:
@@ -387,6 +393,69 @@ async function sendViaAfricasTalking(
   }
 }
 
+async function sendViaMTarget(
+  config: {
+    apiKey?: string;
+    apiSecret?: string;
+    accountSid?: string;
+    authToken?: string;
+    username?: string;
+    password?: string;
+    senderId?: string;
+    endpoint?: string;
+    serviceId?: string;
+    remoteId?: string;
+    uniqueId?: string;
+  },
+  message: { to: string; from: string; message: string }
+): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
+  try {
+    if (!config.username || !config.password) {
+      return { success: false, error: "Missing MTarget credentials" };
+    }
+
+    const sender = config.senderId || message.from;
+    const serviceId = config.serviceId || "33189";
+    const remoteId = config.remoteId || "dooci";
+    const uniqueId = config.uniqueId || "doocisms05";
+
+    const url = new URL("https://api-public-2.mtarget.fr/messages");
+    url.searchParams.append("username", config.username);
+    url.searchParams.append("password", config.password);
+    url.searchParams.append("msisdn", message.to);
+    url.searchParams.append("msg", message.message);
+    url.searchParams.append("allowunicode", "true");
+    url.searchParams.append("serviceid", serviceId);
+    url.searchParams.append("sender", sender);
+    url.searchParams.append("encoding", "UTF-8");
+    url.searchParams.append("remoteid", remoteId);
+    url.searchParams.append("uniqueid", uniqueId);
+
+    const response = await fetch(url.toString(), {
+      method: "POST",
+    });
+
+    const data = await response.text();
+
+    if (response.ok) {
+      return {
+        success: true,
+        providerMessageId: data || "mtarget_" + Date.now(),
+      };
+    } else {
+      return {
+        success: false,
+        error: data || "Failed to send via MTarget",
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
 async function sendViaCustomProvider(
   config: {
     apiKey?: string;
@@ -394,8 +463,12 @@ async function sendViaCustomProvider(
     accountSid?: string;
     authToken?: string;
     username?: string;
+    password?: string;
     senderId?: string;
     endpoint?: string;
+    serviceId?: string;
+    remoteId?: string;
+    uniqueId?: string;
   },
   message: { to: string; from: string; message: string }
 ): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
