@@ -9,6 +9,7 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as analytics from "../analytics.js";
 import type * as apiKeys from "../apiKeys.js";
 import type * as bulk from "../bulk.js";
 import type * as clients from "../clients.js";
@@ -37,6 +38,7 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  analytics: typeof analytics;
   apiKeys: typeof apiKeys;
   bulk: typeof bulk;
   clients: typeof clients;

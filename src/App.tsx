@@ -9,6 +9,7 @@ import Templates from "./pages/templates/page.tsx";
 import ApiKeys from "./pages/api-keys/page.tsx";
 import Settings from "./pages/settings/page.tsx";
 import BulkSMS from "./pages/bulk/page.tsx";
+import Reports from "./pages/reports/page.tsx";
 import AdminClients from "./pages/admin/clients/page.tsx";
 import AdminProviders from "./pages/admin/providers/page.tsx";
 
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/messages" element={<Messages />} />
           <Route path="/bulk" element={<BulkSMS />} />
           <Route path="/templates" element={<Templates />} />
+          <Route path="/reports" element={<Reports />} />
           <Route path="/api-keys" element={<ApiKeys />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/admin/clients" element={<AdminClients />} />

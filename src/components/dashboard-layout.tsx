@@ -28,6 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { path: "/messages", label: "Messages", icon: <MessageSquare className="h-5 w-5" /> },
     { path: "/bulk", label: "Bulk SMS", icon: <Send className="h-5 w-5" /> },
     { path: "/templates", label: "Templates", icon: <FileText className="h-5 w-5" /> },
+    { path: "/reports", label: "Reports", icon: <BarChart3 className="h-5 w-5" /> },
     { path: "/api-keys", label: "API Keys", icon: <Key className="h-5 w-5" /> },
     { path: "/settings", label: "Settings", icon: <Settings className="h-5 w-5" /> },
   ];
@@ -35,7 +36,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const adminNavItems = [
     { path: "/admin/clients", label: "Clients", icon: <Users className="h-5 w-5" /> },
     { path: "/admin/providers", label: "Providers", icon: <Server className="h-5 w-5" /> },
-    { path: "/admin/analytics", label: "Analytics", icon: <BarChart3 className="h-5 w-5" /> },
   ];
 
   return (

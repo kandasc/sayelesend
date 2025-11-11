@@ -154,6 +154,36 @@ export const listUsers = query({
   },
 });
 
+// List all clients (admin only)
+export const listClients = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "User not logged in",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({
+        message: "Admin access required",
+        code: "FORBIDDEN",
+      });
+    }
+
+    return await ctx.db.query("clients").collect();
+  },
+});
+
 // Get system stats for admin
 export const getSystemStats = query({
   args: {},
