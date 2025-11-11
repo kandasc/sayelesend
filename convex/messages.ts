@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { ConvexError } from "convex/values";
 
 // Send a single SMS
@@ -110,6 +111,14 @@ export const sendSms = mutation({
       creditsUsed: provider.costPerSms,
       type: args.scheduledAt ? "scheduled" : "single",
     });
+
+    if (args.scheduledAt) {
+      await ctx.scheduler.runAt(args.scheduledAt, internal.sms.send.sendScheduledMessage, {
+        messageId,
+      });
+    } else {
+      await ctx.scheduler.runAfter(0, internal.sms.send.processPendingMessages, {});
+    }
 
     return messageId;
   },
@@ -417,6 +426,14 @@ export const sendSmsViaApi = mutation({
       creditsUsed: provider.costPerSms,
       type: args.scheduledAt ? "scheduled" : "single",
     });
+
+    if (args.scheduledAt) {
+      await ctx.scheduler.runAt(args.scheduledAt, internal.sms.send.sendScheduledMessage, {
+        messageId,
+      });
+    } else {
+      await ctx.scheduler.runAfter(0, internal.sms.send.processPendingMessages, {});
+    }
 
     return messageId;
   },

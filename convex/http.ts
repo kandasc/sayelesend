@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel.d.ts";
 
 const http = httpRouter();
@@ -145,6 +145,45 @@ http.route({
       }
 
       return new Response(JSON.stringify(message), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return new Response(JSON.stringify({ error: errorMessage }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }),
+});
+
+http.route({
+  path: "/webhooks/sms/delivery/:provider",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const url = new URL(request.url);
+      const pathParts = url.pathname.split("/");
+      const provider = pathParts[pathParts.length - 1];
+
+      const body = await request.text();
+      let data: Record<string, unknown> = {};
+
+      try {
+        data = JSON.parse(body);
+      } catch {
+        const params = new URLSearchParams(body);
+        data = Object.fromEntries(params.entries());
+      }
+
+      await ctx.runMutation(internal.sms.webhooks.handleDeliveryUpdate, {
+        provider: provider as "twilio" | "vonage" | "africastalking" | "other",
+        data: JSON.stringify(data),
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });

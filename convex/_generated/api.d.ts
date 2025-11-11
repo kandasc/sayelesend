@@ -13,6 +13,9 @@ import type * as clients from "../clients.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
 import type * as providers from "../providers.js";
+import type * as sms_queries from "../sms/queries.js";
+import type * as sms_send from "../sms/send.js";
+import type * as sms_webhooks from "../sms/webhooks.js";
 import type * as templates from "../templates.js";
 import type * as users from "../users.js";
 
@@ -36,6 +39,9 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   messages: typeof messages;
   providers: typeof providers;
+  "sms/queries": typeof sms_queries;
+  "sms/send": typeof sms_send;
+  "sms/webhooks": typeof sms_webhooks;
   templates: typeof templates;
   users: typeof users;
 }>;
