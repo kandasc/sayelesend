@@ -22,11 +22,17 @@ export const updateCurrentUser = mutation({
     if (user !== null) {
       return user._id;
     }
+
+    // Check if this is the first user (make them admin)
+    const allUsers = await ctx.db.query("users").collect();
+    const isFirstUser = allUsers.length === 0;
+
     // If it's a new identity, create a new User.
     return await ctx.db.insert("users", {
       name: identity.name,
       email: identity.email,
       tokenIdentifier: identity.tokenIdentifier,
+      role: isFirstUser ? "admin" : "client",
     });
   },
 });

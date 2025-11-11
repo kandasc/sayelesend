@@ -1,0 +1,248 @@
+import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
+import { ConvexError } from "convex/values";
+
+export const listProviders = query({
+  args: { activeOnly: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "User not logged in",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({
+        message: "Admin access required",
+        code: "FORBIDDEN",
+      });
+    }
+
+    if (args.activeOnly) {
+      return await ctx.db
+        .query("smsProviders")
+        .withIndex("by_active", (q) => q.eq("isActive", true))
+        .collect();
+    }
+
+    return await ctx.db.query("smsProviders").collect();
+  },
+});
+
+export const getProvider = query({
+  args: { providerId: v.id("smsProviders") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "User not logged in",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({
+        message: "Admin access required",
+        code: "FORBIDDEN",
+      });
+    }
+
+    const provider = await ctx.db.get(args.providerId);
+    if (!provider) {
+      throw new ConvexError({
+        message: "Provider not found",
+        code: "NOT_FOUND",
+      });
+    }
+
+    return provider;
+  },
+});
+
+export const createProvider = mutation({
+  args: {
+    name: v.string(),
+    type: v.union(
+      v.literal("twilio"),
+      v.literal("vonage"),
+      v.literal("africastalking"),
+      v.literal("other")
+    ),
+    apiKey: v.string(),
+    apiSecret: v.string(),
+    senderId: v.optional(v.string()),
+    costPerSms: v.number(),
+    isActive: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "User not logged in",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({
+        message: "Admin access required",
+        code: "FORBIDDEN",
+      });
+    }
+
+    const providerId = await ctx.db.insert("smsProviders", {
+      name: args.name,
+      type: args.type,
+      config: {
+        apiKey: args.apiKey,
+        apiSecret: args.apiSecret,
+        senderId: args.senderId,
+      },
+      isActive: args.isActive,
+      costPerSms: args.costPerSms,
+    });
+
+    return providerId;
+  },
+});
+
+export const updateProvider = mutation({
+  args: {
+    providerId: v.id("smsProviders"),
+    name: v.optional(v.string()),
+    apiKey: v.optional(v.string()),
+    apiSecret: v.optional(v.string()),
+    senderId: v.optional(v.string()),
+    costPerSms: v.optional(v.number()),
+    isActive: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "User not logged in",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({
+        message: "Admin access required",
+        code: "FORBIDDEN",
+      });
+    }
+
+    const provider = await ctx.db.get(args.providerId);
+    if (!provider) {
+      throw new ConvexError({
+        message: "Provider not found",
+        code: "NOT_FOUND",
+      });
+    }
+
+    const updates: Partial<{
+      name: string;
+      config: {
+        apiKey: string;
+        apiSecret: string;
+        senderId?: string;
+      };
+      costPerSms: number;
+      isActive: boolean;
+    }> = {};
+
+    if (args.name !== undefined) updates.name = args.name;
+    if (args.costPerSms !== undefined) updates.costPerSms = args.costPerSms;
+    if (args.isActive !== undefined) updates.isActive = args.isActive;
+
+    if (
+      args.apiKey !== undefined ||
+      args.apiSecret !== undefined ||
+      args.senderId !== undefined
+    ) {
+      updates.config = {
+        apiKey: args.apiKey ?? provider.config.apiKey,
+        apiSecret: args.apiSecret ?? provider.config.apiSecret,
+        senderId: args.senderId ?? provider.config.senderId,
+      };
+    }
+
+    await ctx.db.patch(args.providerId, updates);
+
+    return args.providerId;
+  },
+});
+
+export const deleteProvider = mutation({
+  args: { providerId: v.id("smsProviders") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "User not logged in",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({
+        message: "Admin access required",
+        code: "FORBIDDEN",
+      });
+    }
+
+    const clients = await ctx.db.query("clients").collect();
+    const hasClients = clients.some(
+      (client) => client.smsProviderId === args.providerId
+    );
+
+    if (hasClients) {
+      throw new ConvexError({
+        message:
+          "Cannot delete provider: it is currently assigned to one or more clients",
+        code: "CONFLICT",
+      });
+    }
+
+    await ctx.db.delete(args.providerId);
+
+    return args.providerId;
+  },
+});
