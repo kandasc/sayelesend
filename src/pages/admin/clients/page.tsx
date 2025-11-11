@@ -189,6 +189,8 @@ function CreateClientForm({
         credits: Number(formData.get("credits")),
         smsProviderId: formData.get("providerId") as Id<"smsProviders">,
         webhookUrl: (formData.get("webhookUrl") as string) || undefined,
+        senderId: (formData.get("senderId") as string) || undefined,
+        remoteId: (formData.get("remoteId") as string) || undefined,
         adminEmail: formData.get("adminEmail") as string,
         adminName: formData.get("adminName") as string,
       });
@@ -252,6 +254,23 @@ function CreateClientForm({
         <Input id="webhookUrl" name="webhookUrl" type="url" placeholder="https://example.com/webhook" />
       </div>
 
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="senderId">Sender ID (Optional)</Label>
+          <Input id="senderId" name="senderId" placeholder="COMPANY" />
+          <p className="text-xs text-muted-foreground">
+            Used for MTarget SMS provider
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="remoteId">Remote ID (Optional)</Label>
+          <Input id="remoteId" name="remoteId" placeholder="company_id" />
+          <p className="text-xs text-muted-foreground">
+            Used for MTarget SMS provider
+          </p>
+        </div>
+      </div>
+
       <div className="border-t pt-4">
         <h3 className="font-semibold mb-4">Admin User Details</h3>
         <div className="grid grid-cols-2 gap-4">
@@ -310,6 +329,8 @@ function EditClientForm({
         smsProviderId: formData.get("providerId") as Id<"smsProviders">,
         status: formData.get("status") as "active" | "suspended" | "inactive",
         webhookUrl: (formData.get("webhookUrl") as string) || undefined,
+        senderId: (formData.get("senderId") as string) || undefined,
+        remoteId: (formData.get("remoteId") as string) || undefined,
       });
       toast.success("Client updated successfully");
       onSuccess();
@@ -384,6 +405,33 @@ function EditClientForm({
           defaultValue={client.webhookUrl}
           placeholder="https://example.com/webhook"
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="senderId">Sender ID</Label>
+          <Input
+            id="senderId"
+            name="senderId"
+            defaultValue={client.senderId}
+            placeholder="COMPANY"
+          />
+          <p className="text-xs text-muted-foreground">
+            Used for MTarget SMS provider
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="remoteId">Remote ID</Label>
+          <Input
+            id="remoteId"
+            name="remoteId"
+            defaultValue={client.remoteId}
+            placeholder="company_id"
+          />
+          <p className="text-xs text-muted-foreground">
+            Used for MTarget SMS provider
+          </p>
+        </div>
       </div>
 
       <DialogFooter>

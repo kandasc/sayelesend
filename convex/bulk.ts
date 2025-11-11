@@ -160,15 +160,8 @@ export const processBulkMessage = internalMutation({
       return;
     }
 
-    // If provider is MTarget, use their bulk API
-    if (provider.type === "mtarget") {
-      await ctx.scheduler.runAfter(0, internal.sms.bulkSend.sendBulkViaMTarget, {
-        bulkMessageId: args.bulkMessageId,
-      });
-      return;
-    }
-
-    // For other providers, process each recipient individually
+    // Process each recipient individually
+    // Note: MTarget bulk API can be integrated here for better performance
     const recipients = await ctx.db
       .query("bulkMessageRecipients")
       .withIndex("by_bulk_and_status", (q) =>
@@ -183,7 +176,7 @@ export const processBulkMessage = internalMutation({
         const messageId = await ctx.db.insert("messages", {
           clientId: bulkMessage.clientId,
           to: recipient.phoneNumber,
-          from: bulkMessage.from || provider.config.senderId || "SAYELE",
+          from: client.senderId || bulkMessage.from || provider.config.senderId || "SAYELE",
           message: bulkMessage.message,
           status: "pending",
           providerId: client.smsProviderId,

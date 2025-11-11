@@ -187,7 +187,7 @@ async function sendViaSmsProvider(
       uniqueId?: string;
     };
   },
-  message: { to: string; from: string; message: string }
+  message: { to: string; from: string; message: string; _id: string; clientId: string }
 ): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
   switch (provider.type) {
     case "twilio":
@@ -414,10 +414,12 @@ async function sendViaMTarget(
       return { success: false, error: "Missing MTarget credentials" };
     }
 
-    const sender = config.senderId || message.from;
+    // Sender from message.from (set from client's senderId when creating message)
+    const sender = message.from;
     const serviceId = config.serviceId || "33189";
-    const remoteId = config.remoteId || "dooci";
-    const uniqueId = config.uniqueId || "doocisms05";
+    // Generate unique IDs per SMS for tracking
+    const uniqueId = `sms_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const remoteId = `msg_${Date.now()}`;
 
     const url = new URL("https://api-public-2.mtarget.fr/messages");
     url.searchParams.append("username", config.username);
@@ -440,7 +442,7 @@ async function sendViaMTarget(
     if (response.ok) {
       return {
         success: true,
-        providerMessageId: data || "mtarget_" + Date.now(),
+        providerMessageId: uniqueId,
       };
     } else {
       return {

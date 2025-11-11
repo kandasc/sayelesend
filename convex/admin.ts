@@ -14,6 +14,8 @@ export const createClientWithAdmin = mutation({
     webhookUrl: v.optional(v.string()),
     adminEmail: v.string(),
     adminName: v.string(),
+    senderId: v.optional(v.string()),
+    remoteId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -61,6 +63,8 @@ export const createClientWithAdmin = mutation({
       smsProviderId: args.smsProviderId,
       status: "active",
       webhookUrl: args.webhookUrl,
+      senderId: args.senderId,
+      remoteId: args.remoteId,
     });
 
     return {

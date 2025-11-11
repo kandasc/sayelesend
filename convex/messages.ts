@@ -103,7 +103,7 @@ export const sendSms = mutation({
     const messageId = await ctx.db.insert("messages", {
       clientId: clientId,
       to: args.to,
-      from: args.from || provider.config.senderId || "SAYELE",
+      from: client.senderId || args.from || provider.config.senderId || "SAYELE",
       message: args.message,
       status: args.scheduledAt ? "scheduled" : "pending",
       providerId: client.smsProviderId,

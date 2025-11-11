@@ -133,6 +133,8 @@ export const createClient = mutation({
     credits: v.number(),
     smsProviderId: v.id("smsProviders"),
     webhookUrl: v.optional(v.string()),
+    senderId: v.optional(v.string()),
+    remoteId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -178,6 +180,8 @@ export const createClient = mutation({
       smsProviderId: args.smsProviderId,
       status: "active",
       webhookUrl: args.webhookUrl,
+      senderId: args.senderId,
+      remoteId: args.remoteId,
     });
 
     return clientId;
@@ -197,6 +201,8 @@ export const updateClient = mutation({
       v.union(v.literal("active"), v.literal("suspended"), v.literal("inactive"))
     ),
     webhookUrl: v.optional(v.string()),
+    senderId: v.optional(v.string()),
+    remoteId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -238,6 +244,8 @@ export const updateClient = mutation({
       smsProviderId: Id<"smsProviders">;
       status: "active" | "suspended" | "inactive";
       webhookUrl: string;
+      senderId: string;
+      remoteId: string;
     }> = {};
 
     if (args.companyName !== undefined) updates.companyName = args.companyName;
@@ -249,6 +257,8 @@ export const updateClient = mutation({
       updates.smsProviderId = args.smsProviderId;
     if (args.status !== undefined) updates.status = args.status;
     if (args.webhookUrl !== undefined) updates.webhookUrl = args.webhookUrl;
+    if (args.senderId !== undefined) updates.senderId = args.senderId;
+    if (args.remoteId !== undefined) updates.remoteId = args.remoteId;
 
     await ctx.db.patch(args.clientId, updates);
 

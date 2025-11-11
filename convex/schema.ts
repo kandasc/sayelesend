@@ -25,6 +25,8 @@ export default defineSchema({
       v.literal("inactive")
     ),
     webhookUrl: v.optional(v.string()),
+    senderId: v.optional(v.string()),
+    remoteId: v.optional(v.string()),
   })
     .index("by_email", ["email"])
     .index("by_status", ["status"]),
