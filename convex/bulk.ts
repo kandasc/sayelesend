@@ -148,14 +148,6 @@ export const processBulkMessage = internalMutation({
       status: "processing",
     });
 
-    // Get all pending recipients
-    const recipients = await ctx.db
-      .query("bulkMessageRecipients")
-      .withIndex("by_bulk_and_status", (q) =>
-        q.eq("bulkMessageId", args.bulkMessageId).eq("status", "pending")
-      )
-      .collect();
-
     const client = await ctx.db.get(bulkMessage.clientId);
     if (!client) {
       await ctx.db.patch(args.bulkMessageId, { status: "failed" });
@@ -167,6 +159,22 @@ export const processBulkMessage = internalMutation({
       await ctx.db.patch(args.bulkMessageId, { status: "failed" });
       return;
     }
+
+    // If provider is MTarget, use their bulk API
+    if (provider.type === "mtarget") {
+      await ctx.scheduler.runAfter(0, internal.sms.bulkSend.sendBulkViaMTarget, {
+        bulkMessageId: args.bulkMessageId,
+      });
+      return;
+    }
+
+    // For other providers, process each recipient individually
+    const recipients = await ctx.db
+      .query("bulkMessageRecipients")
+      .withIndex("by_bulk_and_status", (q) =>
+        q.eq("bulkMessageId", args.bulkMessageId).eq("status", "pending")
+      )
+      .collect();
 
     // Process each recipient
     for (const recipient of recipients) {
