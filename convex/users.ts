@@ -7,8 +7,8 @@ export const updateCurrentUser = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({
-        code: "UNAUTHENTICATED",
         message: "User not logged in",
+        code: "UNAUTHENTICATED",
       });
     }
 
@@ -50,10 +50,7 @@ export const getCurrentUser = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError({
-        code: "UNAUTHENTICATED",
-        message: "Called getCurrentUser without authentication present",
-      });
+      return null;
     }
     const user = await ctx.db
       .query("users")
