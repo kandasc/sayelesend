@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth.ts";
 import { Button } from "@/components/ui/button.tsx";
+import Logo from "@/components/logo.tsx";
 import {
   Home,
   MessageSquare,
@@ -43,10 +44,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-screen bg-background">
       <aside className="w-64 border-r bg-card flex flex-col">
-        <div className="p-6 border-b">
-          <h1 className="text-2xl font-bold text-primary">SAYELE</h1>
-          <p className="text-sm text-muted-foreground">SMS Platform</p>
-        </div>
+        <Link to="/dashboard" className="p-6 border-b block">
+          <Logo size="sm" showText={true} />
+        </Link>
 
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => (

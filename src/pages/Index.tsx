@@ -2,7 +2,8 @@ import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Navigate } from "react-router-dom";
-import { MessageSquare, TrendingUp, Shield, Zap } from "lucide-react";
+import Logo from "@/components/logo.tsx";
+import { MessageSquare, TrendingUp, Shield, Zap, BarChart3, Globe, Users } from "lucide-react";
 
 export default function Index() {
   return (
@@ -27,16 +28,17 @@ function LandingPage() {
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <div className="container mx-auto px-4 py-16">
         <div className="text-center space-y-8 mb-16">
-          <div className="inline-block px-4 py-2 bg-primary/10 rounded-full mb-4">
-            <span className="text-sm font-medium text-primary">SAYELE SMS Platform</span>
+          <div className="flex justify-center mb-6">
+            <Logo size="lg" showText={false} />
           </div>
           <h1 className="text-5xl md:text-6xl text-balance font-bold tracking-tight">
-            Enterprise SMS Management
-            <br />
-            <span className="text-primary">Made Simple</span>
+            Sayele Message
           </h1>
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+            Professional SMS Platform
+          </p>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Powerful SMS API platform for businesses. Send messages, track delivery, and manage your communications all in one place.
+            Powerful SMS API platform for businesses. Send messages, track delivery, and manage your communications with advanced analytics and multi-provider support.
           </p>
           <div className="flex gap-4 justify-center mt-8">
             <SignInButton>
@@ -54,19 +56,39 @@ function LandingPage() {
             description="Simple REST API with comprehensive documentation for quick integration."
           />
           <FeatureCard
-            icon={<TrendingUp className="h-8 w-8 text-primary" />}
-            title="Real-time Analytics"
-            description="Track delivery status, engagement metrics, and performance in real-time."
+            icon={<BarChart3 className="h-8 w-8 text-primary" />}
+            title="Advanced Analytics"
+            description="Track delivery rates, message volume, and performance metrics in real-time."
           />
           <FeatureCard
-            icon={<Shield className="h-8 w-8 text-primary" />}
-            title="Secure & Reliable"
-            description="Enterprise-grade security with 99.9% uptime guarantee."
+            icon={<Globe className="h-8 w-8 text-primary" />}
+            title="Multi-Provider"
+            description="Connect with Twilio, Vonage, Africa's Talking, and MTarget for reliability."
           />
           <FeatureCard
             icon={<Zap className="h-8 w-8 text-primary" />}
             title="Lightning Fast"
             description="High-speed message delivery across multiple carriers worldwide."
+          />
+          <FeatureCard
+            icon={<Shield className="h-8 w-8 text-primary" />}
+            title="Secure & Reliable"
+            description="Enterprise-grade security with webhook callbacks and automatic failover."
+          />
+          <FeatureCard
+            icon={<TrendingUp className="h-8 w-8 text-primary" />}
+            title="Bulk Messaging"
+            description="Send thousands of messages at once with campaign management and scheduling."
+          />
+          <FeatureCard
+            icon={<Users className="h-8 w-8 text-primary" />}
+            title="Client Management"
+            description="Powerful admin dashboard for managing multiple clients and users."
+          />
+          <FeatureCard
+            icon={<MessageSquare className="h-8 w-8 text-primary" />}
+            title="Templates & Webhooks"
+            description="Save time with message templates and real-time delivery notifications."
           />
         </div>
       </div>
