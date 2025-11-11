@@ -81,14 +81,20 @@ export const createProvider = mutation({
     type: v.union(
       v.literal("twilio"),
       v.literal("vonage"),
-      v.literal("africastalking"),
-      v.literal("other")
+      v.literal("africas_talking"),
+      v.literal("custom")
     ),
-    apiKey: v.string(),
-    apiSecret: v.string(),
-    senderId: v.optional(v.string()),
     costPerSms: v.number(),
     isActive: v.boolean(),
+    config: v.object({
+      apiKey: v.optional(v.string()),
+      apiSecret: v.optional(v.string()),
+      accountSid: v.optional(v.string()),
+      authToken: v.optional(v.string()),
+      username: v.optional(v.string()),
+      senderId: v.optional(v.string()),
+      endpoint: v.optional(v.string()),
+    }),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -116,11 +122,7 @@ export const createProvider = mutation({
     const providerId = await ctx.db.insert("smsProviders", {
       name: args.name,
       type: args.type,
-      config: {
-        apiKey: args.apiKey,
-        apiSecret: args.apiSecret,
-        senderId: args.senderId,
-      },
+      config: args.config,
       isActive: args.isActive,
       costPerSms: args.costPerSms,
     });
@@ -133,11 +135,17 @@ export const updateProvider = mutation({
   args: {
     providerId: v.id("smsProviders"),
     name: v.optional(v.string()),
-    apiKey: v.optional(v.string()),
-    apiSecret: v.optional(v.string()),
-    senderId: v.optional(v.string()),
     costPerSms: v.optional(v.number()),
     isActive: v.optional(v.boolean()),
+    config: v.optional(v.object({
+      apiKey: v.optional(v.string()),
+      apiSecret: v.optional(v.string()),
+      accountSid: v.optional(v.string()),
+      authToken: v.optional(v.string()),
+      username: v.optional(v.string()),
+      senderId: v.optional(v.string()),
+      endpoint: v.optional(v.string()),
+    })),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -173,9 +181,13 @@ export const updateProvider = mutation({
     const updates: Partial<{
       name: string;
       config: {
-        apiKey: string;
-        apiSecret: string;
+        apiKey?: string;
+        apiSecret?: string;
+        accountSid?: string;
+        authToken?: string;
+        username?: string;
         senderId?: string;
+        endpoint?: string;
       };
       costPerSms: number;
       isActive: boolean;
@@ -184,18 +196,7 @@ export const updateProvider = mutation({
     if (args.name !== undefined) updates.name = args.name;
     if (args.costPerSms !== undefined) updates.costPerSms = args.costPerSms;
     if (args.isActive !== undefined) updates.isActive = args.isActive;
-
-    if (
-      args.apiKey !== undefined ||
-      args.apiSecret !== undefined ||
-      args.senderId !== undefined
-    ) {
-      updates.config = {
-        apiKey: args.apiKey ?? provider.config.apiKey,
-        apiSecret: args.apiSecret ?? provider.config.apiSecret,
-        senderId: args.senderId ?? provider.config.senderId,
-      };
-    }
+    if (args.config !== undefined) updates.config = args.config;
 
     await ctx.db.patch(args.providerId, updates);
 

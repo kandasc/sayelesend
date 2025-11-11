@@ -112,7 +112,7 @@ export const sendScheduledMessage = internalAction({
   },
 });
 
-export const sendSingleMessage = action({
+export const sendSingleMessage = internalAction({
   args: {
     messageId: v.id("messages"),
   },
@@ -172,8 +172,16 @@ export const sendSingleMessage = action({
 
 async function sendViaSmsProvider(
   provider: {
-    type: "twilio" | "vonage" | "africastalking" | "other";
-    config: { apiKey: string; apiSecret: string; senderId?: string };
+    type: "twilio" | "vonage" | "africas_talking" | "custom";
+    config: {
+      apiKey?: string;
+      apiSecret?: string;
+      accountSid?: string;
+      authToken?: string;
+      username?: string;
+      senderId?: string;
+      endpoint?: string;
+    };
   },
   message: { to: string; from: string; message: string }
 ): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
@@ -182,20 +190,34 @@ async function sendViaSmsProvider(
       return await sendViaTwilio(provider.config, message);
     case "vonage":
       return await sendViaVonage(provider.config, message);
-    case "africastalking":
+    case "africas_talking":
       return await sendViaAfricasTalking(provider.config, message);
+    case "custom":
+      return await sendViaCustomProvider(provider.config, message);
     default:
       return { success: false, error: "Unsupported provider type" };
   }
 }
 
 async function sendViaTwilio(
-  config: { apiKey: string; apiSecret: string; senderId?: string },
+  config: {
+    apiKey?: string;
+    apiSecret?: string;
+    accountSid?: string;
+    authToken?: string;
+    username?: string;
+    senderId?: string;
+    endpoint?: string;
+  },
   message: { to: string; from: string; message: string }
 ): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
   try {
-    const accountSid = config.apiKey;
-    const authToken = config.apiSecret;
+    const accountSid = config.accountSid || config.apiKey;
+    const authToken = config.authToken || config.apiSecret;
+    
+    if (!accountSid || !authToken) {
+      return { success: false, error: "Missing Twilio credentials" };
+    }
     const from = config.senderId || message.from;
 
     const response = await fetch(
@@ -237,10 +259,21 @@ async function sendViaTwilio(
 }
 
 async function sendViaVonage(
-  config: { apiKey: string; apiSecret: string; senderId?: string },
+  config: {
+    apiKey?: string;
+    apiSecret?: string;
+    accountSid?: string;
+    authToken?: string;
+    username?: string;
+    senderId?: string;
+    endpoint?: string;
+  },
   message: { to: string; from: string; message: string }
 ): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
   try {
+    if (!config.apiKey || !config.apiSecret) {
+      return { success: false, error: "Missing Vonage credentials" };
+    }
     const from = config.senderId || message.from;
 
     const response = await fetch("https://rest.nexmo.com/sms/json", {
@@ -285,11 +318,22 @@ async function sendViaVonage(
 }
 
 async function sendViaAfricasTalking(
-  config: { apiKey: string; apiSecret: string; senderId?: string },
+  config: {
+    apiKey?: string;
+    apiSecret?: string;
+    accountSid?: string;
+    authToken?: string;
+    username?: string;
+    senderId?: string;
+    endpoint?: string;
+  },
   message: { to: string; from: string; message: string }
 ): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
   try {
-    const username = config.apiKey;
+    if (!config.username || !config.apiKey) {
+      return { success: false, error: "Missing Africa's Talking credentials" };
+    }
+    const username = config.username;
     const from = config.senderId || message.from;
 
     const response = await fetch(
@@ -298,7 +342,7 @@ async function sendViaAfricasTalking(
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          apiKey: config.apiSecret,
+          apiKey: config.apiKey,
         },
         body: new URLSearchParams({
           username,
@@ -333,6 +377,57 @@ async function sendViaAfricasTalking(
       return {
         success: false,
         error: data.SMSMessageData?.Message || "Failed to send via Africa's Talking",
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+async function sendViaCustomProvider(
+  config: {
+    apiKey?: string;
+    apiSecret?: string;
+    accountSid?: string;
+    authToken?: string;
+    username?: string;
+    senderId?: string;
+    endpoint?: string;
+  },
+  message: { to: string; from: string; message: string }
+): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
+  try {
+    if (!config.endpoint || !config.apiKey) {
+      return { success: false, error: "Missing custom provider credentials" };
+    }
+
+    const response = await fetch(config.endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        to: message.to,
+        from: config.senderId || message.from,
+        message: message.message,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      return {
+        success: true,
+        providerMessageId: data.id || data.messageId || "custom",
+      };
+    } else {
+      return {
+        success: false,
+        error: data.error || data.message || "Failed to send via custom provider",
       };
     }
   } catch (error) {

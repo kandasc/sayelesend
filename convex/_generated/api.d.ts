@@ -8,7 +8,9 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
 import type * as apiKeys from "../apiKeys.js";
+import type * as bulk from "../bulk.js";
 import type * as clients from "../clients.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
@@ -34,7 +36,9 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   apiKeys: typeof apiKeys;
+  bulk: typeof bulk;
   clients: typeof clients;
   http: typeof http;
   messages: typeof messages;

@@ -11,6 +11,7 @@ import {
   BarChart3,
   FileText,
   LogOut,
+  Send,
 } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
@@ -25,6 +26,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: <Home className="h-5 w-5" /> },
     { path: "/messages", label: "Messages", icon: <MessageSquare className="h-5 w-5" /> },
+    { path: "/bulk", label: "Bulk SMS", icon: <Send className="h-5 w-5" /> },
     { path: "/templates", label: "Templates", icon: <FileText className="h-5 w-5" /> },
     { path: "/api-keys", label: "API Keys", icon: <Key className="h-5 w-5" /> },
     { path: "/settings", label: "Settings", icon: <Settings className="h-5 w-5" /> },

@@ -159,9 +159,8 @@ export const createTemplate = mutation({
     const templateId = await ctx.db.insert("templates", {
       clientId: clientId,
       name: args.name,
-      content: args.content,
+      message: args.content,
       variables: args.variables,
-      isActive: true,
     });
 
     return templateId;

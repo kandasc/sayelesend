@@ -3,10 +3,12 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import DashboardLayout from "@/components/dashboard-layout.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { MessageSquare, CheckCircle, XCircle, Coins } from "lucide-react";
+import { MessageSquare, CheckCircle, XCircle, Coins, Send, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
 
 export default function Dashboard() {
   return (
@@ -49,11 +51,27 @@ function DashboardContent() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome back, {currentUser.name || "User"}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome back, {currentUser.name || "User"}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link to="/messages">
+            <Button variant="outline">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Send SMS
+            </Button>
+          </Link>
+          <Link to="/bulk">
+            <Button>
+              <Send className="h-4 w-4 mr-2" />
+              Bulk SMS
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -79,50 +97,93 @@ function DashboardContent() {
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Messages</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!recentMessages || recentMessages.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              No messages sent yet
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {recentMessages.map((message) => (
-                <div
-                  key={message._id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{message.to}</p>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {message.message}
-                    </p>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Messages</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!recentMessages || recentMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <MessageSquare className="h-12 w-12 text-muted-foreground mb-2" />
+                <p className="text-center text-muted-foreground">
+                  No messages sent yet
+                </p>
+                <Link to="/messages">
+                  <Button size="sm" className="mt-4">
+                    Send Your First SMS
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentMessages.map((message) => (
+                  <div
+                    key={message._id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{message.to}</p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {message.message}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 ml-4">
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {format(new Date(message._creationTime), "MMM d, h:mm a")}
+                      </span>
+                      <Badge variant={getStatusVariant(message.status)}>
+                        {message.status}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 ml-4">
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {format(new Date(message._creationTime), "MMM d, h:mm a")}
-                    </span>
-                    <Badge variant={getStatusVariant(message.status)}>
-                      {message.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Link to="/messages" className="block">
+              <Button variant="outline" className="w-full justify-start">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Send Single SMS
+              </Button>
+            </Link>
+            <Link to="/bulk" className="block">
+              <Button variant="outline" className="w-full justify-start">
+                <Send className="h-4 w-4 mr-2" />
+                Create Bulk Campaign
+              </Button>
+            </Link>
+            <Link to="/templates" className="block">
+              <Button variant="outline" className="w-full justify-start">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Template
+              </Button>
+            </Link>
+            <Link to="/api-keys" className="block">
+              <Button variant="outline" className="w-full justify-start">
+                <Coins className="h-4 w-4 mr-2" />
+                View API Keys
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
 
 function AdminDashboard() {
   const allClients = useQuery(api.clients.listClients, {});
+  const systemStats = useQuery(api.admin.getSystemStats, {});
 
-  if (!allClients) {
+  if (!allClients || !systemStats) {
     return <DashboardSkeleton />;
   }
 
@@ -131,9 +192,19 @@ function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <p className="text-muted-foreground">System overview and management</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-muted-foreground">System overview and management</p>
+        </div>
+        <div className="flex gap-2">
+          <Link to="/admin/clients">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Client
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -153,40 +224,66 @@ function AdminDashboard() {
           icon={<Coins className="h-5 w-5 text-muted-foreground" />}
         />
         <StatCard
-          title="Suspended"
-          value={(allClients.length - activeClients).toString()}
-          icon={<XCircle className="h-5 w-5 text-destructive" />}
+          title="Messages Sent"
+          value={systemStats.totalSent.toLocaleString()}
+          icon={<Send className="h-5 w-5 text-blue-500" />}
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Clients</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {allClients.slice(0, 5).map((client) => (
-              <div
-                key={client._id}
-                className="flex items-center justify-between p-3 border rounded-lg"
-              >
-                <div>
-                  <p className="font-medium">{client.companyName}</p>
-                  <p className="text-sm text-muted-foreground">{client.email}</p>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Clients</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {allClients.slice(0, 5).map((client) => (
+                <div
+                  key={client._id}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
+                  <div>
+                    <p className="font-medium">{client.companyName}</p>
+                    <p className="text-sm text-muted-foreground">{client.email}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">
+                      {client.credits} credits
+                    </span>
+                    <Badge variant={client.status === "active" ? "default" : "secondary"}>
+                      {client.status}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">
-                    {client.credits} credits
-                  </span>
-                  <Badge variant={client.status === "active" ? "default" : "secondary"}>
-                    {client.status}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>System Stats</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Total Messages</span>
+              <span className="text-lg font-semibold">{systemStats.totalMessages.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Delivered</span>
+              <span className="text-lg font-semibold text-green-600">{systemStats.totalDelivered.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Delivery Rate</span>
+              <span className="text-lg font-semibold">
+                {systemStats.totalMessages > 0
+                  ? ((systemStats.totalDelivered / systemStats.totalMessages) * 100).toFixed(1)
+                  : "0"}%
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
