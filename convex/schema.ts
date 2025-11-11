@@ -6,12 +6,11 @@ export default defineSchema({
     tokenIdentifier: v.string(),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
-    role: v.union(v.literal("admin"), v.literal("client")),
+    role: v.optional(v.union(v.literal("admin"), v.literal("client"))),
     clientId: v.optional(v.id("clients")),
   })
     .index("by_token", ["tokenIdentifier"])
-    .index("by_client", ["clientId"])
-    .index("by_role", ["role"]),
+    .index("by_client", ["clientId"]),
 
   clients: defineTable({
     companyName: v.string(),

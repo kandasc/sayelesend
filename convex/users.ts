@@ -19,7 +19,15 @@ export const updateCurrentUser = mutation({
         q.eq("tokenIdentifier", identity.tokenIdentifier),
       )
       .unique();
+    
+    // If user exists but doesn't have a role, update them
     if (user !== null) {
+      if (!user.role) {
+        // Check if this is the only user (make them admin)
+        const allUsers = await ctx.db.query("users").collect();
+        const role = allUsers.length === 1 ? "admin" : "client";
+        await ctx.db.patch(user._id, { role });
+      }
       return user._id;
     }
 
