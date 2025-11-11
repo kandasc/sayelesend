@@ -234,11 +234,18 @@ export const getBulkMessages = query({
       });
     }
 
+    // Admin can see all bulk messages
+    if (user.role === "admin") {
+      return await ctx.db
+        .query("bulkMessages")
+        .order("desc")
+        .take(50);
+    }
+
+    // Client users can only see their own bulk messages
     if (user.role !== "client" || !user.clientId) {
-      throw new ConvexError({
-        message: "User not associated with a client",
-        code: "FORBIDDEN",
-      });
+      // Return empty array for users without a client
+      return [];
     }
 
     return await ctx.db

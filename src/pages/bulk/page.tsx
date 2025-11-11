@@ -37,12 +37,74 @@ export default function BulkSMS() {
 
 function BulkSMSContent() {
   const bulkMessages = useQuery(api.bulk.getBulkMessages, {});
-  const client = useQuery(api.clients.getCurrentClient, {});
+  const currentUser = useQuery(api.users.getCurrentUser, {});
+  const client = useQuery(
+    api.clients.getCurrentClient,
+    currentUser?.role === "client" ? {} : "skip"
+  );
   const [createOpen, setCreateOpen] = useState(false);
   const [detailsId, setDetailsId] = useState<Id<"bulkMessages"> | null>(null);
 
-  if (!bulkMessages || !client) {
+  if (!bulkMessages || !currentUser) {
     return <BulkSMSSkeleton />;
+  }
+
+  // If admin user, show message that bulk SMS is for client users only
+  if (currentUser.role === "admin") {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Bulk SMS</h1>
+          <p className="text-muted-foreground">Send SMS to multiple recipients</p>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Send className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-lg font-medium text-center">Admin View</p>
+            <p className="text-muted-foreground text-center">
+              Bulk SMS campaigns are managed by client users. You can view all campaigns below.
+            </p>
+          </CardContent>
+        </Card>
+        {bulkMessages.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">All Campaigns</h2>
+            <CampaignList campaigns={bulkMessages} onViewDetails={setDetailsId} />
+          </div>
+        )}
+        {detailsId && (
+          <Dialog open={!!detailsId} onOpenChange={() => setDetailsId(null)}>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
+              <DialogHeader>
+                <DialogTitle>Campaign Details</DialogTitle>
+              </DialogHeader>
+              <CampaignDetails bulkMessageId={detailsId} />
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+    );
+  }
+
+  if (!client) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Bulk SMS</h1>
+          <p className="text-muted-foreground">Send SMS to multiple recipients</p>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Send className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-lg font-medium text-center">No Client Account</p>
+            <p className="text-muted-foreground text-center">
+              You need to be associated with a client account to send bulk SMS.
+              Please contact your administrator.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   const pendingCampaigns = bulkMessages.filter(
