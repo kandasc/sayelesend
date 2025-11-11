@@ -34,7 +34,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
 
   const adminNavItems = [
+    { path: "/admin/analytics", label: "Analytics", icon: <BarChart3 className="h-5 w-5" /> },
     { path: "/admin/clients", label: "Clients", icon: <Users className="h-5 w-5" /> },
+    { path: "/admin/users", label: "Users", icon: <Users className="h-5 w-5" /> },
     { path: "/admin/providers", label: "Providers", icon: <Server className="h-5 w-5" /> },
   ];
 
