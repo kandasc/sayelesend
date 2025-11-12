@@ -22,7 +22,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const onSigninCallback = useCallback(() => {
     window.history.replaceState({}, document.title, window.location.pathname);
   }, []);
-  const onSignoutCallback = useCallback(() => {
+  
+  const onRemoveUser = useCallback(() => {
+    // Force redirect to home page after clearing user
     window.location.href = "/";
   }, []);
 
@@ -30,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <ReactAuthProvider
       {...AUTH_CONFIG}
       onSigninCallback={onSigninCallback}
-      onSignoutCallback={onSignoutCallback}
+      onRemoveUser={onRemoveUser}
     >
       {children}
     </ReactAuthProvider>

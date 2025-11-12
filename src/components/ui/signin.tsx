@@ -79,13 +79,32 @@ export const SignInButton = forwardRef<HTMLButtonElement, SignInButtonProps>(
 
         try {
           if (isAuthenticated) {
+            // Clear OIDC-related storage
+            Object.keys(sessionStorage).forEach(key => {
+              if (key.startsWith('oidc.')) {
+                sessionStorage.removeItem(key);
+              }
+            });
+            Object.keys(localStorage).forEach(key => {
+              if (key.startsWith('oidc.')) {
+                localStorage.removeItem(key);
+              }
+            });
+            
             await removeUser();
+            // Force redirect after a short delay to ensure cleanup completes
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 100);
           } else {
             await signinRedirect();
           }
         } catch (err) {
           console.error("Authentication error:", err);
-          // Don't prevent the default here as the auth library handles errors
+          // Force redirect on error
+          if (isAuthenticated) {
+            window.location.href = "/";
+          }
         }
       },
       [isAuthenticated, signinRedirect, removeUser, onClick],

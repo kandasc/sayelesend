@@ -108,9 +108,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className="w-full justify-start"
             onClick={async () => {
               try {
+                // Clear OIDC-related storage
+                Object.keys(sessionStorage).forEach(key => {
+                  if (key.startsWith('oidc.')) {
+                    sessionStorage.removeItem(key);
+                  }
+                });
+                Object.keys(localStorage).forEach(key => {
+                  if (key.startsWith('oidc.')) {
+                    localStorage.removeItem(key);
+                  }
+                });
+                
                 await signoutRedirect();
+                // Force redirect after a short delay
+                setTimeout(() => {
+                  window.location.href = "/";
+                }, 100);
               } catch (error) {
                 console.error("Sign out error:", error);
+                // Force redirect even if signout fails
                 window.location.href = "/";
               }
             }}
