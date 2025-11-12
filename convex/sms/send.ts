@@ -172,7 +172,7 @@ export const sendSingleMessage = internalAction({
 
 async function sendViaSmsProvider(
   provider: {
-    type: "twilio" | "vonage" | "africas_talking" | "mtarget" | "custom";
+    type: "twilio" | "vonage" | "africas_talking" | "mtarget" | "whatsapp" | "telegram" | "facebook_messenger" | "custom";
     config: {
       apiKey?: string;
       apiSecret?: string;
@@ -185,6 +185,13 @@ async function sendViaSmsProvider(
       serviceId?: string;
       remoteId?: string;
       uniqueId?: string;
+      phoneNumberId?: string;
+      businessAccountId?: string;
+      accessToken?: string;
+      botToken?: string;
+      pageAccessToken?: string;
+      pageId?: string;
+      appSecret?: string;
     };
   },
   message: { to: string; from: string; message: string; _id: string; clientId: string }
@@ -198,6 +205,12 @@ async function sendViaSmsProvider(
       return await sendViaAfricasTalking(provider.config, message);
     case "mtarget":
       return await sendViaMTarget(provider.config, message);
+    case "whatsapp":
+      return await sendViaWhatsApp(provider.config, message);
+    case "telegram":
+      return await sendViaTelegram(provider.config, message);
+    case "facebook_messenger":
+      return await sendViaFacebookMessenger(provider.config, message);
     case "custom":
       return await sendViaCustomProvider(provider.config, message);
     default:
@@ -503,6 +516,164 @@ async function sendViaCustomProvider(
       return {
         success: false,
         error: data.error || data.message || "Failed to send via custom provider",
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+async function sendViaWhatsApp(
+  config: {
+    phoneNumberId?: string;
+    accessToken?: string;
+  },
+  message: { to: string; from: string; message: string }
+): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
+  try {
+    if (!config.phoneNumberId || !config.accessToken) {
+      return { success: false, error: "Missing WhatsApp credentials" };
+    }
+
+    // Remove + or any non-digit characters from phone number
+    const cleanPhone = message.to.replace(/\D/g, "");
+
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${config.phoneNumberId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${config.accessToken}`,
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: cleanPhone,
+          type: "text",
+          text: {
+            body: message.message,
+          },
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (response.ok && data.messages && data.messages[0]) {
+      return {
+        success: true,
+        providerMessageId: data.messages[0].id,
+      };
+    } else {
+      return {
+        success: false,
+        error: data.error?.message || "Failed to send via WhatsApp",
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+async function sendViaTelegram(
+  config: {
+    botToken?: string;
+  },
+  message: { to: string; from: string; message: string }
+): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
+  try {
+    if (!config.botToken) {
+      return { success: false, error: "Missing Telegram bot token" };
+    }
+
+    // The 'to' field should be a Telegram chat ID
+    const chatId = message.to;
+
+    const response = await fetch(
+      `https://api.telegram.org/bot${config.botToken}/sendMessage`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message.message,
+          parse_mode: "HTML",
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (response.ok && data.ok && data.result) {
+      return {
+        success: true,
+        providerMessageId: data.result.message_id.toString(),
+      };
+    } else {
+      return {
+        success: false,
+        error: data.description || "Failed to send via Telegram",
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+async function sendViaFacebookMessenger(
+  config: {
+    pageAccessToken?: string;
+  },
+  message: { to: string; from: string; message: string }
+): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
+  try {
+    if (!config.pageAccessToken) {
+      return { success: false, error: "Missing Facebook Messenger credentials" };
+    }
+
+    // The 'to' field should be a Facebook-scoped user ID (PSID)
+    const recipientId = message.to;
+
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/me/messages?access_token=${config.pageAccessToken}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recipient: {
+            id: recipientId,
+          },
+          message: {
+            text: message.message,
+          },
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (response.ok && data.message_id) {
+      return {
+        success: true,
+        providerMessageId: data.message_id,
+      };
+    } else {
+      return {
+        success: false,
+        error: data.error?.message || "Failed to send via Facebook Messenger",
       };
     }
   } catch (error) {

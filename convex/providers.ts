@@ -83,7 +83,16 @@ export const createProvider = mutation({
       v.literal("vonage"),
       v.literal("africas_talking"),
       v.literal("mtarget"),
+      v.literal("whatsapp"),
+      v.literal("telegram"),
+      v.literal("facebook_messenger"),
       v.literal("custom")
+    ),
+    channel: v.union(
+      v.literal("sms"),
+      v.literal("whatsapp"),
+      v.literal("telegram"),
+      v.literal("facebook_messenger")
     ),
     costPerSms: v.number(),
     isActive: v.boolean(),
@@ -99,6 +108,13 @@ export const createProvider = mutation({
       serviceId: v.optional(v.string()),
       remoteId: v.optional(v.string()),
       uniqueId: v.optional(v.string()),
+      phoneNumberId: v.optional(v.string()),
+      businessAccountId: v.optional(v.string()),
+      accessToken: v.optional(v.string()),
+      botToken: v.optional(v.string()),
+      pageAccessToken: v.optional(v.string()),
+      pageId: v.optional(v.string()),
+      appSecret: v.optional(v.string()),
     }),
   },
   handler: async (ctx, args) => {
@@ -127,6 +143,7 @@ export const createProvider = mutation({
     const providerId = await ctx.db.insert("smsProviders", {
       name: args.name,
       type: args.type,
+      channel: args.channel,
       config: args.config,
       isActive: args.isActive,
       costPerSms: args.costPerSms,

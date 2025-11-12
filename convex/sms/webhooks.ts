@@ -243,6 +243,7 @@ export const handleIncomingSms = internalMutation({
             from: from,
             to: to,
             message: message,
+            channel: provider.channel || "sms",
             providerId: provider._id,
             providerMessageId: providerMessageId,
             receivedAt: Date.now(),

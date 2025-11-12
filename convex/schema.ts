@@ -39,8 +39,17 @@ export default defineSchema({
       v.literal("vonage"),
       v.literal("africas_talking"),
       v.literal("mtarget"),
+      v.literal("whatsapp"),
+      v.literal("telegram"),
+      v.literal("facebook_messenger"),
       v.literal("custom")
     ),
+    channel: v.optional(v.union(
+      v.literal("sms"),
+      v.literal("whatsapp"),
+      v.literal("telegram"),
+      v.literal("facebook_messenger")
+    )),
     isActive: v.boolean(),
     costPerSms: v.number(),
     config: v.object({
@@ -55,6 +64,16 @@ export default defineSchema({
       serviceId: v.optional(v.string()),
       remoteId: v.optional(v.string()),
       uniqueId: v.optional(v.string()),
+      // WhatsApp specific
+      phoneNumberId: v.optional(v.string()),
+      businessAccountId: v.optional(v.string()),
+      accessToken: v.optional(v.string()),
+      // Telegram specific
+      botToken: v.optional(v.string()),
+      // Facebook Messenger specific
+      pageAccessToken: v.optional(v.string()),
+      pageId: v.optional(v.string()),
+      appSecret: v.optional(v.string()),
     }),
   }).index("by_active", ["isActive"]),
 
@@ -63,6 +82,12 @@ export default defineSchema({
     to: v.string(),
     from: v.string(),
     message: v.string(),
+    channel: v.optional(v.union(
+      v.literal("sms"),
+      v.literal("whatsapp"),
+      v.literal("telegram"),
+      v.literal("facebook_messenger")
+    )),
     status: v.union(
       v.literal("pending"),
       v.literal("queued"),
@@ -88,13 +113,20 @@ export default defineSchema({
     .index("by_client", ["clientId"])
     .index("by_status", ["status"])
     .index("by_client_and_status", ["clientId", "status"])
-    .index("by_bulk", ["bulkMessageId"]),
+    .index("by_bulk", ["bulkMessageId"])
+    .index("by_channel", ["channel"]),
 
   bulkMessages: defineTable({
     clientId: v.id("clients"),
     name: v.string(),
     message: v.string(),
     from: v.optional(v.string()),
+    channel: v.optional(v.union(
+      v.literal("sms"),
+      v.literal("whatsapp"),
+      v.literal("telegram"),
+      v.literal("facebook_messenger")
+    )),
     totalRecipients: v.number(),
     sentCount: v.number(),
     deliveredCount: v.number(),
@@ -147,6 +179,12 @@ export default defineSchema({
     from: v.string(),
     to: v.string(),
     message: v.string(),
+    channel: v.optional(v.union(
+      v.literal("sms"),
+      v.literal("whatsapp"),
+      v.literal("telegram"),
+      v.literal("facebook_messenger")
+    )),
     providerId: v.id("smsProviders"),
     providerMessageId: v.optional(v.string()),
     receivedAt: v.number(),

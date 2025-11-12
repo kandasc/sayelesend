@@ -90,6 +90,12 @@ export const receiveIncomingSms = internalMutation({
     from: v.string(),
     to: v.string(),
     message: v.string(),
+    channel: v.optional(v.union(
+      v.literal("sms"),
+      v.literal("whatsapp"),
+      v.literal("telegram"),
+      v.literal("facebook_messenger")
+    )),
     providerId: v.id("smsProviders"),
     providerMessageId: v.optional(v.string()),
   },
@@ -98,6 +104,7 @@ export const receiveIncomingSms = internalMutation({
       clientId: args.clientId,
       from: args.from,
       to: args.to,
+      channel: args.channel || "sms",
       message: args.message,
       providerId: args.providerId,
       providerMessageId: args.providerMessageId,
