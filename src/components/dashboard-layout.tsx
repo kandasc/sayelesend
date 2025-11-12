@@ -19,6 +19,7 @@ import {
   UserPlus,
   Folders,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
@@ -54,6 +55,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { path: "/webhooks", label: "Webhooks", icon: <Webhook className="h-5 w-5" /> },
     { path: "/reports", label: "Reports", icon: <BarChart3 className="h-5 w-5" /> },
     { path: "/api-keys", label: "API Keys", icon: <Key className="h-5 w-5" /> },
+    { path: "/api-docs", label: "API Docs", icon: <BookOpen className="h-5 w-5" /> },
     { path: "/settings", label: "Settings", icon: <Settings className="h-5 w-5" /> },
   ];
 

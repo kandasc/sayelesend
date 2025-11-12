@@ -20,6 +20,7 @@ import AdminProviders from "./pages/admin/providers/page.tsx";
 import AdminAIAssistant from "./pages/admin/ai-assistant/page.tsx";
 import Contacts from "./pages/contacts/page.tsx";
 import Groups from "./pages/groups/page.tsx";
+import ApiDocs from "./pages/api-docs/page.tsx";
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/webhooks" element={<DashboardLayout><Webhooks /></DashboardLayout>} />
           <Route path="/reports" element={<DashboardLayout><Reports /></DashboardLayout>} />
           <Route path="/api-keys" element={<DashboardLayout><ApiKeys /></DashboardLayout>} />
+          <Route path="/api-docs" element={<DashboardLayout><ApiDocs /></DashboardLayout>} />
           <Route path="/settings" element={<DashboardLayout><Settings /></DashboardLayout>} />
           <Route path="/admin/analytics" element={<DashboardLayout><AdminAnalytics /></DashboardLayout>} />
           <Route path="/admin/clients" element={<DashboardLayout><AdminClients /></DashboardLayout>} />
