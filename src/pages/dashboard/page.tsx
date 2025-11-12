@@ -1,7 +1,6 @@
 import { Authenticated } from "convex/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import DashboardLayout from "@/components/dashboard-layout.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
@@ -13,9 +12,7 @@ import { Link } from "react-router-dom";
 export default function Dashboard() {
   return (
     <Authenticated>
-      <DashboardLayout>
-        <DashboardContent />
-      </DashboardLayout>
+      <DashboardContent />
     </Authenticated>
   );
 }
