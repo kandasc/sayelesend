@@ -286,6 +286,22 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
             <Label htmlFor="uniqueId">Unique ID</Label>
             <Input id="uniqueId" name="uniqueId" defaultValue="doocisms05" required />
           </div>
+          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+            <CardContent className="pt-4">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                Configure DLR Webhook in MTarget
+              </p>
+              <p className="text-xs text-blue-800 dark:text-blue-200 mb-2">
+                To receive delivery receipts, configure this URL in your MTarget account:
+              </p>
+              <code className="text-xs bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded block mb-2">
+                {window.location.origin.replace("https://", "https://your-deployment.").replace(":3000", "")}/webhooks/sms/delivery/mtarget
+              </code>
+              <p className="text-xs text-blue-800 dark:text-blue-200">
+                MTarget will send DLR callbacks with Status codes: 3=delivered, 4=refused, 6=not delivered
+              </p>
+            </CardContent>
+          </Card>
         </>
       )}
 
@@ -494,6 +510,22 @@ function EditProviderForm({
             <Label htmlFor="uniqueId">Unique ID</Label>
             <Input id="uniqueId" name="uniqueId" defaultValue={provider.config.uniqueId} required />
           </div>
+          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+            <CardContent className="pt-4">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                Configure DLR Webhook in MTarget
+              </p>
+              <p className="text-xs text-blue-800 dark:text-blue-200 mb-2">
+                To receive delivery receipts, configure this URL in your MTarget account:
+              </p>
+              <code className="text-xs bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded block mb-2">
+                {window.location.origin.replace("https://", "https://your-deployment.").replace(":3000", "")}/webhooks/sms/delivery/mtarget
+              </code>
+              <p className="text-xs text-blue-800 dark:text-blue-200">
+                MTarget will send DLR callbacks with Status codes: 3=delivered, 4=refused, 6=not delivered
+              </p>
+            </CardContent>
+          </Card>
         </>
       )}
 

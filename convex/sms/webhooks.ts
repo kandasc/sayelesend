@@ -8,6 +8,7 @@ export const handleDeliveryUpdate = internalMutation({
       v.literal("twilio"),
       v.literal("vonage"),
       v.literal("africastalking"),
+      v.literal("mtarget"),
       v.literal("other")
     ),
     data: v.string(),
@@ -16,7 +17,9 @@ export const handleDeliveryUpdate = internalMutation({
     const data = JSON.parse(args.data) as Record<string, unknown>;
 
     let providerMessageId: string | undefined;
-    let status: "delivered" | "failed" | undefined;
+    let status: "delivered" | "failed" | "sent" | undefined;
+    let deliveryTimestamp: number | undefined;
+    let failureReason: string | undefined;
 
     switch (args.provider) {
       case "twilio": {
@@ -54,6 +57,43 @@ export const handleDeliveryUpdate = internalMutation({
         }
         break;
       }
+
+      case "mtarget": {
+        // MTarget DLR fields
+        providerMessageId = data.MsgId as string;
+        const mtargetStatus = data.Status as number;
+        const statusText = data.StatusText as string;
+        const reason = data.Reason as string;
+        
+        // Parse delivery timestamp if available (format: yyyy-MM-dd HH:mm:ss)
+        const deliveryDateTime = data.DeliveryDateTime as string;
+        if (deliveryDateTime) {
+          try {
+            const parsedDate = new Date(deliveryDateTime.replace(' ', 'T'));
+            deliveryTimestamp = parsedDate.getTime();
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+
+        // Map MTarget status codes
+        // 0=waiting, 1=in progress, 2=sent to operator, 3=delivered, 4=refused, 6=not delivered
+        switch (mtargetStatus) {
+          case 3:
+            status = "delivered";
+            break;
+          case 4:
+          case 6:
+            status = "failed";
+            failureReason = reason || statusText || "Delivery failed";
+            break;
+          case 2:
+            status = "sent";
+            break;
+          // For status 0 and 1, we don't update (waiting/in progress)
+        }
+        break;
+      }
     }
 
     if (providerMessageId && status) {
@@ -64,52 +104,61 @@ export const handleDeliveryUpdate = internalMutation({
 
       if (message) {
         const updates: {
-          status: "delivered" | "failed";
+          status: "delivered" | "failed" | "sent";
           deliveredAt?: number;
+          sentAt?: number;
           failureReason?: string;
         } = {
           status,
         };
 
         if (status === "delivered") {
-          updates.deliveredAt = Date.now();
+          updates.deliveredAt = deliveryTimestamp || Date.now();
         } else if (status === "failed") {
-          updates.failureReason = "Delivery failed";
+          updates.failureReason = failureReason || "Delivery failed";
 
+          // Refund credits on failure
           const client = await ctx.db.get(message.clientId);
           if (client) {
             await ctx.db.patch(message.clientId, {
               credits: client.credits + message.creditsUsed,
             });
           }
+        } else if (status === "sent") {
+          // Update sentAt timestamp if not already set
+          if (!message.sentAt) {
+            updates.sentAt = Date.now();
+          }
         }
 
         await ctx.db.patch(message._id, updates);
 
-        // Create webhook event for delivery status
-        const client = await ctx.db.get(message.clientId);
-        if (client && client.webhookUrl) {
-          const payload = {
-            event: status === "delivered" ? "message.delivered" : "message.failed",
-            messageId: message._id,
-            status: status,
-            to: message.to,
-            from: message.from,
-            message: message.message,
-            sentAt: message.sentAt,
-            deliveredAt: updates.deliveredAt,
-            failureReason: updates.failureReason,
-          };
+        // Create webhook event for delivery status (only for delivered/failed, not intermediate states)
+        if (status === "delivered" || status === "failed") {
+          const client = await ctx.db.get(message.clientId);
+          if (client && client.webhookUrl) {
+            const payload = {
+              event: status === "delivered" ? "message.delivered" : "message.failed",
+              messageId: message._id,
+              status: status,
+              to: message.to,
+              from: message.from,
+              message: message.message,
+              sentAt: message.sentAt,
+              deliveredAt: updates.deliveredAt,
+              failureReason: updates.failureReason,
+            };
 
-          await ctx.db.insert("webhookEvents", {
-            clientId: message.clientId,
-            eventType: status === "delivered" ? "message.delivered" : "message.failed",
-            messageId: message._id,
-            payload: JSON.stringify(payload),
-            status: "pending",
-            attempts: 0,
-            nextRetryAt: Date.now(),
-          });
+            await ctx.db.insert("webhookEvents", {
+              clientId: message.clientId,
+              eventType: status === "delivered" ? "message.delivered" : "message.failed",
+              messageId: message._id,
+              payload: JSON.stringify(payload),
+              status: "pending",
+              attempts: 0,
+              nextRetryAt: Date.now(),
+            });
+          }
         }
       }
     }

@@ -179,7 +179,7 @@ http.route({
       }
 
       await ctx.runMutation(internal.sms.webhooks.handleDeliveryUpdate, {
-        provider: provider as "twilio" | "vonage" | "africastalking" | "other",
+        provider: provider as "twilio" | "vonage" | "africastalking" | "mtarget" | "other",
         data: JSON.stringify(data),
       });
 
