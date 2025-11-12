@@ -12,6 +12,7 @@ export const exportReportCSV = action({
     startDate: v.number(),
     endDate: v.number(),
     clientId: v.optional(v.id("clients")),
+    searchQuery: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<string> => {
     const identity = await ctx.auth.getUserIdentity();
@@ -35,6 +36,7 @@ export const exportReportCSV = action({
       startDate: args.startDate,
       endDate: args.endDate,
       clientId: args.clientId,
+      searchQuery: args.searchQuery,
     });
 
     // Convert to CSV
@@ -71,6 +73,7 @@ export const exportReportExcel = action({
     startDate: v.number(),
     endDate: v.number(),
     clientId: v.optional(v.id("clients")),
+    searchQuery: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -86,6 +89,7 @@ export const exportReportExcel = action({
       startDate: args.startDate,
       endDate: args.endDate,
       clientId: args.clientId,
+      searchQuery: args.searchQuery,
     });
 
     // Prepare data for Excel
@@ -140,6 +144,7 @@ export const exportReportPDF = action({
     startDate: v.number(),
     endDate: v.number(),
     clientId: v.optional(v.id("clients")),
+    searchQuery: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -155,12 +160,14 @@ export const exportReportPDF = action({
       startDate: args.startDate,
       endDate: args.endDate,
       clientId: args.clientId,
+      searchQuery: args.searchQuery,
     });
 
     const stats = await ctx.runQuery(api.analytics.getMessageStats, {
       startDate: args.startDate,
       endDate: args.endDate,
       clientId: args.clientId,
+      searchQuery: args.searchQuery,
     });
 
     // Create PDF

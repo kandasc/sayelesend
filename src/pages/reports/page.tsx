@@ -9,7 +9,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarIcon, TrendingUp, TrendingDown, Activity, CheckCircle, XCircle, Clock, BarChart3, Download, FileSpreadsheet, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { CalendarIcon, TrendingUp, TrendingDown, Activity, CheckCircle, XCircle, Clock, BarChart3, Download, FileSpreadsheet, FileText, Search, X } from "lucide-react";
 import { format as formatDate, subDays, startOfDay, endOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -20,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -29,6 +31,10 @@ export default function ReportsPage() {
     to: new Date(),
   });
   const [selectedClientId, setSelectedClientId] = useState<Id<"clients"> | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
   const currentUser = useQuery(api.testMode.getEffectiveUser);
   const clients = useQuery(api.admin.listClients);
@@ -40,18 +46,21 @@ export default function ReportsPage() {
     startDate,
     endDate,
     clientId: selectedClientId,
+    searchQuery: debouncedSearchQuery,
   });
 
   const dailyVolume = useQuery(api.analytics.getDailyMessageVolume, {
     startDate,
     endDate,
     clientId: selectedClientId,
+    searchQuery: debouncedSearchQuery,
   });
 
   const providerStats = useQuery(api.analytics.getProviderStats, {
     startDate,
     endDate,
     clientId: selectedClientId,
+    searchQuery: debouncedSearchQuery,
   });
 
   const topRecipients = useQuery(api.analytics.getTopRecipients, {
@@ -59,6 +68,7 @@ export default function ReportsPage() {
     endDate,
     clientId: selectedClientId,
     limit: 10,
+    searchQuery: debouncedSearchQuery,
   });
 
   const clientUsage = useQuery(
@@ -85,6 +95,7 @@ export default function ReportsPage() {
           startDate,
           endDate,
           clientId: selectedClientId,
+          searchQuery: debouncedSearchQuery,
         });
         filename = `report_${formatDate(dateRange.from, "yyyy-MM-dd")}_${formatDate(dateRange.to, "yyyy-MM-dd")}.csv`;
         mimeType = "text/csv";
@@ -104,6 +115,7 @@ export default function ReportsPage() {
           startDate,
           endDate,
           clientId: selectedClientId,
+          searchQuery: debouncedSearchQuery,
         });
         filename = `report_${formatDate(dateRange.from, "yyyy-MM-dd")}_${formatDate(dateRange.to, "yyyy-MM-dd")}.xlsx`;
         mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -128,6 +140,7 @@ export default function ReportsPage() {
           startDate,
           endDate,
           clientId: selectedClientId,
+          searchQuery: debouncedSearchQuery,
         });
         filename = `report_${formatDate(dateRange.from, "yyyy-MM-dd")}_${formatDate(dateRange.to, "yyyy-MM-dd")}.pdf`;
         mimeType = "application/pdf";
@@ -183,7 +196,7 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4">
         <div>
           <h1 className="text-3xl font-bold">Reports & Analytics</h1>
           <p className="text-muted-foreground">
@@ -191,84 +204,145 @@ export default function ReportsPage() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <Download className="mr-2 h-4 w-4" />
-                Export Report
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          {/* Search Input */}
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search by phone, message, reference, or status..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-9"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0"
+              >
+                <X className="h-4 w-4" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleDownload("csv")}>
-                <FileText className="mr-2 h-4 w-4" />
-                Download CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleDownload("excel")}>
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Download Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleDownload("pdf")}>
-                <FileText className="mr-2 h-4 w-4" />
-                Download PDF
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {isAdmin && clients && (
-            <Select
-              value={selectedClientId || "all"}
-              onValueChange={(value) => setSelectedClientId(value === "all" ? undefined : value as Id<"clients">)}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="All Clients" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Clients</SelectItem>
-                {clients.map((client) => (
-                  <SelectItem key={client._id} value={client._id}>
-                    {client.companyName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+            )}
+          </div>
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("w-[280px] justify-start text-left font-normal")}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {formatDate(dateRange.from, "LLL dd, y")} - {formatDate(dateRange.to, "LLL dd, y")}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <div className="space-y-2 p-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => setDateRange({ from: subDays(new Date(), 7), to: new Date() })}
-                >
-                  Last 7 days
+          <div className="flex flex-wrap gap-2">
+            {/* Date Range Picker */}
+            <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("justify-start text-left font-normal min-w-[280px]")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formatDate(dateRange.from, "LLL dd, y")} - {formatDate(dateRange.to, "LLL dd, y")}
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => setDateRange({ from: subDays(new Date(), 30), to: new Date() })}
-                >
-                  Last 30 days
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <div className="flex flex-col gap-2 p-3 border-b">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start"
+                    onClick={() => {
+                      setDateRange({ from: subDays(new Date(), 7), to: new Date() });
+                      setShowDatePicker(false);
+                    }}
+                  >
+                    Last 7 days
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start"
+                    onClick={() => {
+                      setDateRange({ from: subDays(new Date(), 30), to: new Date() });
+                      setShowDatePicker(false);
+                    }}
+                  >
+                    Last 30 days
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start"
+                    onClick={() => {
+                      setDateRange({ from: subDays(new Date(), 90), to: new Date() });
+                      setShowDatePicker(false);
+                    }}
+                  >
+                    Last 90 days
+                  </Button>
+                </div>
+                <div className="p-3">
+                  <p className="text-sm font-medium mb-2">Custom Range</p>
+                  <div className="grid gap-2">
+                    <Calendar
+                      mode="single"
+                      selected={dateRange.from}
+                      onSelect={(date) => date && setDateRange({ ...dateRange, from: date })}
+                      disabled={(date) => date > new Date()}
+                      initialFocus
+                    />
+                    <p className="text-xs text-muted-foreground text-center">to</p>
+                    <Calendar
+                      mode="single"
+                      selected={dateRange.to}
+                      onSelect={(date) => {
+                        if (date) {
+                          setDateRange({ ...dateRange, to: date });
+                          setShowDatePicker(false);
+                        }
+                      }}
+                      disabled={(date) => date > new Date() || date < dateRange.from}
+                      initialFocus
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Client Filter (Admin Only) */}
+            {isAdmin && clients && (
+              <Select
+                value={selectedClientId || "all"}
+                onValueChange={(value) => setSelectedClientId(value === "all" ? undefined : value as Id<"clients">)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All Clients" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Clients</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client._id} value={client._id}>
+                      {client.companyName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Export Report Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => setDateRange({ from: subDays(new Date(), 90), to: new Date() })}
-                >
-                  Last 90 days
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleDownload("csv")}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Download CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload("excel")}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Download Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload("pdf")}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Download PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 

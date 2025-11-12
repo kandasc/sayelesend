@@ -8,6 +8,7 @@ export const getMessageStats = query({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     clientId: v.optional(v.id("clients")),
+    searchQuery: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -51,10 +52,24 @@ export const getMessageStats = query({
       messages = await ctx.db.query("messages").collect();
     }
 
-    // Filter by date range if provided
+    // Filter by date range and search query if provided
     const filteredMessages = messages.filter((msg) => {
       if (args.startDate && msg._creationTime < args.startDate) return false;
       if (args.endDate && msg._creationTime > args.endDate) return false;
+      
+      // Search filter
+      if (args.searchQuery && args.searchQuery.trim() !== "") {
+        const query = args.searchQuery.toLowerCase();
+        const matchesPhone = msg.to.toLowerCase().includes(query);
+        const matchesMessage = msg.message.toLowerCase().includes(query);
+        const matchesProviderId = msg.providerMessageId?.toLowerCase().includes(query);
+        const matchesStatus = msg.status.toLowerCase().includes(query);
+        
+        if (!matchesPhone && !matchesMessage && !matchesProviderId && !matchesStatus) {
+          return false;
+        }
+      }
+      
       return true;
     });
 
@@ -85,6 +100,7 @@ export const getDailyMessageVolume = query({
     startDate: v.number(),
     endDate: v.number(),
     clientId: v.optional(v.id("clients")),
+    searchQuery: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -128,9 +144,24 @@ export const getDailyMessageVolume = query({
       messages = await ctx.db.query("messages").collect();
     }
 
-    // Filter by date range
+    // Filter by date range and search query
     const filteredMessages = messages.filter((msg) => {
-      return msg._creationTime >= args.startDate && msg._creationTime <= args.endDate;
+      if (msg._creationTime < args.startDate || msg._creationTime > args.endDate) return false;
+      
+      // Search filter
+      if (args.searchQuery && args.searchQuery.trim() !== "") {
+        const query = args.searchQuery.toLowerCase();
+        const matchesPhone = msg.to.toLowerCase().includes(query);
+        const matchesMessage = msg.message.toLowerCase().includes(query);
+        const matchesProviderId = msg.providerMessageId?.toLowerCase().includes(query);
+        const matchesStatus = msg.status.toLowerCase().includes(query);
+        
+        if (!matchesPhone && !matchesMessage && !matchesProviderId && !matchesStatus) {
+          return false;
+        }
+      }
+      
+      return true;
     });
 
     // Group by day
@@ -171,6 +202,7 @@ export const getProviderStats = query({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     clientId: v.optional(v.id("clients")),
+    searchQuery: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -214,10 +246,24 @@ export const getProviderStats = query({
       messages = await ctx.db.query("messages").collect();
     }
 
-    // Filter by date range if provided
+    // Filter by date range and search query if provided
     const filteredMessages = messages.filter((msg) => {
       if (args.startDate && msg._creationTime < args.startDate) return false;
       if (args.endDate && msg._creationTime > args.endDate) return false;
+      
+      // Search filter
+      if (args.searchQuery && args.searchQuery.trim() !== "") {
+        const query = args.searchQuery.toLowerCase();
+        const matchesPhone = msg.to.toLowerCase().includes(query);
+        const matchesMessage = msg.message.toLowerCase().includes(query);
+        const matchesProviderId = msg.providerMessageId?.toLowerCase().includes(query);
+        const matchesStatus = msg.status.toLowerCase().includes(query);
+        
+        if (!matchesPhone && !matchesMessage && !matchesProviderId && !matchesStatus) {
+          return false;
+        }
+      }
+      
       return true;
     });
 
@@ -271,6 +317,7 @@ export const getTopRecipients = query({
     endDate: v.optional(v.number()),
     clientId: v.optional(v.id("clients")),
     limit: v.optional(v.number()),
+    searchQuery: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -314,10 +361,24 @@ export const getTopRecipients = query({
       messages = await ctx.db.query("messages").collect();
     }
 
-    // Filter by date range if provided
+    // Filter by date range and search query if provided
     const filteredMessages = messages.filter((msg) => {
       if (args.startDate && msg._creationTime < args.startDate) return false;
       if (args.endDate && msg._creationTime > args.endDate) return false;
+      
+      // Search filter
+      if (args.searchQuery && args.searchQuery.trim() !== "") {
+        const query = args.searchQuery.toLowerCase();
+        const matchesPhone = msg.to.toLowerCase().includes(query);
+        const matchesMessage = msg.message.toLowerCase().includes(query);
+        const matchesProviderId = msg.providerMessageId?.toLowerCase().includes(query);
+        const matchesStatus = msg.status.toLowerCase().includes(query);
+        
+        if (!matchesPhone && !matchesMessage && !matchesProviderId && !matchesStatus) {
+          return false;
+        }
+      }
+      
       return true;
     });
 
@@ -408,6 +469,7 @@ export const getMessagesForExport = query({
     startDate: v.number(),
     endDate: v.number(),
     clientId: v.optional(v.id("clients")),
+    searchQuery: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -453,9 +515,24 @@ export const getMessagesForExport = query({
       return [];
     }
 
-    // Filter by date range
+    // Filter by date range and search query
     const filteredMessages = messages.filter((msg) => {
-      return msg._creationTime >= args.startDate && msg._creationTime <= args.endDate;
+      if (msg._creationTime < args.startDate || msg._creationTime > args.endDate) return false;
+      
+      // Search filter
+      if (args.searchQuery && args.searchQuery.trim() !== "") {
+        const query = args.searchQuery.toLowerCase();
+        const matchesPhone = msg.to.toLowerCase().includes(query);
+        const matchesMessage = msg.message.toLowerCase().includes(query);
+        const matchesProviderId = msg.providerMessageId?.toLowerCase().includes(query);
+        const matchesStatus = msg.status.toLowerCase().includes(query);
+        
+        if (!matchesPhone && !matchesMessage && !matchesProviderId && !matchesStatus) {
+          return false;
+        }
+      }
+      
+      return true;
     });
 
     // Enrich with provider names
