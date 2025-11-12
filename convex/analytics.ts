@@ -13,10 +13,15 @@ export const getMessageStats = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError({
-        message: "User not logged in",
-        code: "UNAUTHENTICATED",
-      });
+      return { 
+        totalMessages: 0, 
+        sentMessages: 0,
+        deliveredMessages: 0, 
+        failedMessages: 0, 
+        pendingMessages: 0,
+        deliveryRate: 0,
+        failureRate: 0
+      };
     }
 
     const user = await ctx.db
@@ -27,10 +32,15 @@ export const getMessageStats = query({
       .unique();
 
     if (!user) {
-      throw new ConvexError({
-        message: "User not found",
-        code: "NOT_FOUND",
-      });
+      return { 
+        totalMessages: 0, 
+        sentMessages: 0,
+        deliveredMessages: 0, 
+        failedMessages: 0, 
+        pendingMessages: 0,
+        deliveryRate: 0,
+        failureRate: 0
+      };
     }
 
     // Build query based on user role
@@ -105,10 +115,7 @@ export const getDailyMessageVolume = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError({
-        message: "User not logged in",
-        code: "UNAUTHENTICATED",
-      });
+      return [];
     }
 
     const user = await ctx.db
@@ -119,10 +126,7 @@ export const getDailyMessageVolume = query({
       .unique();
 
     if (!user) {
-      throw new ConvexError({
-        message: "User not found",
-        code: "NOT_FOUND",
-      });
+      return [];
     }
 
     // Build query based on user role
@@ -207,10 +211,7 @@ export const getProviderStats = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError({
-        message: "User not logged in",
-        code: "UNAUTHENTICATED",
-      });
+      return [];
     }
 
     const user = await ctx.db
@@ -221,10 +222,7 @@ export const getProviderStats = query({
       .unique();
 
     if (!user) {
-      throw new ConvexError({
-        message: "User not found",
-        code: "NOT_FOUND",
-      });
+      return [];
     }
 
     // Build query based on user role
@@ -322,10 +320,7 @@ export const getTopRecipients = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError({
-        message: "User not logged in",
-        code: "UNAUTHENTICATED",
-      });
+      return [];
     }
 
     const user = await ctx.db
@@ -336,10 +331,7 @@ export const getTopRecipients = query({
       .unique();
 
     if (!user) {
-      throw new ConvexError({
-        message: "User not found",
-        code: "NOT_FOUND",
-      });
+      return [];
     }
 
     // Build query based on user role
@@ -474,10 +466,7 @@ export const getMessagesForExport = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError({
-        message: "User not logged in",
-        code: "UNAUTHENTICATED",
-      });
+      return [];
     }
 
     const user = await ctx.db
@@ -488,10 +477,7 @@ export const getMessagesForExport = query({
       .unique();
 
     if (!user) {
-      throw new ConvexError({
-        message: "User not found",
-        code: "NOT_FOUND",
-      });
+      return [];
     }
 
     // Build query based on user role

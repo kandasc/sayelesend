@@ -170,10 +170,7 @@ export const listClients = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError({
-        message: "User not logged in",
-        code: "UNAUTHENTICATED",
-      });
+      return null;
     }
 
     const user = await ctx.db
@@ -184,10 +181,7 @@ export const listClients = query({
       .unique();
 
     if (!user || user.role !== "admin") {
-      throw new ConvexError({
-        message: "Admin access required",
-        code: "FORBIDDEN",
-      });
+      return null;
     }
 
     return await ctx.db.query("clients").collect();
