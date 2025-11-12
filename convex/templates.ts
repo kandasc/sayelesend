@@ -1,16 +1,14 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { ConvexError } from "convex/values";
+import type { Id } from "./_generated/dataModel.d.ts";
 
 export const listTemplates = query({
-  args: { clientId: v.optional(v.id("clients")) },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError({
-        message: "User not logged in",
-        code: "UNAUTHENTICATED",
-      });
+      return [];
     }
 
     const user = await ctx.db
@@ -21,39 +19,20 @@ export const listTemplates = query({
       .unique();
 
     if (!user) {
-      throw new ConvexError({
-        message: "User not found",
-        code: "NOT_FOUND",
-      });
+      return [];
     }
 
-    let clientId = args.clientId;
+    // Use test mode client if active
+    const effectiveClientId = user.testModeClientId || user.clientId;
 
-    if (user.role === "client") {
-      if (!user.clientId) {
-        throw new ConvexError({
-          message: "User not associated with a client",
-          code: "FORBIDDEN",
-        });
-      }
-      clientId = user.clientId;
-    } else if (user.role === "admin" && !clientId) {
-      throw new ConvexError({
-        message: "Client ID required for admin users",
-        code: "BAD_REQUEST",
-      });
-    }
-
-    if (!clientId) {
-      throw new ConvexError({
-        message: "Client ID not found",
-        code: "BAD_REQUEST",
-      });
+    if (!effectiveClientId) {
+      return [];
     }
 
     return await ctx.db
       .query("templates")
-      .withIndex("by_client", (q) => q.eq("clientId", clientId!))
+      .withIndex("by_client", (q) => q.eq("clientId", effectiveClientId))
+      .order("desc")
       .collect();
   },
 });
@@ -105,9 +84,8 @@ export const getTemplate = query({
 export const createTemplate = mutation({
   args: {
     name: v.string(),
-    content: v.string(),
+    message: v.string(),
     variables: v.array(v.string()),
-    clientId: v.optional(v.id("clients")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -132,34 +110,20 @@ export const createTemplate = mutation({
       });
     }
 
-    let clientId = args.clientId;
+    // Use test mode client if active
+    const effectiveClientId = user.testModeClientId || user.clientId;
 
-    if (user.role === "client") {
-      if (!user.clientId) {
-        throw new ConvexError({
-          message: "User not associated with a client",
-          code: "FORBIDDEN",
-        });
-      }
-      clientId = user.clientId;
-    } else if (user.role === "admin" && !clientId) {
+    if (!effectiveClientId) {
       throw new ConvexError({
-        message: "Client ID required for admin users",
-        code: "BAD_REQUEST",
-      });
-    }
-
-    if (!clientId) {
-      throw new ConvexError({
-        message: "Client ID not found",
-        code: "BAD_REQUEST",
+        message: "User not associated with a client",
+        code: "FORBIDDEN",
       });
     }
 
     const templateId = await ctx.db.insert("templates", {
-      clientId: clientId,
+      clientId: effectiveClientId,
       name: args.name,
-      message: args.content,
+      message: args.message,
       variables: args.variables,
     });
 
@@ -171,9 +135,8 @@ export const updateTemplate = mutation({
   args: {
     templateId: v.id("templates"),
     name: v.optional(v.string()),
-    content: v.optional(v.string()),
+    message: v.optional(v.string()),
     variables: v.optional(v.array(v.string())),
-    isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -206,7 +169,10 @@ export const updateTemplate = mutation({
       });
     }
 
-    if (user.role === "client" && user.clientId !== template.clientId) {
+    // Use test mode client if active
+    const effectiveClientId = user.testModeClientId || user.clientId;
+
+    if (template.clientId !== effectiveClientId) {
       throw new ConvexError({
         message: "Access denied",
         code: "FORBIDDEN",
@@ -215,15 +181,13 @@ export const updateTemplate = mutation({
 
     const updates: Partial<{
       name: string;
-      content: string;
+      message: string;
       variables: string[];
-      isActive: boolean;
     }> = {};
 
     if (args.name !== undefined) updates.name = args.name;
-    if (args.content !== undefined) updates.content = args.content;
+    if (args.message !== undefined) updates.message = args.message;
     if (args.variables !== undefined) updates.variables = args.variables;
-    if (args.isActive !== undefined) updates.isActive = args.isActive;
 
     await ctx.db.patch(args.templateId, updates);
 
@@ -264,7 +228,10 @@ export const deleteTemplate = mutation({
       });
     }
 
-    if (user.role === "client" && user.clientId !== template.clientId) {
+    // Use test mode client if active
+    const effectiveClientId = user.testModeClientId || user.clientId;
+
+    if (template.clientId !== effectiveClientId) {
       throw new ConvexError({
         message: "Access denied",
         code: "FORBIDDEN",
@@ -274,5 +241,24 @@ export const deleteTemplate = mutation({
     await ctx.db.delete(args.templateId);
 
     return args.templateId;
+  },
+});
+
+// Helper query to extract variables from a message template
+export const extractVariables = query({
+  args: { message: v.string() },
+  handler: async (ctx, args) => {
+    // Extract variables like {name}, {code}, {amount} from the message
+    const regex = /{([^}]+)}/g;
+    const variables: string[] = [];
+    let match;
+    
+    while ((match = regex.exec(args.message)) !== null) {
+      if (!variables.includes(match[1])) {
+        variables.push(match[1]);
+      }
+    }
+    
+    return variables;
   },
 });
