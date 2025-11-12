@@ -68,7 +68,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  if (users === undefined || clients === undefined) {
+  if (users === undefined || clients === undefined || clients === null) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-64" />

@@ -5,6 +5,26 @@ import type { Id } from "./_generated/dataModel.d.ts";
 
 const http = httpRouter();
 
+// CORS headers helper
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Content-Type": "application/json",
+};
+
+// OPTIONS handler for CORS preflight
+http.route({
+  path: "/api/v1/sms/send",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
+  }),
+});
+
 http.route({
   path: "/api/v1/sms/send",
   method: "POST",
@@ -16,7 +36,7 @@ http.route({
           JSON.stringify({ error: "Missing or invalid authorization header" }),
           {
             status: 401,
-            headers: { "Content-Type": "application/json" },
+            headers: corsHeaders,
           }
         );
       }
@@ -32,7 +52,7 @@ http.route({
           JSON.stringify({ error: "Invalid or inactive API key" }),
           {
             status: 401,
-            headers: { "Content-Type": "application/json" },
+            headers: corsHeaders,
           }
         );
       }
@@ -44,7 +64,7 @@ http.route({
           JSON.stringify({ error: "Missing required fields: to, message" }),
           {
             status: 400,
-            headers: { "Content-Type": "application/json" },
+            headers: corsHeaders,
           }
         );
       }
@@ -59,6 +79,7 @@ http.route({
         message: body.message,
         from: body.from,
         scheduledAt: body.scheduledAt,
+        channel: body.channel,
       });
 
       return new Response(
@@ -69,7 +90,7 @@ http.route({
         }),
         {
           status: 200,
-          headers: { "Content-Type": "application/json" },
+          headers: corsHeaders,
         }
       );
     } catch (error) {
@@ -77,9 +98,21 @@ http.route({
         error instanceof Error ? error.message : "Unknown error";
       return new Response(JSON.stringify({ error: errorMessage }), {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: corsHeaders,
       });
     }
+  }),
+});
+
+// OPTIONS handler for status endpoint
+http.route({
+  path: "/api/v1/sms/status/:messageId",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
   }),
 });
 
@@ -94,7 +127,7 @@ http.route({
           JSON.stringify({ error: "Missing or invalid authorization header" }),
           {
             status: 401,
-            headers: { "Content-Type": "application/json" },
+            headers: corsHeaders,
           }
         );
       }
@@ -110,7 +143,7 @@ http.route({
           JSON.stringify({ error: "Invalid or inactive API key" }),
           {
             status: 401,
-            headers: { "Content-Type": "application/json" },
+            headers: corsHeaders,
           }
         );
       }
@@ -124,7 +157,7 @@ http.route({
           JSON.stringify({ error: "Message ID required" }),
           {
             status: 400,
-            headers: { "Content-Type": "application/json" },
+            headers: corsHeaders,
           }
         );
       }
@@ -139,21 +172,21 @@ http.route({
           JSON.stringify({ error: "Message not found" }),
           {
             status: 404,
-            headers: { "Content-Type": "application/json" },
+            headers: corsHeaders,
           }
         );
       }
 
       return new Response(JSON.stringify(message), {
         status: 200,
-        headers: { "Content-Type": "application/json" },
+        headers: corsHeaders,
       });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
       return new Response(JSON.stringify({ error: errorMessage }), {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: corsHeaders,
       });
     }
   }),

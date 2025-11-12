@@ -24,7 +24,7 @@ export default function AdminAnalyticsPage() {
   const providers = useQuery(api.providers.listProviders, {});
   const recentMessages = useQuery(api.messages.getRecentMessages, { limit: 10 });
 
-  if (systemStats === undefined || clients === undefined) {
+  if (systemStats === undefined || clients === undefined || clients === null) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-64" />
