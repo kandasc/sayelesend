@@ -14,10 +14,7 @@ export default function Settings() {
 
 function SettingsContent() {
   const currentUser = useQuery(api.testMode.getEffectiveUser, {});
-  const client = useQuery(
-    api.clients.getCurrentClient,
-    currentUser?.role === "client" ? {} : "skip"
-  );
+  const client = useQuery(api.clients.getCurrentClient, {});
 
   return (
     <div className="space-y-6">

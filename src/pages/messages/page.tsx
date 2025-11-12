@@ -30,13 +30,10 @@ export default function Messages() {
 
 function MessagesContent() {
   const currentUser = useQuery(api.testMode.getEffectiveUser, {});
-  const client = useQuery(
-    api.clients.getCurrentClient,
-    currentUser?.role === "client" ? {} : "skip"
-  );
+  const client = useQuery(api.clients.getCurrentClient, {});
   const messages = useQuery(
     api.messages.getMessages,
-    currentUser && client ? { clientId: client._id } : "skip"
+    client ? { clientId: client._id } : "skip"
   );
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);

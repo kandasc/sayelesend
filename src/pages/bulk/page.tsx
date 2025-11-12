@@ -35,10 +35,7 @@ export default function BulkSMS() {
 function BulkSMSContent() {
   const bulkMessages = useQuery(api.bulk.getBulkMessages, {});
   const currentUser = useQuery(api.testMode.getEffectiveUser, {});
-  const client = useQuery(
-    api.clients.getCurrentClient,
-    currentUser?.role === "client" ? {} : "skip"
-  );
+  const client = useQuery(api.clients.getCurrentClient, {});
   const [createOpen, setCreateOpen] = useState(false);
   const [detailsId, setDetailsId] = useState<Id<"bulkMessages"> | null>(null);
 
@@ -394,7 +391,7 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
       )}
 
       <DialogFooter>
-        <Button type="submit" disabled={isSubmitting || (client && estimatedCost > client.credits)}>
+        <Button type="submit" disabled={isSubmitting || (client ? estimatedCost > client.credits : false)}>
           {isSubmitting ? "Creating..." : "Create Campaign"}
         </Button>
       </DialogFooter>

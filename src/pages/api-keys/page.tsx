@@ -51,13 +51,10 @@ export default function ApiKeys() {
 
 function ApiKeysContent() {
   const currentUser = useQuery(api.testMode.getEffectiveUser, {});
-  const client = useQuery(
-    api.clients.getCurrentClient,
-    currentUser?.role === "client" ? {} : "skip"
-  );
+  const client = useQuery(api.clients.getCurrentClient, {});
   const apiKeys = useQuery(
     api.apiKeys.listApiKeys,
-    currentUser && client ? { clientId: client._id } : "skip"
+    client ? { clientId: client._id } : "skip"
   );
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);

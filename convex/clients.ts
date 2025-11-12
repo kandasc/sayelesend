@@ -8,10 +8,7 @@ export const getCurrentClient = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError({
-        message: "User not logged in",
-        code: "UNAUTHENTICATED",
-      });
+      return null;
     }
 
     const user = await ctx.db
@@ -22,28 +19,22 @@ export const getCurrentClient = query({
       .unique();
 
     if (!user) {
-      throw new ConvexError({
-        message: "User not found",
-        code: "NOT_FOUND",
-      });
+      return null;
     }
 
+    // Check for test mode first (admin testing as client)
+    if (user.role === "admin" && user.testModeClientId) {
+      const client = await ctx.db.get(user.testModeClientId);
+      return client ?? null;
+    }
+
+    // Regular client user
     if (user.role !== "client" || !user.clientId) {
-      throw new ConvexError({
-        message: "User is not associated with a client",
-        code: "FORBIDDEN",
-      });
+      return null;
     }
 
     const client = await ctx.db.get(user.clientId);
-    if (!client) {
-      throw new ConvexError({
-        message: "Client not found",
-        code: "NOT_FOUND",
-      });
-    }
-
-    return client;
+    return client ?? null;
   },
 });
 
