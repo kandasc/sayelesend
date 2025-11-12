@@ -21,6 +21,7 @@ import AdminAIAssistant from "./pages/admin/ai-assistant/page.tsx";
 import Contacts from "./pages/contacts/page.tsx";
 import Groups from "./pages/groups/page.tsx";
 import ApiDocs from "./pages/api-docs/page.tsx";
+import PublicApiDocs from "./pages/docs/page.tsx";
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/docs" element={<PublicApiDocs />} />
           <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
           <Route path="/messages" element={<DashboardLayout><Messages /></DashboardLayout>} />
           <Route path="/incoming" element={<DashboardLayout><IncomingMessages /></DashboardLayout>} />
