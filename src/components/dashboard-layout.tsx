@@ -18,6 +18,7 @@ import {
   Webhook,
   UserPlus,
   Folders,
+  Sparkles,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
@@ -61,6 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { path: "/admin/clients", label: "Clients", icon: <Users className="h-5 w-5" /> },
     { path: "/admin/users", label: "Users", icon: <Users className="h-5 w-5" /> },
     { path: "/admin/providers", label: "Providers", icon: <Server className="h-5 w-5" /> },
+    { path: "/admin/ai-assistant", label: "AI Assistant", icon: <Sparkles className="h-5 w-5" /> },
   ];
 
   return (

@@ -62,8 +62,8 @@ function BulkSMSContent() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Bulk SMS</h1>
-          <p className="text-muted-foreground">Send SMS to multiple recipients</p>
+          <h1 className="text-3xl font-bold">Bulk Messaging</h1>
+          <p className="text-muted-foreground">Send messages to multiple recipients across SMS, WhatsApp, Telegram, and Facebook Messenger</p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
@@ -98,15 +98,15 @@ function BulkSMSContent() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Bulk SMS</h1>
-          <p className="text-muted-foreground">Send SMS to multiple recipients</p>
+          <h1 className="text-3xl font-bold">Bulk Messaging</h1>
+          <p className="text-muted-foreground">Send messages to multiple recipients across SMS, WhatsApp, Telegram, and Facebook Messenger</p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Send className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-lg font-medium text-center">No Client Account</p>
             <p className="text-muted-foreground text-center">
-              You need to be associated with a client account to send bulk SMS.
+              You need to be associated with a client account to send bulk messages.
               Please contact your administrator.
             </p>
           </CardContent>
@@ -128,8 +128,8 @@ function BulkSMSContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Bulk SMS</h1>
-          <p className="text-muted-foreground">Send SMS to multiple recipients</p>
+          <h1 className="text-3xl font-bold">Bulk Messaging</h1>
+          <p className="text-muted-foreground">Send messages to multiple recipients across SMS, WhatsApp, Telegram, and Facebook Messenger</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
@@ -140,7 +140,7 @@ function BulkSMSContent() {
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Create Bulk SMS Campaign</DialogTitle>
+              <DialogTitle>Create Bulk Messaging Campaign</DialogTitle>
               <DialogDescription>
                 Available credits: <span className="font-semibold">{client.credits.toLocaleString()}</span>
               </DialogDescription>
