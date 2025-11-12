@@ -18,7 +18,7 @@ export default function Dashboard() {
 }
 
 function DashboardContent() {
-  const currentUser = useQuery(api.users.getCurrentUser, {});
+  const currentUser = useQuery(api.testMode.getEffectiveUser, {});
   const client = useQuery(
     api.clients.getCurrentClient,
     currentUser?.role === "client" ? {} : "skip"

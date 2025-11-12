@@ -20,6 +20,7 @@ import type * as sms_queries from "../sms/queries.js";
 import type * as sms_send from "../sms/send.js";
 import type * as sms_webhooks from "../sms/webhooks.js";
 import type * as templates from "../templates.js";
+import type * as testMode from "../testMode.js";
 import type * as users from "../users.js";
 
 import type {
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   "sms/send": typeof sms_send;
   "sms/webhooks": typeof sms_webhooks;
   templates: typeof templates;
+  testMode: typeof testMode;
   users: typeof users;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

@@ -13,7 +13,7 @@ export default function Settings() {
 }
 
 function SettingsContent() {
-  const currentUser = useQuery(api.users.getCurrentUser, {});
+  const currentUser = useQuery(api.testMode.getEffectiveUser, {});
   const client = useQuery(
     api.clients.getCurrentClient,
     currentUser?.role === "client" ? {} : "skip"

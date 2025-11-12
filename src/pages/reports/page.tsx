@@ -23,7 +23,7 @@ export default function ReportsPage() {
   });
   const [selectedClientId, setSelectedClientId] = useState<Id<"clients"> | undefined>(undefined);
 
-  const currentUser = useQuery(api.users.getCurrentUser);
+  const currentUser = useQuery(api.testMode.getEffectiveUser);
   const clients = useQuery(api.admin.listClients);
 
   const startDate = startOfDay(dateRange.from).getTime();

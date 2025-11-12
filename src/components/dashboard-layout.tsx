@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth.ts";
 import { Button } from "@/components/ui/button.tsx";
 import Logo from "@/components/logo.tsx";
+import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import {
   Home,
   MessageSquare,
@@ -13,16 +14,30 @@ import {
   FileText,
   LogOut,
   Send,
+  TestTube2,
 } from "lucide-react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, signoutRedirect } = useAuth();
   const location = useLocation();
-  const currentUser = useQuery(api.users.getCurrentUser, {});
+  const realUser = useQuery(api.users.getCurrentUser, {});
+  const effectiveUser = useQuery(api.testMode.getEffectiveUser, {});
+  const clients = useQuery(api.admin.listClients, realUser?.role === "admin" ? {} : "skip");
+  const setTestMode = useMutation(api.testMode.setTestMode);
 
-  const isAdmin = currentUser?.role === "admin";
+  const isAdmin = effectiveUser?.role === "admin";
+  const isRealAdmin = realUser?.role === "admin";
+  const isTestMode = effectiveUser?.isTestMode ?? false;
 
   const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: <Home className="h-5 w-5" /> },
@@ -47,6 +62,53 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Link to="/dashboard" className="p-6 border-b block">
           <Logo size="sm" showText={true} />
         </Link>
+
+        {isRealAdmin && (
+          <div className="p-4 border-b bg-muted/50">
+            {isTestMode ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <TestTube2 className="h-4 w-4 text-orange-500" />
+                  <Badge variant="outline" className="text-xs">Test Mode</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Viewing as client admin
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setTestMode({ clientId: null })}
+                >
+                  Exit Test Mode
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-xs font-medium">Test as Client</label>
+                <Select
+                  onValueChange={(value) => {
+                    if (value && value !== "none") {
+                      setTestMode({ clientId: value as Id<"clients"> });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Select client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Select a client</SelectItem>
+                    {clients?.map((client) => (
+                      <SelectItem key={client._id} value={client._id}>
+                        {client.companyName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        )}
 
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => (
