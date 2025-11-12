@@ -17,11 +17,15 @@ import {
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
-import { Plus, Send, Users, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Plus, Send, Users, CheckCircle, XCircle, Clock, Calendar as CalendarIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, addDays, set } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
+import { Calendar } from "@/components/ui/calendar.tsx";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
+import { Switch } from "@/components/ui/switch.tsx";
+import { cn } from "@/lib/utils.ts";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 
 export default function BulkSMS() {
@@ -101,8 +105,12 @@ function BulkSMSContent() {
     );
   }
 
-  const pendingCampaigns = bulkMessages.filter(
-    (b) => b.status === "pending" || b.status === "processing"
+  const now = Date.now();
+  const scheduledCampaigns = bulkMessages.filter(
+    (b) => b.scheduledAt && b.scheduledAt > now && b.status === "pending"
+  );
+  const activeCampaigns = bulkMessages.filter(
+    (b) => (!b.scheduledAt || b.scheduledAt <= now) && (b.status === "pending" || b.status === "processing")
   );
   const completedCampaigns = bulkMessages.filter((b) => b.status === "completed");
 
@@ -135,8 +143,11 @@ function BulkSMSContent() {
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
           <TabsTrigger value="all">All Campaigns</TabsTrigger>
-          <TabsTrigger value="pending">
-            Active ({pendingCampaigns.length})
+          <TabsTrigger value="active">
+            Active ({activeCampaigns.length})
+          </TabsTrigger>
+          <TabsTrigger value="scheduled">
+            Scheduled ({scheduledCampaigns.length})
           </TabsTrigger>
           <TabsTrigger value="completed">
             Completed ({completedCampaigns.length})
@@ -147,8 +158,12 @@ function BulkSMSContent() {
           <CampaignList campaigns={bulkMessages} onViewDetails={setDetailsId} />
         </TabsContent>
 
-        <TabsContent value="pending" className="space-y-4">
-          <CampaignList campaigns={pendingCampaigns} onViewDetails={setDetailsId} />
+        <TabsContent value="active" className="space-y-4">
+          <CampaignList campaigns={activeCampaigns} onViewDetails={setDetailsId} />
+        </TabsContent>
+
+        <TabsContent value="scheduled" className="space-y-4">
+          <CampaignList campaigns={scheduledCampaigns} onViewDetails={setDetailsId} />
         </TabsContent>
 
         <TabsContent value="completed" className="space-y-4">
@@ -292,6 +307,9 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recipients, setRecipients] = useState("");
   const [recipientCount, setRecipientCount] = useState(0);
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedTime, setSelectedTime] = useState("12:00");
 
   const handleRecipientsChange = (value: string) => {
     setRecipients(value);
@@ -318,14 +336,35 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
       return;
     }
 
+    let scheduledAt: number | undefined;
+    
+    if (isScheduled && selectedDate) {
+      const [hours, minutes] = selectedTime.split(":").map(Number);
+      const scheduledDateTime = set(selectedDate, { hours, minutes, seconds: 0, milliseconds: 0 });
+      
+      if (scheduledDateTime.getTime() <= Date.now()) {
+        toast.error("Scheduled time must be in the future");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      scheduledAt = scheduledDateTime.getTime();
+    }
+
     try {
       await createBulk({
         name: formData.get("name") as string,
         message: formData.get("message") as string,
         recipients: numbers,
         from: (formData.get("from") as string) || undefined,
+        scheduledAt,
       });
-      toast.success(`Bulk SMS campaign created with ${numbers.length} recipients`);
+      
+      const successMessage = isScheduled 
+        ? `Campaign scheduled for ${format(scheduledAt!, "PPP 'at' p")} with ${numbers.length} recipients`
+        : `Bulk SMS campaign created with ${numbers.length} recipients`;
+      
+      toast.success(successMessage);
       onSuccess();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create campaign");
@@ -361,6 +400,63 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
         <Input id="from" name="from" placeholder="SAYELE" />
       </div>
 
+      <div className="space-y-4 p-4 border rounded-lg">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="schedule">Schedule for Later</Label>
+            <p className="text-xs text-muted-foreground">
+              Send this campaign at a specific date and time
+            </p>
+          </div>
+          <Switch
+            id="schedule"
+            checked={isScheduled}
+            onCheckedChange={setIsScheduled}
+          />
+        </div>
+
+        {isScheduled && (
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="space-y-2">
+              <Label>Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="time">Time</Label>
+              <Input
+                id="time"
+                type="time"
+                value={selectedTime}
+                onChange={(e) => setSelectedTime(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="recipients">Recipients</Label>
         <Textarea
@@ -391,8 +487,15 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
       )}
 
       <DialogFooter>
-        <Button type="submit" disabled={isSubmitting || (client ? estimatedCost > client.credits : false)}>
-          {isSubmitting ? "Creating..." : "Create Campaign"}
+        <Button 
+          type="submit" 
+          disabled={
+            isSubmitting || 
+            (client ? estimatedCost > client.credits : false) ||
+            (isScheduled && !selectedDate)
+          }
+        >
+          {isSubmitting ? "Creating..." : isScheduled ? "Schedule Campaign" : "Create Campaign"}
         </Button>
       </DialogFooter>
     </form>

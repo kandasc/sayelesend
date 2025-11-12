@@ -36,14 +36,22 @@ export const createBulkMessage = mutation({
       });
     }
 
-    if (user.role !== "client" || !user.clientId) {
+    // Support test mode: admin can test as client
+    let clientId: Id<"clients"> | undefined;
+    if (user.role === "admin" && user.testModeClientId) {
+      clientId = user.testModeClientId;
+    } else if (user.role === "client" && user.clientId) {
+      clientId = user.clientId;
+    }
+    
+    if (!clientId) {
       throw new ConvexError({
         message: "User not associated with a client",
         code: "FORBIDDEN",
       });
     }
 
-    const client = await ctx.db.get(user.clientId);
+    const client = await ctx.db.get(clientId);
     if (!client) {
       throw new ConvexError({
         message: "Client not found",
@@ -84,13 +92,13 @@ export const createBulkMessage = mutation({
     }
 
     // Deduct credits upfront
-    await ctx.db.patch(user.clientId, {
+    await ctx.db.patch(clientId, {
       credits: client.credits - totalCost,
     });
 
     // Create bulk message record
     const bulkMessageId = await ctx.db.insert("bulkMessages", {
-      clientId: user.clientId,
+      clientId,
       name: args.name,
       message: args.message,
       from: args.from,
@@ -235,23 +243,30 @@ export const getBulkMessages = query({
       });
     }
 
-    // Admin can see all bulk messages
-    if (user.role === "admin") {
+    // Get clientId based on role and test mode
+    let clientId: Id<"clients"> | undefined;
+    if (user.role === "admin" && user.testModeClientId) {
+      clientId = user.testModeClientId;
+    } else if (user.role === "client" && user.clientId) {
+      clientId = user.clientId;
+    }
+
+    // Admin (not in test mode) can see all bulk messages
+    if (user.role === "admin" && !user.testModeClientId) {
       return await ctx.db
         .query("bulkMessages")
         .order("desc")
         .take(50);
     }
 
-    // Client users can only see their own bulk messages
-    if (user.role !== "client" || !user.clientId) {
-      // Return empty array for users without a client
+    // Client users or admin in test mode can only see their client's bulk messages
+    if (!clientId) {
       return [];
     }
 
     return await ctx.db
       .query("bulkMessages")
-      .withIndex("by_client", (q) => q.eq("clientId", user.clientId!))
+      .withIndex("by_client", (q) => q.eq("clientId", clientId!))
       .order("desc")
       .take(50);
   },
@@ -291,7 +306,16 @@ export const getBulkMessageDetails = query({
       });
     }
 
+    // Check access: admin has access to all, client/test mode only to their own
     if (user.role === "client" && user.clientId !== bulkMessage.clientId) {
+      throw new ConvexError({
+        message: "Access denied",
+        code: "FORBIDDEN",
+      });
+    }
+    
+    // Admin in test mode can only access their test client's campaigns
+    if (user.role === "admin" && user.testModeClientId && user.testModeClientId !== bulkMessage.clientId) {
       throw new ConvexError({
         message: "Access denied",
         code: "FORBIDDEN",
