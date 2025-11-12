@@ -124,6 +124,9 @@ export const createClient = mutation({
     phone: v.string(),
     credits: v.number(),
     smsProviderId: v.id("smsProviders"),
+    whatsappProviderId: v.optional(v.id("smsProviders")),
+    telegramProviderId: v.optional(v.id("smsProviders")),
+    facebookMessengerProviderId: v.optional(v.id("smsProviders")),
     webhookUrl: v.optional(v.string()),
     senderId: v.optional(v.string()),
     remoteId: v.optional(v.string()),
@@ -170,10 +173,17 @@ export const createClient = mutation({
       phone: args.phone,
       credits: args.credits,
       smsProviderId: args.smsProviderId,
+      whatsappProviderId: args.whatsappProviderId,
+      telegramProviderId: args.telegramProviderId,
+      facebookMessengerProviderId: args.facebookMessengerProviderId,
       status: "active",
       webhookUrl: args.webhookUrl,
       senderId: args.senderId,
       remoteId: args.remoteId,
+      smsCount: 0,
+      whatsappCount: 0,
+      telegramCount: 0,
+      facebookMessengerCount: 0,
     });
 
     return clientId;
@@ -189,6 +199,9 @@ export const updateClient = mutation({
     phone: v.optional(v.string()),
     credits: v.optional(v.number()),
     smsProviderId: v.optional(v.id("smsProviders")),
+    whatsappProviderId: v.optional(v.id("smsProviders")),
+    telegramProviderId: v.optional(v.id("smsProviders")),
+    facebookMessengerProviderId: v.optional(v.id("smsProviders")),
     status: v.optional(
       v.union(v.literal("active"), v.literal("suspended"), v.literal("inactive"))
     ),
@@ -234,6 +247,9 @@ export const updateClient = mutation({
       phone: string;
       credits: number;
       smsProviderId: Id<"smsProviders">;
+      whatsappProviderId: Id<"smsProviders"> | undefined;
+      telegramProviderId: Id<"smsProviders"> | undefined;
+      facebookMessengerProviderId: Id<"smsProviders"> | undefined;
       status: "active" | "suspended" | "inactive";
       webhookUrl: string;
       senderId: string;
@@ -247,6 +263,12 @@ export const updateClient = mutation({
     if (args.credits !== undefined) updates.credits = args.credits;
     if (args.smsProviderId !== undefined)
       updates.smsProviderId = args.smsProviderId;
+    if (args.whatsappProviderId !== undefined)
+      updates.whatsappProviderId = args.whatsappProviderId;
+    if (args.telegramProviderId !== undefined)
+      updates.telegramProviderId = args.telegramProviderId;
+    if (args.facebookMessengerProviderId !== undefined)
+      updates.facebookMessengerProviderId = args.facebookMessengerProviderId;
     if (args.status !== undefined) updates.status = args.status;
     if (args.webhookUrl !== undefined) {
       if (args.webhookUrl) {
@@ -370,12 +392,22 @@ export const getClientStats = query({
       0
     );
 
+    // Per-channel stats
+    const smsMessages = messages.filter((m) => !m.channel || m.channel === "sms");
+    const whatsappMessages = messages.filter((m) => m.channel === "whatsapp");
+    const telegramMessages = messages.filter((m) => m.channel === "telegram");
+    const facebookMessages = messages.filter((m) => m.channel === "facebook_messenger");
+
     return {
       totalSent,
       totalDelivered,
       totalFailed,
       totalCreditsUsed,
       totalMessages: messages.length,
+      smsCount: smsMessages.length,
+      whatsappCount: whatsappMessages.length,
+      telegramCount: telegramMessages.length,
+      facebookMessengerCount: facebookMessages.length,
     };
   },
 });

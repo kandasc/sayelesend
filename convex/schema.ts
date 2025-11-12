@@ -20,6 +20,9 @@ export default defineSchema({
     phone: v.string(),
     credits: v.number(),
     smsProviderId: v.id("smsProviders"),
+    whatsappProviderId: v.optional(v.id("smsProviders")),
+    telegramProviderId: v.optional(v.id("smsProviders")),
+    facebookMessengerProviderId: v.optional(v.id("smsProviders")),
     status: v.union(
       v.literal("active"),
       v.literal("suspended"),
@@ -28,6 +31,11 @@ export default defineSchema({
     webhookUrl: v.optional(v.string()),
     senderId: v.optional(v.string()),
     remoteId: v.optional(v.string()),
+    // Message counts per channel
+    smsCount: v.optional(v.number()),
+    whatsappCount: v.optional(v.number()),
+    telegramCount: v.optional(v.number()),
+    facebookMessengerCount: v.optional(v.number()),
   })
     .index("by_email", ["email"])
     .index("by_status", ["status"]),
