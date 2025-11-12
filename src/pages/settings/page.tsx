@@ -1,16 +1,13 @@
 import { Authenticated } from "convex/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import DashboardLayout from "@/components/dashboard-layout.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 
 export default function Settings() {
   return (
     <Authenticated>
-      <DashboardLayout>
-        <SettingsContent />
-      </DashboardLayout>
+      <SettingsContent />
     </Authenticated>
   );
 }

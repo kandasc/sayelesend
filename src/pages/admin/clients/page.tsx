@@ -1,7 +1,6 @@
 import { Authenticated } from "convex/react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import DashboardLayout from "@/components/dashboard-layout.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
@@ -32,9 +31,7 @@ import type { Id } from "@/convex/_generated/dataModel.d.ts";
 export default function AdminClients() {
   return (
     <Authenticated>
-      <DashboardLayout>
-        <ClientsContent />
-      </DashboardLayout>
+      <ClientsContent />
     </Authenticated>
   );
 }

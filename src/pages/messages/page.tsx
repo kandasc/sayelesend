@@ -2,7 +2,6 @@ import { Authenticated } from "convex/react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
-import DashboardLayout from "@/components/dashboard-layout.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -24,9 +23,7 @@ import { Label } from "@/components/ui/label.tsx";
 export default function Messages() {
   return (
     <Authenticated>
-      <DashboardLayout>
-        <MessagesContent />
-      </DashboardLayout>
+      <MessagesContent />
     </Authenticated>
   );
 }

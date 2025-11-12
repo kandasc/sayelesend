@@ -1,14 +1,11 @@
 import { Authenticated } from "convex/react";
-import DashboardLayout from "@/components/dashboard-layout.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { FileText } from "lucide-react";
 
 export default function Templates() {
   return (
     <Authenticated>
-      <DashboardLayout>
-        <TemplatesContent />
-      </DashboardLayout>
+      <TemplatesContent />
     </Authenticated>
   );
 }
