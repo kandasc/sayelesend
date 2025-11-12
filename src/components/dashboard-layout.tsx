@@ -206,6 +206,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <LogOut className="h-4 w-4 mr-2" />
             Sign Out
           </Button>
+          <div className="mt-4 pt-4 border-t text-center">
+            <a
+              href="https://sayele.co"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+            >
+              Developed by <span className="font-semibold text-primary">SAYELE</span>
+            </a>
+          </div>
         </div>
       </aside>
 
