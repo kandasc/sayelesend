@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { ConvexError } from "convex/values";
 import type { Id } from "./_generated/dataModel.d.ts";
+import { validateWebhookUrl } from "./lib/validation";
 
 export const getCurrentClient = query({
   args: {},
@@ -247,7 +248,12 @@ export const updateClient = mutation({
     if (args.smsProviderId !== undefined)
       updates.smsProviderId = args.smsProviderId;
     if (args.status !== undefined) updates.status = args.status;
-    if (args.webhookUrl !== undefined) updates.webhookUrl = args.webhookUrl;
+    if (args.webhookUrl !== undefined) {
+      if (args.webhookUrl) {
+        validateWebhookUrl(args.webhookUrl);
+      }
+      updates.webhookUrl = args.webhookUrl;
+    }
     if (args.senderId !== undefined) updates.senderId = args.senderId;
     if (args.remoteId !== undefined) updates.remoteId = args.remoteId;
 

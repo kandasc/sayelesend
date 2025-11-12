@@ -1,5 +1,5 @@
 import { Authenticated } from "convex/react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
@@ -297,7 +297,7 @@ function CreateApiKeyForm({
 }) {
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const createApiKey = useMutation(api.apiKeys.createApiKey);
+  const createApiKey = useAction(api.apiKeys.createApiKey);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

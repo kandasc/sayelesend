@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { ConvexError } from "convex/values";
+import { validatePhoneNumber, validateMessage, sanitizeMessage } from "./lib/validation";
 
 // Send a single SMS
 export const sendSms = mutation({
@@ -13,6 +14,11 @@ export const sendSms = mutation({
     clientId: v.optional(v.id("clients")),
   },
   handler: async (ctx, args) => {
+    // Validate inputs first
+    validatePhoneNumber(args.to);
+    validateMessage(args.message);
+    const sanitizedMessage = sanitizeMessage(args.message);
+
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({
@@ -104,7 +110,7 @@ export const sendSms = mutation({
       clientId: clientId,
       to: args.to,
       from: client.senderId || args.from || provider.config.senderId || "SAYELE",
-      message: args.message,
+      message: sanitizedMessage,
       status: args.scheduledAt ? "scheduled" : "pending",
       providerId: client.smsProviderId,
       scheduledAt: args.scheduledAt,
@@ -374,6 +380,11 @@ export const sendSmsViaApi = mutation({
     scheduledAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Validate inputs
+    validatePhoneNumber(args.to);
+    validateMessage(args.message);
+    const sanitizedMessage = sanitizeMessage(args.message);
+
     const client = await ctx.db.get(args.clientId);
     if (!client) {
       throw new ConvexError({
@@ -419,7 +430,7 @@ export const sendSmsViaApi = mutation({
       clientId: args.clientId,
       to: args.to,
       from: args.from || provider.config.senderId || "SAYELE",
-      message: args.message,
+      message: sanitizedMessage,
       status: args.scheduledAt ? "scheduled" : "pending",
       providerId: client.smsProviderId,
       scheduledAt: args.scheduledAt,

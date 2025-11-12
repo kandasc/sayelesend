@@ -1,16 +1,8 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, action } from "./_generated/server";
 import { ConvexError } from "convex/values";
-
-function generateApiKey(): string {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let key = "sk_";
-  for (let i = 0; i < 32; i++) {
-    key += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return key;
-}
+import { internal, api } from "./_generated/api";
+import type { Id } from "./_generated/dataModel.d.ts";
 
 export const listApiKeys = query({
   args: { clientId: v.optional(v.id("clients")) },
@@ -68,12 +60,12 @@ export const listApiKeys = query({
   },
 });
 
-export const createApiKey = mutation({
+export const createApiKey = action({
   args: {
     name: v.string(),
     clientId: v.optional(v.id("clients")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ id: Id<"apiKeys">; key: string }> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({
@@ -82,12 +74,9 @@ export const createApiKey = mutation({
       });
     }
 
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_token", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
-      .unique();
+    const user = await ctx.runQuery(api.apiKeys.getUserForKeyCreation, {
+      tokenIdentifier: identity.tokenIdentifier,
+    });
 
     if (!user) {
       throw new ConvexError({
@@ -120,28 +109,90 @@ export const createApiKey = mutation({
       });
     }
 
-    let apiKey = generateApiKey();
-    let existing = await ctx.db
-      .query("apiKeys")
-      .withIndex("by_key", (q) => q.eq("key", apiKey))
-      .unique();
+    // Generate cryptographically secure API key
+    let apiKey: string = await ctx.runAction(internal.lib.keyGeneration.generateApiKey, {});
+    let existing: boolean = await ctx.runQuery(api.apiKeys.checkKeyExists, { key: apiKey });
 
+    // Retry if collision (extremely unlikely with 256-bit entropy)
     while (existing) {
-      apiKey = generateApiKey();
-      existing = await ctx.db
-        .query("apiKeys")
-        .withIndex("by_key", (q) => q.eq("key", apiKey))
-        .unique();
+      apiKey = await ctx.runAction(internal.lib.keyGeneration.generateApiKey, {});
+      existing = await ctx.runQuery(api.apiKeys.checkKeyExists, { key: apiKey });
     }
 
-    const apiKeyId = await ctx.db.insert("apiKeys", {
-      clientId: clientId,
+    const result: { id: Id<"apiKeys">; key: string } = await ctx.runMutation(api.apiKeys.insertApiKey, {
+      clientId: clientId as Id<"clients">,
       key: apiKey,
+      name: args.name,
+    });
+
+    return result;
+  },
+});
+
+export const getUserForKeyCreation = query({
+  args: { tokenIdentifier: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", args.tokenIdentifier))
+      .unique();
+  },
+});
+
+export const getUserForKeyCreationInternal = query({
+  args: { tokenIdentifier: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", args.tokenIdentifier))
+      .unique();
+  },
+});
+
+export const checkKeyExists = query({
+  args: { key: v.string() },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("apiKeys")
+      .withIndex("by_key", (q) => q.eq("key", args.key))
+      .unique();
+    return existing !== null;
+  },
+});
+
+export const insertApiKeyInternal = mutation({
+  args: {
+    clientId: v.id("clients"),
+    key: v.string(),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const apiKeyId = await ctx.db.insert("apiKeys", {
+      clientId: args.clientId,
+      key: args.key,
       name: args.name,
       isActive: true,
     });
 
-    return { id: apiKeyId, key: apiKey };
+    return { id: apiKeyId, key: args.key };
+  },
+});
+
+export const insertApiKey = mutation({
+  args: {
+    clientId: v.id("clients"),
+    key: v.string(),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const apiKeyId = await ctx.db.insert("apiKeys", {
+      clientId: args.clientId,
+      key: args.key,
+      name: args.name,
+      isActive: true,
+    });
+
+    return { id: apiKeyId, key: args.key };
   },
 });
 

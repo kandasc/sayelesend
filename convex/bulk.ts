@@ -3,6 +3,7 @@ import { mutation, query, internalMutation, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { ConvexError } from "convex/values";
 import type { Id } from "./_generated/dataModel.d.ts";
+import { validateBulkRecipients, validateMessage, sanitizeMessage } from "./lib/validation";
 
 // Create a bulk SMS campaign
 export const createBulkMessage = mutation({
@@ -14,6 +15,11 @@ export const createBulkMessage = mutation({
     scheduledAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Validate inputs first
+    validateBulkRecipients(args.recipients, 10000);
+    validateMessage(args.message);
+    const sanitizedMessage = sanitizeMessage(args.message);
+
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({
@@ -100,7 +106,7 @@ export const createBulkMessage = mutation({
     const bulkMessageId = await ctx.db.insert("bulkMessages", {
       clientId,
       name: args.name,
-      message: args.message,
+      message: sanitizedMessage,
       from: args.from,
       totalRecipients,
       sentCount: 0,

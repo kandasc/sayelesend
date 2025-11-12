@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,10 +9,17 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarIcon, TrendingUp, TrendingDown, Activity, CheckCircle, XCircle, Clock, BarChart3 } from "lucide-react";
-import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { CalendarIcon, TrendingUp, TrendingDown, Activity, CheckCircle, XCircle, Clock, BarChart3, Download, FileSpreadsheet, FileText } from "lucide-react";
+import { format as formatDate, subDays, startOfDay, endOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -61,6 +68,96 @@ export default function ReportsPage() {
 
   const isAdmin = currentUser?.role === "admin";
 
+  const exportCSV = useAction(api.reports.exportReportCSV);
+  const exportExcel = useAction(api.reports.exportReportExcel);
+  const exportPDF = useAction(api.reports.exportReportPDF);
+
+  const handleDownload = async (format: "csv" | "excel" | "pdf") => {
+    try {
+      toast.loading(`Generating ${format.toUpperCase()} report...`);
+      
+      let result;
+      let filename;
+      let mimeType;
+      
+      if (format === "csv") {
+        result = await exportCSV({
+          startDate,
+          endDate,
+          clientId: selectedClientId,
+        });
+        filename = `report_${formatDate(dateRange.from, "yyyy-MM-dd")}_${formatDate(dateRange.to, "yyyy-MM-dd")}.csv`;
+        mimeType = "text/csv";
+        
+        // Create download link for CSV
+        const blob = new Blob([result], { type: mimeType });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } else if (format === "excel") {
+        result = await exportExcel({
+          startDate,
+          endDate,
+          clientId: selectedClientId,
+        });
+        filename = `report_${formatDate(dateRange.from, "yyyy-MM-dd")}_${formatDate(dateRange.to, "yyyy-MM-dd")}.xlsx`;
+        mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        
+        // Convert base64 to blob
+        const binaryString = atob(result);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: mimeType });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } else if (format === "pdf") {
+        result = await exportPDF({
+          startDate,
+          endDate,
+          clientId: selectedClientId,
+        });
+        filename = `report_${formatDate(dateRange.from, "yyyy-MM-dd")}_${formatDate(dateRange.to, "yyyy-MM-dd")}.pdf`;
+        mimeType = "application/pdf";
+        
+        // Convert base64 to blob
+        const binaryString = atob(result);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: mimeType });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }
+      
+      toast.dismiss();
+      toast.success(`${format.toUpperCase()} report downloaded successfully`);
+    } catch (error) {
+      toast.dismiss();
+      const errorMessage = error instanceof Error ? error.message : "Failed to download report";
+      toast.error(errorMessage);
+    }
+  };
+
   if (currentUser === undefined) {
     return (
       <div className="space-y-6">
@@ -95,6 +192,28 @@ export default function ReportsPage() {
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Export Report
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleDownload("csv")}>
+                <FileText className="mr-2 h-4 w-4" />
+                Download CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDownload("excel")}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Download Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDownload("pdf")}>
+                <FileText className="mr-2 h-4 w-4" />
+                Download PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {isAdmin && clients && (
             <Select
               value={selectedClientId || "all"}
@@ -118,7 +237,7 @@ export default function ReportsPage() {
             <PopoverTrigger asChild>
               <Button variant="outline" className={cn("w-[280px] justify-start text-left font-normal")}>
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
+                {formatDate(dateRange.from, "LLL dd, y")} - {formatDate(dateRange.to, "LLL dd, y")}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">

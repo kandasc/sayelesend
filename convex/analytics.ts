@@ -401,3 +401,74 @@ export const getClientUsageStats = query({
     return clientStats.sort((a, b) => b.totalMessages - a.totalMessages);
   },
 });
+
+// Get messages for export (with provider names)
+export const getMessagesForExport = query({
+  args: {
+    startDate: v.number(),
+    endDate: v.number(),
+    clientId: v.optional(v.id("clients")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "User not logged in",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user) {
+      throw new ConvexError({
+        message: "User not found",
+        code: "NOT_FOUND",
+      });
+    }
+
+    // Build query based on user role
+    let messages;
+    
+    if (user.role === "client" && user.clientId) {
+      const clientId = user.clientId;
+      messages = await ctx.db
+        .query("messages")
+        .withIndex("by_client", (q) => q.eq("clientId", clientId))
+        .collect();
+    } else if (user.role === "admin" && args.clientId) {
+      const clientId = args.clientId;
+      messages = await ctx.db
+        .query("messages")
+        .withIndex("by_client", (q) => q.eq("clientId", clientId))
+        .collect();
+    } else if (user.role === "admin") {
+      messages = await ctx.db.query("messages").collect();
+    } else {
+      return [];
+    }
+
+    // Filter by date range
+    const filteredMessages = messages.filter((msg) => {
+      return msg._creationTime >= args.startDate && msg._creationTime <= args.endDate;
+    });
+
+    // Enrich with provider names
+    const enrichedMessages = await Promise.all(
+      filteredMessages.map(async (msg) => {
+        const provider = await ctx.db.get(msg.providerId);
+        return {
+          ...msg,
+          providerName: provider?.name || "Unknown",
+        };
+      })
+    );
+
+    return enrichedMessages;
+  },
+});
