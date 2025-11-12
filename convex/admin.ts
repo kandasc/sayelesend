@@ -11,6 +11,9 @@ export const createClientWithAdmin = mutation({
     phone: v.string(),
     credits: v.number(),
     smsProviderId: v.id("smsProviders"),
+    whatsappProviderId: v.optional(v.id("smsProviders")),
+    telegramProviderId: v.optional(v.id("smsProviders")),
+    facebookMessengerProviderId: v.optional(v.id("smsProviders")),
     webhookUrl: v.optional(v.string()),
     adminEmail: v.string(),
     adminName: v.string(),
@@ -61,10 +64,17 @@ export const createClientWithAdmin = mutation({
       phone: args.phone,
       credits: args.credits,
       smsProviderId: args.smsProviderId,
+      whatsappProviderId: args.whatsappProviderId,
+      telegramProviderId: args.telegramProviderId,
+      facebookMessengerProviderId: args.facebookMessengerProviderId,
       status: "active",
       webhookUrl: args.webhookUrl,
       senderId: args.senderId,
       remoteId: args.remoteId,
+      smsCount: 0,
+      whatsappCount: 0,
+      telegramCount: 0,
+      facebookMessengerCount: 0,
     });
 
     return {

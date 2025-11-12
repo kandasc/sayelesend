@@ -109,13 +109,37 @@ function ClientsContent() {
                         <p className="font-medium">{client.phone}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Provider</p>
+                        <p className="text-muted-foreground">SMS Provider</p>
                         <p className="font-medium">{provider?.name || "N/A"}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Credits</p>
                         <p className="font-medium text-lg">{client.credits.toLocaleString()}</p>
                       </div>
+                      {client.whatsappProviderId && (
+                        <div>
+                          <p className="text-muted-foreground">WhatsApp</p>
+                          <p className="font-medium">
+                            {providers.find((p) => p._id === client.whatsappProviderId)?.name || "N/A"}
+                          </p>
+                        </div>
+                      )}
+                      {client.telegramProviderId && (
+                        <div>
+                          <p className="text-muted-foreground">Telegram</p>
+                          <p className="font-medium">
+                            {providers.find((p) => p._id === client.telegramProviderId)?.name || "N/A"}
+                          </p>
+                        </div>
+                      )}
+                      {client.facebookMessengerProviderId && (
+                        <div>
+                          <p className="text-muted-foreground">Facebook Messenger</p>
+                          <p className="font-medium">
+                            {providers.find((p) => p._id === client.facebookMessengerProviderId)?.name || "N/A"}
+                          </p>
+                        </div>
+                      )}
                       <div>
                         <p className="text-muted-foreground">Created</p>
                         <p className="font-medium">
@@ -166,7 +190,7 @@ function CreateClientForm({
   providers,
   onSuccess,
 }: {
-  providers: Array<{ _id: Id<"smsProviders">; name: string }>;
+  providers: Array<{ _id: Id<"smsProviders">; name: string; channel?: "sms" | "whatsapp" | "telegram" | "facebook_messenger" }>;
   onSuccess: () => void;
 }) {
   const createClient = useMutation(api.admin.createClientWithAdmin);
@@ -178,6 +202,10 @@ function CreateClientForm({
 
     const formData = new FormData(e.currentTarget);
     try {
+      const whatsappId = formData.get("whatsappProviderId") as string;
+      const telegramId = formData.get("telegramProviderId") as string;
+      const facebookId = formData.get("facebookMessengerProviderId") as string;
+
       const result = await createClient({
         companyName: formData.get("companyName") as string,
         contactName: formData.get("contactName") as string,
@@ -185,6 +213,9 @@ function CreateClientForm({
         phone: formData.get("phone") as string,
         credits: Number(formData.get("credits")),
         smsProviderId: formData.get("providerId") as Id<"smsProviders">,
+        whatsappProviderId: whatsappId && whatsappId !== "none" ? whatsappId as Id<"smsProviders"> : undefined,
+        telegramProviderId: telegramId && telegramId !== "none" ? telegramId as Id<"smsProviders"> : undefined,
+        facebookMessengerProviderId: facebookId && facebookId !== "none" ? facebookId as Id<"smsProviders"> : undefined,
         webhookUrl: (formData.get("webhookUrl") as string) || undefined,
         senderId: (formData.get("senderId") as string) || undefined,
         remoteId: (formData.get("remoteId") as string) || undefined,
@@ -224,25 +255,77 @@ function CreateClientForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="credits">Initial Credits</Label>
-          <Input id="credits" name="credits" type="number" min="0" defaultValue="100" required />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="providerId">SMS Provider</Label>
-          <Select name="providerId" required>
-            <SelectTrigger>
-              <SelectValue placeholder="Select provider" />
-            </SelectTrigger>
-            <SelectContent>
-              {providers.map((p) => (
-                <SelectItem key={p._id} value={p._id}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="space-y-2">
+        <Label htmlFor="credits">Initial Credits</Label>
+        <Input id="credits" name="credits" type="number" min="0" defaultValue="100" required />
+      </div>
+
+      <div className="border-t pt-4">
+        <h3 className="font-semibold mb-4">Channel Providers</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="providerId">SMS Provider *</Label>
+            <Select name="providerId" required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select SMS provider" />
+              </SelectTrigger>
+              <SelectContent>
+                {providers.filter((p) => !p.channel || p.channel === "sms").map((p) => (
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="whatsappProviderId">WhatsApp Provider</Label>
+            <Select name="whatsappProviderId">
+              <SelectTrigger>
+                <SelectValue placeholder="Select WhatsApp provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {providers.filter((p) => p.channel === "whatsapp").map((p) => (
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="telegramProviderId">Telegram Provider</Label>
+            <Select name="telegramProviderId">
+              <SelectTrigger>
+                <SelectValue placeholder="Select Telegram provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {providers.filter((p) => p.channel === "telegram").map((p) => (
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="facebookMessengerProviderId">Facebook Messenger Provider</Label>
+            <Select name="facebookMessengerProviderId">
+              <SelectTrigger>
+                <SelectValue placeholder="Select Messenger provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {providers.filter((p) => p.channel === "facebook_messenger").map((p) => (
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -300,7 +383,7 @@ function EditClientForm({
   onSuccess,
 }: {
   clientId: Id<"clients">;
-  providers: Array<{ _id: Id<"smsProviders">; name: string }>;
+  providers: Array<{ _id: Id<"smsProviders">; name: string; channel?: "sms" | "whatsapp" | "telegram" | "facebook_messenger" }>;
   onSuccess: () => void;
 }) {
   const client = useQuery(api.clients.getClient, { clientId });
@@ -317,6 +400,10 @@ function EditClientForm({
 
     const formData = new FormData(e.currentTarget);
     try {
+      const whatsappId = formData.get("whatsappProviderId") as string;
+      const telegramId = formData.get("telegramProviderId") as string;
+      const facebookId = formData.get("facebookMessengerProviderId") as string;
+
       await updateClient({
         clientId,
         companyName: formData.get("companyName") as string,
@@ -324,6 +411,9 @@ function EditClientForm({
         email: formData.get("email") as string,
         phone: formData.get("phone") as string,
         smsProviderId: formData.get("providerId") as Id<"smsProviders">,
+        whatsappProviderId: whatsappId && whatsappId !== "none" ? whatsappId as Id<"smsProviders"> : undefined,
+        telegramProviderId: telegramId && telegramId !== "none" ? telegramId as Id<"smsProviders"> : undefined,
+        facebookMessengerProviderId: facebookId && facebookId !== "none" ? facebookId as Id<"smsProviders"> : undefined,
         status: formData.get("status") as "active" | "suspended" | "inactive",
         webhookUrl: (formData.get("webhookUrl") as string) || undefined,
         senderId: (formData.get("senderId") as string) || undefined,
@@ -362,34 +452,86 @@ function EditClientForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
-          <Select name="status" defaultValue={client.status} required>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="suspended">Suspended</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="providerId">SMS Provider</Label>
-          <Select name="providerId" defaultValue={client.smsProviderId} required>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {providers.map((p) => (
-                <SelectItem key={p._id} value={p._id}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="space-y-2">
+        <Label htmlFor="status">Status</Label>
+        <Select name="status" defaultValue={client.status} required>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="suspended">Suspended</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="border-t pt-4">
+        <h3 className="font-semibold mb-4">Channel Providers</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="providerId">SMS Provider *</Label>
+            <Select name="providerId" defaultValue={client.smsProviderId} required>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {providers.filter((p) => !p.channel || p.channel === "sms").map((p) => (
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="whatsappProviderId">WhatsApp Provider</Label>
+            <Select name="whatsappProviderId" defaultValue={client.whatsappProviderId || "none"}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {providers.filter((p) => p.channel === "whatsapp").map((p) => (
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="telegramProviderId">Telegram Provider</Label>
+            <Select name="telegramProviderId" defaultValue={client.telegramProviderId || "none"}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {providers.filter((p) => p.channel === "telegram").map((p) => (
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="facebookMessengerProviderId">Facebook Messenger Provider</Label>
+            <Select name="facebookMessengerProviderId" defaultValue={client.facebookMessengerProviderId || "none"}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {providers.filter((p) => p.channel === "facebook_messenger").map((p) => (
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
