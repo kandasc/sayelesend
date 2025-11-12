@@ -14,6 +14,7 @@ import type * as apiKeys from "../apiKeys.js";
 import type * as bulk from "../bulk.js";
 import type * as clients from "../clients.js";
 import type * as http from "../http.js";
+import type * as incomingMessages from "../incomingMessages.js";
 import type * as messages from "../messages.js";
 import type * as providers from "../providers.js";
 import type * as sms_queries from "../sms/queries.js";
@@ -22,6 +23,8 @@ import type * as sms_webhooks from "../sms/webhooks.js";
 import type * as templates from "../templates.js";
 import type * as testMode from "../testMode.js";
 import type * as users from "../users.js";
+import type * as webhookActions from "../webhookActions.js";
+import type * as webhookEvents from "../webhookEvents.js";
 
 import type {
   ApiFromModules,
@@ -44,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   bulk: typeof bulk;
   clients: typeof clients;
   http: typeof http;
+  incomingMessages: typeof incomingMessages;
   messages: typeof messages;
   providers: typeof providers;
   "sms/queries": typeof sms_queries;
@@ -52,6 +56,8 @@ declare const fullApi: ApiFromModules<{
   templates: typeof templates;
   testMode: typeof testMode;
   users: typeof users;
+  webhookActions: typeof webhookActions;
+  webhookEvents: typeof webhookEvents;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

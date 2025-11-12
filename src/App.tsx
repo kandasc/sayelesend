@@ -11,6 +11,8 @@ import ApiKeys from "./pages/api-keys/page.tsx";
 import Settings from "./pages/settings/page.tsx";
 import BulkSMS from "./pages/bulk/page.tsx";
 import Reports from "./pages/reports/page.tsx";
+import IncomingMessages from "./pages/incoming/page.tsx";
+import Webhooks from "./pages/webhooks/page.tsx";
 import AdminAnalytics from "./pages/admin/analytics/page.tsx";
 import AdminClients from "./pages/admin/clients/page.tsx";
 import AdminUsers from "./pages/admin/users/page.tsx";
@@ -24,8 +26,10 @@ export default function App() {
           <Route path="/" element={<Index />} />
           <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
           <Route path="/messages" element={<DashboardLayout><Messages /></DashboardLayout>} />
+          <Route path="/incoming" element={<DashboardLayout><IncomingMessages /></DashboardLayout>} />
           <Route path="/bulk" element={<DashboardLayout><BulkSMS /></DashboardLayout>} />
           <Route path="/templates" element={<DashboardLayout><Templates /></DashboardLayout>} />
+          <Route path="/webhooks" element={<DashboardLayout><Webhooks /></DashboardLayout>} />
           <Route path="/reports" element={<DashboardLayout><Reports /></DashboardLayout>} />
           <Route path="/api-keys" element={<DashboardLayout><ApiKeys /></DashboardLayout>} />
           <Route path="/settings" element={<DashboardLayout><Settings /></DashboardLayout>} />

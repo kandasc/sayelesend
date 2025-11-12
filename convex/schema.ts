@@ -141,4 +141,44 @@ export default defineSchema({
   })
     .index("by_client", ["clientId"])
     .index("by_key", ["key"]),
+
+  incomingMessages: defineTable({
+    clientId: v.id("clients"),
+    from: v.string(),
+    to: v.string(),
+    message: v.string(),
+    providerId: v.id("smsProviders"),
+    providerMessageId: v.optional(v.string()),
+    receivedAt: v.number(),
+    processed: v.boolean(),
+  })
+    .index("by_client", ["clientId"])
+    .index("by_processed", ["processed"])
+    .index("by_client_and_received", ["clientId", "receivedAt"]),
+
+  webhookEvents: defineTable({
+    clientId: v.id("clients"),
+    eventType: v.union(
+      v.literal("message.sent"),
+      v.literal("message.delivered"),
+      v.literal("message.failed"),
+      v.literal("message.received")
+    ),
+    messageId: v.optional(v.id("messages")),
+    incomingMessageId: v.optional(v.id("incomingMessages")),
+    payload: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("success"),
+      v.literal("failed")
+    ),
+    attempts: v.number(),
+    lastAttemptAt: v.optional(v.number()),
+    nextRetryAt: v.optional(v.number()),
+    responseCode: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+  })
+    .index("by_client", ["clientId"])
+    .index("by_status", ["status"])
+    .index("by_next_retry", ["nextRetryAt"]),
 });
