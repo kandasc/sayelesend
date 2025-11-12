@@ -1,9 +1,9 @@
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import Logo from "@/components/logo.tsx";
-import { MessageSquare, TrendingUp, Shield, Zap, BarChart3, Globe, Users } from "lucide-react";
+import { MessageSquare, TrendingUp, Shield, Zap, BarChart3, Globe, Users, BookOpen } from "lucide-react";
 
 export default function Index() {
   return (
@@ -40,12 +40,18 @@ function LandingPage() {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Powerful SMS API platform for businesses. Send messages, track delivery, and manage your communications with advanced analytics and multi-provider support.
           </p>
-          <div className="flex gap-4 justify-center mt-8">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
             <SignInButton>
               <button className="px-8 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors">
                 Get Started
               </button>
             </SignInButton>
+            <Link to="/docs">
+              <button className="px-8 py-3 bg-secondary text-secondary-foreground rounded-lg font-semibold hover:bg-secondary/80 transition-colors flex items-center gap-2 justify-center w-full">
+                <BookOpen className="h-5 w-5" />
+                API Documentation
+              </button>
+            </Link>
           </div>
         </div>
 
