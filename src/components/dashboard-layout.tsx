@@ -106,7 +106,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Button
             variant="ghost"
             className="w-full justify-start"
-            onClick={() => signoutRedirect()}
+            onClick={async () => {
+              try {
+                await signoutRedirect();
+              } catch (error) {
+                console.error("Sign out error:", error);
+                window.location.href = "/";
+              }
+            }}
           >
             <LogOut className="h-4 w-4 mr-2" />
             Sign Out

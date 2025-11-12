@@ -13,6 +13,9 @@ const AUTH_CONFIG: AuthProviderProps = {
   redirect_uri:
     import.meta.env.VITE_HERCULES_OIDC_REDIRECT_URI ??
     `${window.location.origin}/auth/callback`,
+  post_logout_redirect_uri: `${window.location.origin}/`,
+  automaticSilentRenew: false,
+  monitorSession: false,
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -20,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.history.replaceState({}, document.title, window.location.pathname);
   }, []);
   const onSignoutCallback = useCallback(() => {
-    window.location.pathname = "";
+    window.location.href = "/";
   }, []);
 
   return (
