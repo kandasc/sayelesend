@@ -16,6 +16,8 @@ import {
   Send,
   TestTube2,
   Webhook,
+  UserPlus,
+  Folders,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
@@ -45,6 +47,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { path: "/messages", label: "Outgoing", icon: <MessageSquare className="h-5 w-5" /> },
     { path: "/incoming", label: "Incoming", icon: <MessageSquare className="h-5 w-5" /> },
     { path: "/bulk", label: "Bulk SMS", icon: <Send className="h-5 w-5" /> },
+    { path: "/contacts", label: "Contacts", icon: <UserPlus className="h-5 w-5" /> },
+    { path: "/groups", label: "Groups", icon: <Folders className="h-5 w-5" /> },
     { path: "/templates", label: "Templates", icon: <FileText className="h-5 w-5" /> },
     { path: "/webhooks", label: "Webhooks", icon: <Webhook className="h-5 w-5" /> },
     { path: "/reports", label: "Reports", icon: <BarChart3 className="h-5 w-5" /> },

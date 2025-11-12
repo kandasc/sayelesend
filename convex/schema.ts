@@ -219,4 +219,36 @@ export default defineSchema({
     .index("by_client", ["clientId"])
     .index("by_status", ["status"])
     .index("by_next_retry", ["nextRetryAt"]),
+
+  contacts: defineTable({
+    clientId: v.id("clients"),
+    phoneNumber: v.string(),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    email: v.optional(v.string()),
+    tags: v.array(v.string()),
+    customFields: v.optional(v.string()),
+    isOptedOut: v.boolean(),
+    optedOutAt: v.optional(v.number()),
+    lastMessagedAt: v.optional(v.number()),
+  })
+    .index("by_client", ["clientId"])
+    .index("by_client_and_phone", ["clientId", "phoneNumber"])
+    .index("by_opted_out", ["isOptedOut"]),
+
+  contactGroups: defineTable({
+    clientId: v.id("clients"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    contactCount: v.number(),
+  })
+    .index("by_client", ["clientId"]),
+
+  contactGroupMembers: defineTable({
+    groupId: v.id("contactGroups"),
+    contactId: v.id("contacts"),
+  })
+    .index("by_group", ["groupId"])
+    .index("by_contact", ["contactId"])
+    .index("by_group_and_contact", ["groupId", "contactId"]),
 });

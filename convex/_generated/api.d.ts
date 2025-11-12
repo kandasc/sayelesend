@@ -13,6 +13,8 @@ import type * as analytics from "../analytics.js";
 import type * as apiKeys from "../apiKeys.js";
 import type * as bulk from "../bulk.js";
 import type * as clients from "../clients.js";
+import type * as contactGroups from "../contactGroups.js";
+import type * as contacts from "../contacts.js";
 import type * as http from "../http.js";
 import type * as incomingMessages from "../incomingMessages.js";
 import type * as lib_keyGeneration from "../lib/keyGeneration.js";
@@ -50,6 +52,8 @@ declare const fullApi: ApiFromModules<{
   apiKeys: typeof apiKeys;
   bulk: typeof bulk;
   clients: typeof clients;
+  contactGroups: typeof contactGroups;
+  contacts: typeof contacts;
   http: typeof http;
   incomingMessages: typeof incomingMessages;
   "lib/keyGeneration": typeof lib_keyGeneration;

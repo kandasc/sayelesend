@@ -17,6 +17,8 @@ import AdminAnalytics from "./pages/admin/analytics/page.tsx";
 import AdminClients from "./pages/admin/clients/page.tsx";
 import AdminUsers from "./pages/admin/users/page.tsx";
 import AdminProviders from "./pages/admin/providers/page.tsx";
+import Contacts from "./pages/contacts/page.tsx";
+import Groups from "./pages/groups/page.tsx";
 
 export default function App() {
   return (
@@ -28,6 +30,8 @@ export default function App() {
           <Route path="/messages" element={<DashboardLayout><Messages /></DashboardLayout>} />
           <Route path="/incoming" element={<DashboardLayout><IncomingMessages /></DashboardLayout>} />
           <Route path="/bulk" element={<DashboardLayout><BulkSMS /></DashboardLayout>} />
+          <Route path="/contacts" element={<DashboardLayout><Contacts /></DashboardLayout>} />
+          <Route path="/groups" element={<DashboardLayout><Groups /></DashboardLayout>} />
           <Route path="/templates" element={<DashboardLayout><Templates /></DashboardLayout>} />
           <Route path="/webhooks" element={<DashboardLayout><Webhooks /></DashboardLayout>} />
           <Route path="/reports" element={<DashboardLayout><Reports /></DashboardLayout>} />

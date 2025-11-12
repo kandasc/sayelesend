@@ -174,7 +174,8 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
     try {
       await createProvider({
         name: formData.get("name") as string,
-        type: providerType as "twilio" | "vonage" | "africas_talking" | "mtarget" | "custom",
+        type: providerType as "twilio" | "vonage" | "africas_talking" | "mtarget" | "whatsapp" | "telegram" | "facebook_messenger" | "custom",
+        channel: "sms",
         costPerSms: Number(formData.get("costPerSms")),
         isActive: formData.get("isActive") === "on",
         config,
