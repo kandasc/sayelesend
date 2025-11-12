@@ -52,8 +52,8 @@ function ProvidersContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">SMS Providers</h1>
-          <p className="text-muted-foreground">Manage SMS gateway providers</p>
+          <h1 className="text-3xl font-bold">Messaging Providers</h1>
+          <p className="text-muted-foreground">Manage SMS, WhatsApp, Telegram, and Facebook Messenger providers</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
@@ -62,9 +62,9 @@ function ProvidersContent() {
               Add Provider
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add SMS Provider</DialogTitle>
+              <DialogTitle>Add Messaging Provider</DialogTitle>
             </DialogHeader>
             <CreateProviderForm onSuccess={() => setCreateOpen(false)} />
           </DialogContent>
@@ -86,6 +86,11 @@ function ProvidersContent() {
                   <p className="text-sm text-muted-foreground capitalize">
                     Type: {provider.type.replace("_", " ")}
                   </p>
+                  {provider.channel && (
+                    <p className="text-sm text-muted-foreground capitalize">
+                      Channel: {provider.channel.replace("_", " ")}
+                    </p>
+                  )}
                 </div>
                 <Button
                   variant="outline"
@@ -146,6 +151,8 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
     const config: Record<string, string> = {};
 
     // Build config based on provider type
+    let channel: "sms" | "whatsapp" | "telegram" | "facebook_messenger" = "sms";
+
     if (providerType === "twilio") {
       config.accountSid = formData.get("accountSid") as string;
       config.authToken = formData.get("authToken") as string;
@@ -165,6 +172,22 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
       config.serviceId = formData.get("serviceId") as string;
       config.remoteId = formData.get("remoteId") as string;
       config.uniqueId = formData.get("uniqueId") as string;
+    } else if (providerType === "whatsapp") {
+      channel = "whatsapp";
+      config.phoneNumberId = formData.get("phoneNumberId") as string;
+      config.businessAccountId = formData.get("businessAccountId") as string;
+      config.accessToken = formData.get("accessToken") as string;
+      config.senderId = formData.get("senderId") as string;
+    } else if (providerType === "telegram") {
+      channel = "telegram";
+      config.botToken = formData.get("botToken") as string;
+      config.senderId = formData.get("senderId") as string;
+    } else if (providerType === "facebook_messenger") {
+      channel = "facebook_messenger";
+      config.pageAccessToken = formData.get("pageAccessToken") as string;
+      config.pageId = formData.get("pageId") as string;
+      config.appSecret = formData.get("appSecret") as string;
+      config.senderId = formData.get("senderId") as string;
     } else {
       config.endpoint = formData.get("endpoint") as string;
       config.apiKey = formData.get("apiKey") as string;
@@ -175,7 +198,7 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
       await createProvider({
         name: formData.get("name") as string,
         type: providerType as "twilio" | "vonage" | "africas_talking" | "mtarget" | "whatsapp" | "telegram" | "facebook_messenger" | "custom",
-        channel: "sms",
+        channel,
         costPerSms: Number(formData.get("costPerSms")),
         isActive: formData.get("isActive") === "on",
         config,
@@ -207,6 +230,9 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
               <SelectItem value="vonage">Vonage</SelectItem>
               <SelectItem value="africas_talking">Africa's Talking</SelectItem>
               <SelectItem value="mtarget">MTarget</SelectItem>
+              <SelectItem value="whatsapp">WhatsApp Business API</SelectItem>
+              <SelectItem value="telegram">Telegram Bot</SelectItem>
+              <SelectItem value="facebook_messenger">Facebook Messenger</SelectItem>
               <SelectItem value="custom">Custom</SelectItem>
             </SelectContent>
           </Select>
@@ -301,6 +327,89 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
               <p className="text-xs text-blue-800 dark:text-blue-200">
                 MTarget will send DLR callbacks with Status codes: 3=delivered, 4=refused, 6=not delivered
               </p>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {providerType === "whatsapp" && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="phoneNumberId">Phone Number ID</Label>
+            <Input id="phoneNumberId" name="phoneNumberId" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="businessAccountId">Business Account ID</Label>
+            <Input id="businessAccountId" name="businessAccountId" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="accessToken">Access Token</Label>
+            <Input id="accessToken" name="accessToken" type="password" required />
+          </div>
+          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+            <CardContent className="pt-4">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                WhatsApp Configuration Guide
+              </p>
+              <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                <li>1. Create a WhatsApp Business Account at business.facebook.com</li>
+                <li>2. Add a phone number and get it verified</li>
+                <li>3. Generate a permanent access token from the WhatsApp API settings</li>
+                <li>4. Copy the Phone Number ID and Business Account ID</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {providerType === "telegram" && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="botToken">Bot Token</Label>
+            <Input id="botToken" name="botToken" type="password" required />
+          </div>
+          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+            <CardContent className="pt-4">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                Telegram Configuration Guide
+              </p>
+              <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                <li>1. Talk to @BotFather on Telegram</li>
+                <li>2. Send /newbot and follow instructions</li>
+                <li>3. Copy the bot token provided by BotFather</li>
+                <li>4. Your bot can now send and receive messages</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {providerType === "facebook_messenger" && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="pageAccessToken">Page Access Token</Label>
+            <Input id="pageAccessToken" name="pageAccessToken" type="password" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="pageId">Page ID</Label>
+            <Input id="pageId" name="pageId" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="appSecret">App Secret</Label>
+            <Input id="appSecret" name="appSecret" type="password" required />
+          </div>
+          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+            <CardContent className="pt-4">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                Facebook Messenger Configuration Guide
+              </p>
+              <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                <li>1. Create a Facebook App at developers.facebook.com</li>
+                <li>2. Add the Messenger product to your app</li>
+                <li>3. Create or select a Facebook Page</li>
+                <li>4. Generate a Page Access Token</li>
+                <li>5. Copy the Page ID and App Secret from settings</li>
+              </ul>
             </CardContent>
           </Card>
         </>
