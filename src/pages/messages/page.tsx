@@ -19,6 +19,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog.tsx";
 import { Label } from "@/components/ui/label.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import { AIAssistant } from "@/components/ai-assistant.tsx";
+import { AIImprover } from "@/components/ai-improver.tsx";
 
 export default function Messages() {
   return (
@@ -43,18 +52,18 @@ function MessagesContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Messages</h1>
-          <p className="text-muted-foreground">View and send SMS messages</p>
+          <p className="text-muted-foreground">Send messages via SMS, WhatsApp, Telegram, and Facebook Messenger</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Send SMS
+              Send Message
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Send New SMS</DialogTitle>
+              <DialogTitle>Send New Message</DialogTitle>
             </DialogHeader>
             <SendMessageForm
               clientId={client?._id}
@@ -116,6 +125,7 @@ function SendMessageForm({
 }) {
   const [to, setTo] = useState("");
   const [message, setMessage] = useState("");
+  const [channel, setChannel] = useState<"sms" | "whatsapp" | "telegram" | "facebook_messenger">("sms");
   const [isLoading, setIsLoading] = useState(false);
   const sendSms = useMutation(api.messages.sendSms);
 
@@ -132,14 +142,17 @@ function SendMessageForm({
         to,
         message,
         clientId,
+        channel,
       });
-      toast.success("SMS sent successfully");
+      const channelName = channel === "facebook_messenger" ? "Facebook Messenger" : 
+                         channel.charAt(0).toUpperCase() + channel.slice(1);
+      toast.success(`${channelName} message sent successfully`);
       setTo("");
       setMessage("");
       onSuccess();
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to send SMS";
+        error instanceof Error ? error.message : "Failed to send message";
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -149,17 +162,41 @@ function SendMessageForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="to">Recipient Phone Number</Label>
+        <Label htmlFor="channel">Channel</Label>
+        <Select value={channel} onValueChange={(v) => setChannel(v as typeof channel)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="sms">SMS</SelectItem>
+            <SelectItem value="whatsapp">WhatsApp</SelectItem>
+            <SelectItem value="telegram">Telegram</SelectItem>
+            <SelectItem value="facebook_messenger">Facebook Messenger</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="to">
+          {channel === "telegram" ? "Username or Chat ID" : "Recipient Phone Number"}
+        </Label>
         <Input
           id="to"
-          placeholder="+1234567890"
+          placeholder={channel === "telegram" ? "@username or chat_id" : "+1234567890"}
           value={to}
           onChange={(e) => setTo(e.target.value)}
           required
         />
       </div>
+      
       <div className="space-y-2">
-        <Label htmlFor="message">Message</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="message">Message</Label>
+          <AIAssistant 
+            channel={channel}
+            onMessageGenerated={(msg) => setMessage(msg)}
+          />
+        </div>
         <Textarea
           id="message"
           placeholder="Enter your message here..."
@@ -168,13 +205,20 @@ function SendMessageForm({
           rows={4}
           required
         />
-        <p className="text-xs text-muted-foreground">
-          {message.length} characters
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            {message.length} characters
+          </p>
+          <AIImprover 
+            message={message}
+            onMessageImproved={(msg) => setMessage(msg)}
+          />
+        </div>
       </div>
+      
       <div className="flex justify-end gap-2">
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Sending..." : "Send SMS"}
+          {isLoading ? "Sending..." : "Send Message"}
         </Button>
       </div>
     </form>

@@ -12,6 +12,12 @@ export const sendSms = mutation({
     from: v.optional(v.string()),
     scheduledAt: v.optional(v.number()),
     clientId: v.optional(v.id("clients")),
+    channel: v.optional(v.union(
+      v.literal("sms"),
+      v.literal("whatsapp"),
+      v.literal("telegram"),
+      v.literal("facebook_messenger")
+    )),
   },
   handler: async (ctx, args) => {
     // Validate inputs first
@@ -80,17 +86,29 @@ export const sendSms = mutation({
       });
     }
 
-    const provider = await ctx.db.get(client.smsProviderId);
+    // Determine which provider to use based on channel
+    const channel = args.channel || "sms";
+    let providerId = client.smsProviderId;
+    
+    if (channel === "whatsapp" && client.whatsappProviderId) {
+      providerId = client.whatsappProviderId;
+    } else if (channel === "telegram" && client.telegramProviderId) {
+      providerId = client.telegramProviderId;
+    } else if (channel === "facebook_messenger" && client.facebookMessengerProviderId) {
+      providerId = client.facebookMessengerProviderId;
+    }
+
+    const provider = await ctx.db.get(providerId);
     if (!provider) {
       throw new ConvexError({
-        message: "SMS provider not found",
+        message: `${channel} provider not found for this client`,
         code: "NOT_FOUND",
       });
     }
 
     if (!provider.isActive) {
       throw new ConvexError({
-        message: "SMS provider is not active",
+        message: `${channel} provider is not active`,
         code: "BAD_REQUEST",
       });
     }
@@ -111,9 +129,9 @@ export const sendSms = mutation({
       to: args.to,
       from: client.senderId || args.from || provider.config.senderId || "SAYELE",
       message: sanitizedMessage,
-      channel: provider.channel || "sms",
+      channel,
       status: args.scheduledAt ? "scheduled" : "pending",
-      providerId: client.smsProviderId,
+      providerId,
       scheduledAt: args.scheduledAt,
       creditsUsed: provider.costPerSms,
       type: args.scheduledAt ? "scheduled" : "single",

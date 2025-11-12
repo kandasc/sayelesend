@@ -27,6 +27,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Switch } from "@/components/ui/switch.tsx";
 import { cn } from "@/lib/utils.ts";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import { AIAssistant } from "@/components/ai-assistant.tsx";
+import { AIImprover } from "@/components/ai-improver.tsx";
+import { AIBulkGenerator } from "@/components/ai-bulk-generator.tsx";
 
 export default function BulkSMS() {
   return (
@@ -310,6 +320,8 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
   const [isScheduled, setIsScheduled] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState("12:00");
+  const [channel, setChannel] = useState<"sms" | "whatsapp" | "telegram" | "facebook_messenger">("sms");
+  const [message, setMessage] = useState("");
 
   const handleRecipientsChange = (value: string) => {
     setRecipients(value);
@@ -354,15 +366,18 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
     try {
       await createBulk({
         name: formData.get("name") as string,
-        message: formData.get("message") as string,
+        message,
         recipients: numbers,
         from: (formData.get("from") as string) || undefined,
+        channel,
         scheduledAt,
       });
       
+      const channelName = channel === "facebook_messenger" ? "Facebook Messenger" : 
+                         channel.charAt(0).toUpperCase() + channel.slice(1);
       const successMessage = isScheduled 
-        ? `Campaign scheduled for ${format(scheduledAt!, "PPP 'at' p")} with ${numbers.length} recipients`
-        : `Bulk SMS campaign created with ${numbers.length} recipients`;
+        ? `${channelName} campaign scheduled for ${format(scheduledAt!, "PPP 'at' p")} with ${numbers.length} recipients`
+        : `Bulk ${channelName} campaign created with ${numbers.length} recipients`;
       
       toast.success(successMessage);
       onSuccess();
@@ -383,16 +398,58 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="message">Message</Label>
+        <Label htmlFor="channel">Channel</Label>
+        <Select value={channel} onValueChange={(v) => setChannel(v as typeof channel)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="sms">SMS</SelectItem>
+            <SelectItem value="whatsapp">WhatsApp</SelectItem>
+            <SelectItem value="telegram">Telegram</SelectItem>
+            <SelectItem value="facebook_messenger">Facebook Messenger</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor="message">Message</Label>
+          <div className="flex gap-2">
+            <AIBulkGenerator 
+              channel={channel}
+              onMessagesGenerated={(msgs) => {
+                if (msgs.length > 0) {
+                  setMessage(msgs[0]);
+                  toast.info(`${msgs.length} variations generated. Using first one. You can use others in future campaigns.`);
+                }
+              }}
+            />
+            <AIAssistant 
+              channel={channel}
+              onMessageGenerated={setMessage}
+            />
+          </div>
+        </div>
         <Textarea
           id="message"
-          name="message"
           placeholder="Your message here..."
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
           rows={4}
           required
-          maxLength={160}
+          maxLength={channel === "sms" ? 160 : undefined}
         />
-        <p className="text-xs text-muted-foreground">Max 160 characters</p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            {message.length} characters
+            {channel === "sms" && " (max 160)"}
+          </p>
+          <AIImprover 
+            message={message}
+            onMessageImproved={setMessage}
+          />
+        </div>
       </div>
 
       <div className="space-y-2">
