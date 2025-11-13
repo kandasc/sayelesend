@@ -17,6 +17,7 @@ import type * as clients from "../clients.js";
 import type * as contactForm from "../contactForm.js";
 import type * as contactGroups from "../contactGroups.js";
 import type * as contacts from "../contacts.js";
+import type * as credits from "../credits.js";
 import type * as http from "../http.js";
 import type * as incomingMessages from "../incomingMessages.js";
 import type * as lib_keyGeneration from "../lib/keyGeneration.js";
@@ -58,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   contactForm: typeof contactForm;
   contactGroups: typeof contactGroups;
   contacts: typeof contacts;
+  credits: typeof credits;
   http: typeof http;
   incomingMessages: typeof incomingMessages;
   "lib/keyGeneration": typeof lib_keyGeneration;

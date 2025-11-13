@@ -23,6 +23,7 @@ import {
   BookOpen,
   SendHorizontal,
   Inbox,
+  Coins,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
@@ -93,6 +94,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { path: `/${lang}/admin/clients`, label: "Clients", icon: <Users className="h-5 w-5" /> },
     { path: `/${lang}/admin/users`, label: "Users", icon: <Users className="h-5 w-5" /> },
     { path: `/${lang}/admin/providers`, label: "Providers", icon: <Server className="h-5 w-5" /> },
+    { path: `/${lang}/admin/credits`, label: "Credits", icon: <Coins className="h-5 w-5" /> },
     { path: `/${lang}/admin/submissions`, label: "Submissions", icon: <FileText className="h-5 w-5" /> },
     { path: `/${lang}/admin/ai-assistant`, label: "AI Assistant", icon: <Sparkles className="h-5 w-5" /> },
   ];

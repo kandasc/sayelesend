@@ -47,14 +47,17 @@ ${toneInstructions[tone]}
 
 Important: Return ONLY the message text, no quotes, no explanations, no extra formatting.`;
 
-    const response = await openai.responses.create({
-      model: "gpt-5-mini",
-      instructions: systemPrompt,
-      input: prompt,
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.7,
     });
 
     return {
-      message: response.output_text ?? "",
+      message: response.choices[0]?.message?.content ?? "",
     };
   },
 });
@@ -86,14 +89,17 @@ export const improveMessage = action({
     const systemPrompt = `You are a messaging assistant. ${improvementInstructions[improvement]}
 Return ONLY the improved message text, no quotes, no explanations.`;
 
-    const response = await openai.responses.create({
-      model: "gpt-5-mini",
-      instructions: systemPrompt,
-      input: message,
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message },
+      ],
+      temperature: 0.7,
     });
 
     return {
-      improvedMessage: response.output_text ?? message,
+      improvedMessage: response.choices[0]?.message?.content ?? message,
     };
   },
 });
@@ -131,20 +137,25 @@ ${personalizeInstruction}
 Return ONLY a JSON array of messages, like: ["message 1", "message 2", ...]
 No explanations, no extra text.`;
 
-    const response = await openai.responses.create({
-      model: "gpt-5-mini",
-      instructions: systemPrompt,
-      input: prompt,
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.8,
     });
 
+    const content = response.choices[0]?.message?.content ?? "[]";
+    
     try {
-      const messages = JSON.parse(response.output_text ?? "[]") as string[];
+      const messages = JSON.parse(content) as string[];
       return {
         messages: messages.slice(0, count),
       };
     } catch {
       // Fallback: split by newlines if JSON parsing fails
-      const messages = (response.output_text ?? "")
+      const messages = content
         .split("\n")
         .filter(line => line.trim() && !line.startsWith("[") && !line.startsWith("]"))
         .map(line => line.replace(/^["'\d.-]\s*/, "").replace(/["']$/, ""))
@@ -174,14 +185,17 @@ You help users with:
 Be helpful, concise, and actionable.
 ${context ? `\n\nContext: ${context}` : ""}`;
 
-    const response = await openai.responses.create({
-      model: "gpt-5-mini",
-      instructions: systemPrompt,
-      input: message,
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message },
+      ],
+      temperature: 0.7,
     });
 
     return {
-      response: response.output_text ?? "I'm sorry, I couldn't generate a response.",
+      response: response.choices[0]?.message?.content ?? "I'm sorry, I couldn't generate a response.",
     };
   },
 });
@@ -202,14 +216,19 @@ export const generateTemplateVariations = action({
 
 Return ONLY a JSON array of variations, like: ["variation 1", "variation 2", ...]`;
 
-    const response = await openai.responses.create({
-      model: "gpt-5-mini",
-      instructions: systemPrompt,
-      input: template,
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: template },
+      ],
+      temperature: 0.8,
     });
 
+    const content = response.choices[0]?.message?.content ?? "[]";
+    
     try {
-      const variations = JSON.parse(response.output_text ?? "[]") as string[];
+      const variations = JSON.parse(content) as string[];
       return {
         variations: variations.slice(0, count),
       };
@@ -239,14 +258,19 @@ Consider:
 
 Return ONLY a JSON array of suggestions, like: ["suggestion 1", "suggestion 2", ...]`;
 
-    const response = await openai.responses.create({
-      model: "gpt-5-mini",
-      instructions: systemPrompt,
-      input: message,
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message },
+      ],
+      temperature: 0.7,
     });
 
+    const content = response.choices[0]?.message?.content ?? "[]";
+    
     try {
-      const suggestions = JSON.parse(response.output_text ?? "[]") as string[];
+      const suggestions = JSON.parse(content) as string[];
       return {
         suggestions,
       };

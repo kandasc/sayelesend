@@ -281,4 +281,23 @@ export default defineSchema({
     .index("by_group", ["groupId"])
     .index("by_contact", ["contactId"])
     .index("by_group_and_contact", ["groupId", "contactId"]),
+
+  creditTransactions: defineTable({
+    clientId: v.id("clients"),
+    amount: v.number(),
+    type: v.union(
+      v.literal("purchase"),
+      v.literal("deduction"),
+      v.literal("refund"),
+      v.literal("bonus"),
+      v.literal("adjustment")
+    ),
+    description: v.string(),
+    balanceBefore: v.number(),
+    balanceAfter: v.number(),
+    performedBy: v.optional(v.id("users")),
+    relatedMessageId: v.optional(v.id("messages")),
+  })
+    .index("by_client", ["clientId"])
+    .index("by_type", ["type"]),
 });
