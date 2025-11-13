@@ -24,8 +24,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
   
   const onRemoveUser = useCallback(() => {
-    // Force redirect to home page after clearing user
-    window.location.href = "/";
+    // Get preferred language and redirect to language-prefixed home
+    const stored = localStorage.getItem("preferredLanguage");
+    const lang = stored && ["en", "fr"].includes(stored) ? stored : "en";
+    window.location.href = `/${lang}`;
   }, []);
 
   return (

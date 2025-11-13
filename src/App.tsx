@@ -77,7 +77,11 @@ export default function App() {
           <Route path="/:lng/admin/users" element={<LanguageWrapper><DashboardLayout><AdminUsers /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/admin/providers" element={<LanguageWrapper><DashboardLayout><AdminProviders /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/admin/ai-assistant" element={<LanguageWrapper><DashboardLayout><AdminAIAssistant /></DashboardLayout></LanguageWrapper>} />
+          
+          {/* Auth callback routes - both language-prefixed and non-prefixed for OIDC compatibility */}
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/:lng/auth/callback" element={<LanguageWrapper><AuthCallback /></LanguageWrapper>} />
+          
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<Navigate to={`/${getPreferredLanguage()}`} replace />} />
         </Routes>
