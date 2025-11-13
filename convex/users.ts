@@ -20,27 +20,32 @@ export const updateCurrentUser = mutation({
       )
       .unique();
     
-    // If user exists but doesn't have a role, update them
+    // If user exists, return
     if (user !== null) {
-      if (!user.role) {
-        // Check if this is the only user (make them admin)
-        const allUsers = await ctx.db.query("users").collect();
-        const role = allUsers.length === 1 ? "admin" : "client";
-        await ctx.db.patch(user._id, { role });
-      }
       return user._id;
     }
 
-    // Check if this is the first user (make them admin)
-    const allUsers = await ctx.db.query("users").collect();
-    const isFirstUser = allUsers.length === 0;
+    // For new users, determine role based on environment variable
+    // Set FIRST_ADMIN_EMAIL in environment to specify who should be admin
+    const firstAdminEmail = process.env.FIRST_ADMIN_EMAIL;
+    let role: "admin" | "client" = "client";
+    
+    if (firstAdminEmail && identity.email === firstAdminEmail) {
+      role = "admin";
+    } else {
+      // Fallback: if no users exist and no FIRST_ADMIN_EMAIL set, make first user admin
+      const allUsers = await ctx.db.query("users").collect();
+      if (allUsers.length === 0) {
+        role = "admin";
+      }
+    }
 
     // If it's a new identity, create a new User.
     return await ctx.db.insert("users", {
       name: identity.name,
       email: identity.email,
       tokenIdentifier: identity.tokenIdentifier,
-      role: isFirstUser ? "admin" : "client",
+      role,
     });
   },
 });

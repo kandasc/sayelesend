@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { ConvexError } from "convex/values";
 import type { Id } from "./_generated/dataModel.d.ts";
+import { logSecurityEvent } from "./lib/securityLogger";
 
 // Add credits to a client
 export const addCredits = mutation({
@@ -71,6 +72,17 @@ export const addCredits = mutation({
       balanceBefore,
       balanceAfter,
       performedBy: user._id,
+    });
+
+    // Log credit modification
+    await logSecurityEvent({
+      ctx,
+      eventType: "credit_modified",
+      action: `Added ${args.amount} credits (${args.type})`,
+      success: true,
+      userId: user._id,
+      clientId: args.clientId,
+      metadata: { amount: args.amount, type: args.type, balanceAfter },
     });
 
     return { success: true, newBalance: balanceAfter };
@@ -146,6 +158,17 @@ export const deductCredits = mutation({
       balanceBefore,
       balanceAfter,
       performedBy: user._id,
+    });
+
+    // Log credit deduction
+    await logSecurityEvent({
+      ctx,
+      eventType: "credit_modified",
+      action: `Deducted ${args.amount} credits`,
+      success: true,
+      userId: user._id,
+      clientId: args.clientId,
+      metadata: { amount: -args.amount, balanceAfter },
     });
 
     return { success: true, newBalance: balanceAfter };

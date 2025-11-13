@@ -388,12 +388,10 @@ export const processIncomingMessage = internalMutation({
 });
 
 // Helper to check if rule should trigger
+/* eslint-disable @typescript-eslint/no-explicit-any */
 async function checkRuleTrigger(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ctx: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rule: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   incomingMessage: any
 ): Promise<boolean> {
   // Check channel filter
@@ -433,16 +431,16 @@ async function checkRuleTrigger(
 
     case "first_message": {
       // Check if this is the first message from this sender
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const previousMessages = await ctx.db
         .query("incomingMessages")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .withIndex("by_client", (q: any) =>
-          q.eq("clientId", incomingMessage.clientId)
+        .withIndex("by_client", (q: unknown) =>
+          (q as { eq: (field: string, value: string) => unknown }).eq("clientId", incomingMessage.clientId)
         )
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((q: any) =>
-          q.eq(q.field("from"), incomingMessage.from)
+        .filter((q: unknown) =>
+          (q as { eq: (field: unknown, value: string) => unknown; field: (name: string) => unknown }).eq(
+            (q as { field: (name: string) => unknown }).field("from"),
+            incomingMessage.from
+          )
         )
         .collect();
       return previousMessages.length === 1;
@@ -479,12 +477,10 @@ async function checkRuleTrigger(
 }
 
 // Helper to execute automation action
+/* eslint-disable @typescript-eslint/no-explicit-any */
 async function executeAutomationAction(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ctx: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rule: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   incomingMessage: any
 ): Promise<void> {
   try {
@@ -582,13 +578,12 @@ async function executeAutomationAction(
       case "add_to_group": {
         if (rule.addToGroupId) {
           // Find or create contact
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           let contact: unknown = await ctx.db
             .query("contacts")
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .withIndex("by_client_and_phone", (q: any) =>
-              q.eq("clientId", incomingMessage.clientId)
-               .eq("phoneNumber", incomingMessage.from)
+            .withIndex("by_client_and_phone", (q: unknown) =>
+              (q as { eq: (field: string, value: Id<"clients"> | string) => { eq: (field: string, value: string) => unknown } })
+                .eq("clientId", incomingMessage.clientId)
+                .eq("phoneNumber", incomingMessage.from)
             )
             .unique();
 
@@ -606,12 +601,12 @@ async function executeAutomationAction(
           if (contact && typeof contact === "object" && "_id" in contact) {
             // Check if already in group
             const contactId = (contact as { _id: Id<"contacts"> })._id;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const existing = await ctx.db
               .query("contactGroupMembers")
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              .withIndex("by_group_and_contact", (q: any) =>
-                q.eq("groupId", rule.addToGroupId).eq("contactId", contactId)
+              .withIndex("by_group_and_contact", (q: unknown) =>
+                (q as { eq: (field: string, value: Id<"contactGroups"> | Id<"contacts">) => { eq: (field: string, value: Id<"contacts">) => unknown } })
+                  .eq("groupId", rule.addToGroupId!)
+                  .eq("contactId", contactId)
               )
               .unique();
 
@@ -645,13 +640,12 @@ async function executeAutomationAction(
       case "tag_contact": {
         if (rule.addTags && rule.addTags.length > 0) {
           // Find or create contact
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           let contact: unknown = await ctx.db
             .query("contacts")
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .withIndex("by_client_and_phone", (q: any) =>
-              q.eq("clientId", incomingMessage.clientId)
-               .eq("phoneNumber", incomingMessage.from)
+            .withIndex("by_client_and_phone", (q: unknown) =>
+              (q as { eq: (field: string, value: Id<"clients"> | string) => { eq: (field: string, value: string) => unknown } })
+                .eq("clientId", incomingMessage.clientId)
+                .eq("phoneNumber", incomingMessage.from)
             )
             .unique();
 

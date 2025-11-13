@@ -66,9 +66,11 @@ export function sanitizeMessage(message: string): string {
 }
 
 /**
- * Validates webhook URL
+ * Validates webhook URL with comprehensive SSRF protection
  * - Must be HTTPS
- * - Cannot point to private/internal networks
+ * - Cannot point to private/internal networks (IPv4 and IPv6)
+ * - Blocks cloud metadata endpoints
+ * - Blocks link-local addresses
  */
 export function validateWebhookUrl(url: string): void {
   try {
@@ -82,21 +84,62 @@ export function validateWebhookUrl(url: string): void {
       });
     }
     
-    // Block private/internal IPs
-    const hostname = parsed.hostname;
-    const privateIpRanges = [
-      /^127\./,
-      /^10\./,
-      /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
-      /^192\.168\./,
+    const hostname = parsed.hostname.toLowerCase();
+    
+    // Block localhost variations
+    const localhostPatterns = [
       /^localhost$/i,
+      /^127\./,
       /^0\.0\.0\.0$/,
+      /^::1$/,
+      /^0:0:0:0:0:0:0:1$/,
     ];
     
-    for (const pattern of privateIpRanges) {
+    // Block private IPv4 ranges
+    const privateIpv4Patterns = [
+      /^10\./,                                    // 10.0.0.0/8
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./,         // 172.16.0.0/12
+      /^192\.168\./,                              // 192.168.0.0/16
+      /^169\.254\./,                              // Link-local (AWS metadata)
+    ];
+    
+    // Block private IPv6 ranges
+    const privateIpv6Patterns = [
+      /^fe80:/i,                                  // Link-local
+      /^fc00:/i,                                  // Unique local
+      /^fd00:/i,                                  // Unique local
+      /^ff00:/i,                                  // Multicast
+    ];
+    
+    // Combine all blocked patterns
+    const allBlockedPatterns = [
+      ...localhostPatterns,
+      ...privateIpv4Patterns,
+      ...privateIpv6Patterns,
+    ];
+    
+    // Check against all patterns
+    for (const pattern of allBlockedPatterns) {
       if (pattern.test(hostname)) {
         throw new ConvexError({
           message: "Webhook URL cannot point to private/internal networks",
+          code: "BAD_REQUEST",
+        });
+      }
+    }
+    
+    // Block common internal domains
+    const blockedDomains = [
+      'internal',
+      'local',
+      'localhost',
+      'intranet',
+    ];
+    
+    for (const domain of blockedDomains) {
+      if (hostname.includes(domain)) {
+        throw new ConvexError({
+          message: "Webhook URL cannot use internal domains",
           code: "BAD_REQUEST",
         });
       }
@@ -105,6 +148,28 @@ export function validateWebhookUrl(url: string): void {
     if (error instanceof ConvexError) throw error;
     throw new ConvexError({
       message: "Invalid webhook URL format",
+      code: "BAD_REQUEST",
+    });
+  }
+}
+
+/**
+ * Validates email format
+ */
+export function validateEmail(email: string): void {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  
+  if (!emailRegex.test(email)) {
+    throw new ConvexError({
+      message: "Invalid email format",
+      code: "BAD_REQUEST",
+    });
+  }
+  
+  // Check for suspicious patterns
+  if (email.length > 254) {
+    throw new ConvexError({
+      message: "Email address too long",
       code: "BAD_REQUEST",
     });
   }

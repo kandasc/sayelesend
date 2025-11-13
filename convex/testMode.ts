@@ -1,7 +1,12 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { ConvexError } from "convex/values";
 import type { Id } from "./_generated/dataModel.d.ts";
+import { logSecurityEvent } from "./lib/securityLogger";
+
+// Test mode session timeout (30 minutes)
+const TEST_MODE_TIMEOUT = 30 * 60 * 1000;
 
 // Set test mode for admin to impersonate a client
 export const setTestMode = mutation({
@@ -31,13 +36,49 @@ export const setTestMode = mutation({
       });
     }
 
-    // Store test mode in a session table or return it
-    // For now, we'll use a simple approach: update user temporarily
+    // Store test mode with expiration
     await ctx.db.patch(user._id, {
       testModeClientId: args.clientId ?? undefined,
+      testModeExpiresAt: args.clientId ? Date.now() + TEST_MODE_TIMEOUT : undefined,
     });
 
-    return { success: true };
+    // Log admin action
+    await logSecurityEvent({
+      ctx,
+      eventType: "admin_action",
+      action: args.clientId ? `Entered test mode for client ${args.clientId}` : "Exited test mode",
+      success: true,
+      userId: user._id,
+      clientId: args.clientId || undefined,
+    });
+
+    // Schedule cleanup if entering test mode
+    if (args.clientId) {
+      await ctx.scheduler.runAfter(TEST_MODE_TIMEOUT, internal.testMode.cleanupExpiredTestMode, {
+        userId: user._id,
+      });
+    }
+
+    return { success: true, expiresAt: args.clientId ? Date.now() + TEST_MODE_TIMEOUT : undefined };
+  },
+});
+
+// Cleanup expired test mode sessions
+export const cleanupExpiredTestMode = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user || !user.testModeExpiresAt) {
+      return;
+    }
+
+    // Check if test mode has expired
+    if (Date.now() >= user.testModeExpiresAt) {
+      await ctx.db.patch(args.userId, {
+        testModeClientId: undefined,
+        testModeExpiresAt: undefined,
+      });
+    }
   },
 });
 

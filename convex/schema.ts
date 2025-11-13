@@ -9,6 +9,7 @@ export default defineSchema({
     role: v.optional(v.union(v.literal("admin"), v.literal("client"), v.literal("viewer"))),
     clientId: v.optional(v.id("clients")),
     testModeClientId: v.optional(v.id("clients")),
+    testModeExpiresAt: v.optional(v.number()),
     hasSubmittedContactForm: v.optional(v.boolean()),
   })
     .index("by_token", ["tokenIdentifier"])
@@ -196,13 +197,16 @@ export default defineSchema({
 
   apiKeys: defineTable({
     clientId: v.id("clients"),
-    key: v.string(),
+    keyHash: v.string(), // SHA-256 hash of the API key
+    keyPreview: v.string(), // Last 4 characters for display
     name: v.string(),
     isActive: v.boolean(),
     lastUsedAt: v.optional(v.number()),
+    requestCount: v.optional(v.number()),
+    lastRequestAt: v.optional(v.number()),
   })
     .index("by_client", ["clientId"])
-    .index("by_key", ["key"]),
+    .index("by_key_hash", ["keyHash"]),
 
   incomingMessages: defineTable({
     clientId: v.id("clients"),
@@ -365,4 +369,40 @@ export default defineSchema({
     .index("by_rule", ["ruleId"])
     .index("by_client", ["clientId"])
     .index("by_incoming", ["incomingMessageId"]),
+
+  securityLogs: defineTable({
+    userId: v.optional(v.id("users")),
+    clientId: v.optional(v.id("clients")),
+    eventType: v.union(
+      v.literal("api_key_created"),
+      v.literal("api_key_deleted"),
+      v.literal("api_key_used"),
+      v.literal("admin_action"),
+      v.literal("credit_modified"),
+      v.literal("provider_accessed"),
+      v.literal("user_role_changed"),
+      v.literal("client_created"),
+      v.literal("client_suspended"),
+      v.literal("webhook_failed"),
+      v.literal("rate_limit_exceeded"),
+      v.literal("unauthorized_access")
+    ),
+    action: v.string(),
+    metadata: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    success: v.boolean(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_client", ["clientId"])
+    .index("by_event_type", ["eventType"]),
+
+  rateLimits: defineTable({
+    identifier: v.string(), // API key hash or client ID
+    windowStart: v.number(),
+    requestCount: v.number(),
+    lastRequest: v.number(),
+  })
+    .index("by_identifier", ["identifier"])
+    .index("by_window", ["windowStart"]),
 });

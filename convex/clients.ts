@@ -2,7 +2,8 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { ConvexError } from "convex/values";
 import type { Id } from "./_generated/dataModel.d.ts";
-import { validateWebhookUrl } from "./lib/validation";
+import { validateWebhookUrl, validateEmail, validatePhoneNumber } from "./lib/validation";
+import { logSecurityEvent } from "./lib/securityLogger";
 
 export const getCurrentClient = query({
   args: {},
@@ -154,6 +155,15 @@ export const createClient = mutation({
       });
     }
 
+    // Validate email and phone
+    validateEmail(args.email);
+    validatePhoneNumber(args.phone);
+
+    // Validate webhook URL if provided
+    if (args.webhookUrl) {
+      validateWebhookUrl(args.webhookUrl);
+    }
+
     const existing = await ctx.db
       .query("clients")
       .withIndex("by_email", (q) => q.eq("email", args.email))
@@ -184,6 +194,16 @@ export const createClient = mutation({
       whatsappCount: 0,
       telegramCount: 0,
       facebookMessengerCount: 0,
+    });
+
+    // Log client creation
+    await logSecurityEvent({
+      ctx,
+      eventType: "client_created",
+      action: `Client created: ${args.companyName}`,
+      success: true,
+      userId: user._id,
+      clientId,
     });
 
     return clientId;
@@ -270,6 +290,12 @@ export const updateClient = mutation({
     if (args.facebookMessengerProviderId !== undefined)
       updates.facebookMessengerProviderId = args.facebookMessengerProviderId;
     if (args.status !== undefined) updates.status = args.status;
+    if (args.email !== undefined) {
+      validateEmail(args.email);
+    }
+    if (args.phone !== undefined) {
+      validatePhoneNumber(args.phone);
+    }
     if (args.webhookUrl !== undefined) {
       if (args.webhookUrl) {
         validateWebhookUrl(args.webhookUrl);

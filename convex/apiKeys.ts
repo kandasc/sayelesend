@@ -1,8 +1,9 @@
 import { v } from "convex/values";
-import { mutation, query, action } from "./_generated/server";
+import { mutation, query, action, internalMutation } from "./_generated/server";
 import { ConvexError } from "convex/values";
 import { internal, api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel.d.ts";
+import { logSecurityEvent } from "./lib/securityLogger";
 
 export const listApiKeys = query({
   args: { clientId: v.optional(v.id("clients")) },
@@ -31,7 +32,7 @@ export const listApiKeys = query({
 
     let clientId = args.clientId;
 
-    if (user.role === "client") {
+    if (user.role === "client" || user.role === "viewer") {
       if (!user.clientId) {
         throw new ConvexError({
           message: "User not associated with a client",
@@ -85,6 +86,14 @@ export const createApiKey = action({
       });
     }
 
+    // Viewers cannot create API keys
+    if (user.role === "viewer") {
+      throw new ConvexError({
+        message: "Viewers cannot create API keys",
+        code: "FORBIDDEN",
+      });
+    }
+
     let clientId = args.clientId;
 
     if (user.role === "client") {
@@ -110,22 +119,40 @@ export const createApiKey = action({
     }
 
     // Generate cryptographically secure API key
-    let apiKey: string = await ctx.runAction(internal.lib.keyGeneration.generateApiKey, {});
-    let existing: boolean = await ctx.runQuery(api.apiKeys.checkKeyExists, { key: apiKey });
+    const apiKey: string = await ctx.runAction(internal.lib.keyGeneration.generateApiKey, {});
+    
+    // Hash the key before storing
+    const keyHash: string = await ctx.runAction(internal.apiKeysActions.hashApiKey, { key: apiKey });
+    
+    // Check for hash collision (extremely unlikely)
+    const existing: boolean = await ctx.runQuery(api.apiKeys.checkKeyHashExists, { keyHash });
 
-    // Retry if collision (extremely unlikely with 256-bit entropy)
-    while (existing) {
-      apiKey = await ctx.runAction(internal.lib.keyGeneration.generateApiKey, {});
-      existing = await ctx.runQuery(api.apiKeys.checkKeyExists, { key: apiKey });
+    if (existing) {
+      throw new ConvexError({
+        message: "Key generation collision. Please try again.",
+        code: "CONFLICT",
+      });
     }
 
-    const result: { id: Id<"apiKeys">; key: string } = await ctx.runMutation(api.apiKeys.insertApiKey, {
+    // Extract last 4 characters for preview
+    const keyPreview = apiKey.slice(-4);
+
+    const apiKeyId = await ctx.runMutation(internal.apiKeys.insertApiKeyInternal, {
       clientId: clientId as Id<"clients">,
-      key: apiKey,
+      keyHash,
+      keyPreview,
       name: args.name,
     });
 
-    return result;
+    // Log security event
+    await ctx.runMutation(internal.apiKeys.logApiKeyCreated, {
+      userId: user._id,
+      clientId: clientId as Id<"clients">,
+      apiKeyId,
+    });
+
+    // Return the plain key ONLY once (never stored)
+    return { id: apiKeyId, key: apiKey };
   },
 });
 
@@ -139,60 +166,55 @@ export const getUserForKeyCreation = query({
   },
 });
 
-export const getUserForKeyCreationInternal = query({
-  args: { tokenIdentifier: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("users")
-      .withIndex("by_token", (q) => q.eq("tokenIdentifier", args.tokenIdentifier))
-      .unique();
-  },
-});
-
-export const checkKeyExists = query({
-  args: { key: v.string() },
+export const checkKeyHashExists = query({
+  args: { keyHash: v.string() },
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("apiKeys")
-      .withIndex("by_key", (q) => q.eq("key", args.key))
+      .withIndex("by_key_hash", (q) => q.eq("keyHash", args.keyHash))
       .unique();
     return existing !== null;
   },
 });
 
-export const insertApiKeyInternal = mutation({
+
+
+export const insertApiKeyInternal = internalMutation({
   args: {
     clientId: v.id("clients"),
-    key: v.string(),
+    keyHash: v.string(),
+    keyPreview: v.string(),
     name: v.string(),
   },
   handler: async (ctx, args) => {
     const apiKeyId = await ctx.db.insert("apiKeys", {
       clientId: args.clientId,
-      key: args.key,
+      keyHash: args.keyHash,
+      keyPreview: args.keyPreview,
       name: args.name,
       isActive: true,
+      requestCount: 0,
     });
 
-    return { id: apiKeyId, key: args.key };
+    return apiKeyId;
   },
 });
 
-export const insertApiKey = mutation({
+export const logApiKeyCreated = internalMutation({
   args: {
+    userId: v.id("users"),
     clientId: v.id("clients"),
-    key: v.string(),
-    name: v.string(),
+    apiKeyId: v.id("apiKeys"),
   },
   handler: async (ctx, args) => {
-    const apiKeyId = await ctx.db.insert("apiKeys", {
+    await logSecurityEvent({
+      ctx,
+      eventType: "api_key_created",
+      action: `API key created: ${args.apiKeyId}`,
+      success: true,
+      userId: args.userId,
       clientId: args.clientId,
-      key: args.key,
-      name: args.name,
-      isActive: true,
     });
-
-    return { id: apiKeyId, key: args.key };
   },
 });
 
@@ -221,6 +243,14 @@ export const toggleApiKey = mutation({
       throw new ConvexError({
         message: "User not found",
         code: "NOT_FOUND",
+      });
+    }
+
+    // Viewers cannot toggle API keys
+    if (user.role === "viewer") {
+      throw new ConvexError({
+        message: "Viewers cannot modify API keys",
+        code: "FORBIDDEN",
       });
     }
 
@@ -272,6 +302,14 @@ export const deleteApiKey = mutation({
       });
     }
 
+    // Viewers cannot delete API keys
+    if (user.role === "viewer") {
+      throw new ConvexError({
+        message: "Viewers cannot delete API keys",
+        code: "FORBIDDEN",
+      });
+    }
+
     const apiKey = await ctx.db.get(args.apiKeyId);
     if (!apiKey) {
       throw new ConvexError({
@@ -289,16 +327,38 @@ export const deleteApiKey = mutation({
 
     await ctx.db.delete(args.apiKeyId);
 
+    // Log security event
+    await logSecurityEvent({
+      ctx,
+      eventType: "api_key_deleted",
+      action: `API key deleted: ${args.apiKeyId}`,
+      success: true,
+      userId: user._id,
+      clientId: apiKey.clientId,
+    });
+
     return args.apiKeyId;
   },
 });
 
-export const verifyApiKey = query({
+export const verifyApiKey = action({
   args: { key: v.string() },
+  handler: async (ctx, args): Promise<{
+    apiKeyId: Id<"apiKeys">;
+    keyHash: string;
+    clientId: Id<"clients">;
+    client: unknown;
+  } | null> => {
+    return await ctx.runAction(internal.apiKeysActions.verifyApiKeyAction, { key: args.key });
+  },
+});
+
+export const verifyApiKeyHash = query({
+  args: { keyHash: v.string() },
   handler: async (ctx, args) => {
     const apiKey = await ctx.db
       .query("apiKeys")
-      .withIndex("by_key", (q) => q.eq("key", args.key))
+      .withIndex("by_key_hash", (q) => q.eq("keyHash", args.keyHash))
       .unique();
 
     if (!apiKey || !apiKey.isActive) {
@@ -312,6 +372,7 @@ export const verifyApiKey = query({
 
     return {
       apiKeyId: apiKey._id,
+      keyHash: args.keyHash,
       clientId: apiKey.clientId,
       client,
     };
@@ -321,9 +382,15 @@ export const verifyApiKey = query({
 export const updateLastUsed = mutation({
   args: { apiKeyId: v.id("apiKeys") },
   handler: async (ctx, args) => {
+    const apiKey = await ctx.db.get(args.apiKeyId);
+    if (!apiKey) return args.apiKeyId;
+
     await ctx.db.patch(args.apiKeyId, {
       lastUsedAt: Date.now(),
+      requestCount: (apiKey.requestCount || 0) + 1,
+      lastRequestAt: Date.now(),
     });
+
     return args.apiKeyId;
   },
 });

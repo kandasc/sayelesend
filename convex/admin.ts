@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { ConvexError } from "convex/values";
+import { logSecurityEvent } from "./lib/securityLogger";
 
 // Create a client and their admin user
 export const createClientWithAdmin = mutation({
@@ -226,9 +227,21 @@ export const updateUserRole = mutation({
       });
     }
 
+    const targetUser = await ctx.db.get(args.userId);
+    
     await ctx.db.patch(args.userId, {
       role: args.role,
       clientId: args.clientId,
+    });
+
+    // Log role change
+    await logSecurityEvent({
+      ctx,
+      eventType: "user_role_changed",
+      action: `User role changed from ${targetUser?.role || "none"} to ${args.role}`,
+      success: true,
+      userId: admin._id,
+      metadata: { targetUserId: args.userId, newRole: args.role },
     });
 
     return { success: true };
@@ -348,7 +361,19 @@ export const deleteUser = mutation({
       });
     }
 
+    const targetUser = await ctx.db.get(args.userId);
+    
     await ctx.db.delete(args.userId);
+    
+    // Log user deletion
+    await logSecurityEvent({
+      ctx,
+      eventType: "admin_action",
+      action: `User deleted: ${targetUser?.email || args.userId}`,
+      success: true,
+      userId: admin._id,
+    });
+    
     return { success: true };
   },
 });
