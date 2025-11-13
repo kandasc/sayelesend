@@ -300,4 +300,69 @@ export default defineSchema({
   })
     .index("by_client", ["clientId"])
     .index("by_type", ["type"]),
+
+  automationRules: defineTable({
+    clientId: v.id("clients"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+    
+    // Trigger conditions
+    triggerType: v.union(
+      v.literal("keyword"),
+      v.literal("any_message"),
+      v.literal("first_message"),
+      v.literal("time_based")
+    ),
+    keywords: v.optional(v.array(v.string())),
+    matchType: v.optional(v.union(
+      v.literal("exact"),
+      v.literal("contains"),
+      v.literal("starts_with"),
+      v.literal("ends_with")
+    )),
+    channel: v.optional(v.union(
+      v.literal("sms"),
+      v.literal("whatsapp"),
+      v.literal("telegram"),
+      v.literal("facebook_messenger")
+    )),
+    
+    // Action
+    actionType: v.union(
+      v.literal("send_reply"),
+      v.literal("forward_to_human"),
+      v.literal("add_to_group"),
+      v.literal("tag_contact")
+    ),
+    replyMessage: v.optional(v.string()),
+    replyTemplateId: v.optional(v.id("templates")),
+    forwardToNumbers: v.optional(v.array(v.string())),
+    addToGroupId: v.optional(v.id("contactGroups")),
+    addTags: v.optional(v.array(v.string())),
+    
+    // Time conditions
+    activeHoursStart: v.optional(v.string()),
+    activeHoursEnd: v.optional(v.string()),
+    activeDays: v.optional(v.array(v.number())),
+    
+    // Stats
+    triggerCount: v.number(),
+    lastTriggeredAt: v.optional(v.number()),
+  })
+    .index("by_client", ["clientId"])
+    .index("by_client_and_active", ["clientId", "isActive"]),
+
+  automationLogs: defineTable({
+    ruleId: v.id("automationRules"),
+    clientId: v.id("clients"),
+    incomingMessageId: v.id("incomingMessages"),
+    actionTaken: v.string(),
+    success: v.boolean(),
+    errorMessage: v.optional(v.string()),
+    responseMessageId: v.optional(v.id("messages")),
+  })
+    .index("by_rule", ["ruleId"])
+    .index("by_client", ["clientId"])
+    .index("by_incoming", ["incomingMessageId"]),
 });

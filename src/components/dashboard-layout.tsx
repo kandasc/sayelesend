@@ -24,6 +24,7 @@ import {
   SendHorizontal,
   Inbox,
   Coins,
+  Zap,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
@@ -79,6 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { path: `/${lang}/messages`, label: "Outgoing", icon: <SendHorizontal className="h-5 w-5" /> },
     { path: `/${lang}/incoming`, label: "Incoming", icon: <Inbox className="h-5 w-5" /> },
     { path: `/${lang}/bulk`, label: "Bulk SMS", icon: <Send className="h-5 w-5" /> },
+    { path: `/${lang}/automation`, label: "Automation", icon: <Zap className="h-5 w-5" /> },
     { path: `/${lang}/contacts`, label: "Contacts", icon: <UserPlus className="h-5 w-5" /> },
     { path: `/${lang}/groups`, label: "Groups", icon: <Folders className="h-5 w-5" /> },
     { path: `/${lang}/templates`, label: "Templates", icon: <FileText className="h-5 w-5" /> },

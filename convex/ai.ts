@@ -48,7 +48,7 @@ ${toneInstructions[tone]}
 Important: Return ONLY the message text, no quotes, no explanations, no extra formatting.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
@@ -90,7 +90,7 @@ export const improveMessage = action({
 Return ONLY the improved message text, no quotes, no explanations.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: message },
@@ -138,7 +138,7 @@ Return ONLY a JSON array of messages, like: ["message 1", "message 2", ...]
 No explanations, no extra text.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
@@ -186,7 +186,7 @@ Be helpful, concise, and actionable.
 ${context ? `\n\nContext: ${context}` : ""}`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: message },
@@ -217,7 +217,7 @@ export const generateTemplateVariations = action({
 Return ONLY a JSON array of variations, like: ["variation 1", "variation 2", ...]`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: template },
@@ -259,7 +259,7 @@ Consider:
 Return ONLY a JSON array of suggestions, like: ["suggestion 1", "suggestion 2", ...]`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: message },

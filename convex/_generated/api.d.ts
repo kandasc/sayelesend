@@ -12,6 +12,7 @@ import type * as admin from "../admin.js";
 import type * as ai from "../ai.js";
 import type * as analytics from "../analytics.js";
 import type * as apiKeys from "../apiKeys.js";
+import type * as automation from "../automation.js";
 import type * as bulk from "../bulk.js";
 import type * as clients from "../clients.js";
 import type * as contactForm from "../contactForm.js";
@@ -54,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   ai: typeof ai;
   analytics: typeof analytics;
   apiKeys: typeof apiKeys;
+  automation: typeof automation;
   bulk: typeof bulk;
   clients: typeof clients;
   contactForm: typeof contactForm;

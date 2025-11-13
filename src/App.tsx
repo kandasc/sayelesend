@@ -24,6 +24,7 @@ import AdminSubmissions from "./pages/admin/submissions/page.tsx";
 import AdminAIAssistant from "./pages/admin/ai-assistant/page.tsx";
 import Contacts from "./pages/contacts/page.tsx";
 import Groups from "./pages/groups/page.tsx";
+import Automation from "./pages/automation/page.tsx";
 import ApiDocs from "./pages/api-docs/page.tsx";
 import PublicApiDocs from "./pages/docs/page.tsx";
 
@@ -68,6 +69,7 @@ export default function App() {
           <Route path="/:lng/bulk" element={<LanguageWrapper><DashboardLayout><BulkSMS /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/contacts" element={<LanguageWrapper><DashboardLayout><Contacts /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/groups" element={<LanguageWrapper><DashboardLayout><Groups /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/automation" element={<LanguageWrapper><DashboardLayout><Automation /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/templates" element={<LanguageWrapper><DashboardLayout><Templates /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/webhooks" element={<LanguageWrapper><DashboardLayout><Webhooks /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/reports" element={<LanguageWrapper><DashboardLayout><Reports /></DashboardLayout></LanguageWrapper>} />
