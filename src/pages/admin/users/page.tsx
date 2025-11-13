@@ -39,26 +39,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, UserPlus, Mail, Shield, MoreVertical, Edit, Trash2, Eye } from "lucide-react";
+import { Users, UserPlus, Mail, Shield, MoreVertical, Edit, Trash2, Eye, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminUsersPage() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editRoleDialogOpen, setEditRoleDialogOpen] = useState(false);
+  const [editDetailsDialogOpen, setEditDetailsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<Id<"users"> | null>(null);
   const [userEmail, setUserEmail] = useState("");
-  const [selectedClientId, setSelectedClientId] = useState<Id<"clients"> | undefined>(undefined);
+  const [userName, setUserName] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState<Id<"clients"> | undefined | "none">(undefined);
   const [selectedRole, setSelectedRole] = useState<"admin" | "client" | "viewer">("client");
 
   const users = useQuery(api.admin.listUsers);
   const clients = useQuery(api.admin.listClients);
   const assignUserToClient = useMutation(api.admin.assignUserToClient);
   const updateUserRole = useMutation(api.admin.updateUserRole);
+  const updateUserDetails = useMutation(api.admin.updateUserDetails);
+  const unassignUser = useMutation(api.admin.unassignUserFromClient);
   const deleteUser = useMutation(api.admin.deleteUser);
 
   const handleAssignUser = async () => {
-    if (!userEmail || !selectedClientId) {
+    if (!userEmail || !selectedClientId || selectedClientId === "none") {
       toast.error("Please fill in all fields");
       return;
     }
@@ -66,7 +70,7 @@ export default function AdminUsersPage() {
     try {
       await assignUserToClient({
         userEmail,
-        clientId: selectedClientId,
+        clientId: selectedClientId as Id<"clients">,
       });
       toast.success("User assigned to client successfully");
       setAssignDialogOpen(false);
@@ -84,14 +88,19 @@ export default function AdminUsersPage() {
   const handleUpdateRole = async () => {
     if (!selectedUserId) return;
 
+    // Handle "none" selection as undefined
+    const finalClientId: Id<"clients"> | undefined = selectedClientId === "none" || selectedClientId === undefined 
+      ? undefined 
+      : selectedClientId as Id<"clients">;
+
     try {
       await updateUserRole({
         userId: selectedUserId,
         role: selectedRole,
-        clientId: selectedRole === "client" || selectedRole === "viewer" ? selectedClientId : undefined,
+        clientId: selectedRole === "client" || selectedRole === "viewer" ? finalClientId : undefined,
       });
       toast.success("User role updated successfully");
-      setEditDialogOpen(false);
+      setEditRoleDialogOpen(false);
       setSelectedUserId(null);
       setSelectedClientId(undefined);
     } catch (error) {
@@ -99,6 +108,46 @@ export default function AdminUsersPage() {
         toast.error(error.message);
       } else {
         toast.error("Failed to update user role");
+      }
+    }
+  };
+
+  const handleUpdateDetails = async () => {
+    if (!selectedUserId) return;
+
+    try {
+      await updateUserDetails({
+        userId: selectedUserId,
+        name: userName,
+        email: userEmail,
+      });
+      toast.success("User details updated successfully");
+      setEditDetailsDialogOpen(false);
+      setSelectedUserId(null);
+      setUserName("");
+      setUserEmail("");
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to update user details");
+      }
+    }
+  };
+
+  const handleUnassignUser = async (userId: Id<"users">) => {
+    if (!confirm("Are you sure you want to unassign this user? They will lose access to their client account.")) {
+      return;
+    }
+
+    try {
+      await unassignUser({ userId });
+      toast.success("User unassigned successfully");
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to unassign user");
       }
     }
   };
@@ -316,14 +365,37 @@ export default function AdminUsersPage() {
                             <DropdownMenuItem
                               onClick={() => {
                                 setSelectedUserId(user._id);
-                                setSelectedRole(user.role || "client");
-                                setSelectedClientId(user.clientId);
-                                setEditDialogOpen(true);
+                                setUserName(user.name || "");
+                                setUserEmail(user.email || "");
+                                setEditDetailsDialogOpen(true);
                               }}
                             >
                               <Edit className="h-4 w-4 mr-2" />
-                              Edit Role
+                              Edit Details
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUserId(user._id);
+                                setSelectedRole(user.role || "client");
+                                setSelectedClientId(user.clientId || "none");
+                                setEditRoleDialogOpen(true);
+                              }}
+                            >
+                              <Shield className="h-4 w-4 mr-2" />
+                              Edit Role & Client
+                            </DropdownMenuItem>
+                            {user.clientId && user.role !== "admin" && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleUnassignUser(user._id)}
+                                >
+                                  <UserMinus className="h-4 w-4 mr-2" />
+                                  Unassign from Client
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
                               onClick={() => {
@@ -402,11 +474,55 @@ export default function AdminUsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Role Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      {/* Edit Details Dialog */}
+      <Dialog open={editDetailsDialogOpen} onOpenChange={setEditDetailsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User Role</DialogTitle>
+            <DialogTitle>Edit User Details</DialogTitle>
+            <DialogDescription>
+              Update the user's name and email address.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="editName">Name</Label>
+              <Input
+                id="editName"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="User name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="editEmail">Email</Label>
+              <Input
+                id="editEmail"
+                type="email"
+                value={userEmail}
+                onChange={(e) => setUserEmail(e.target.value)}
+                placeholder="user@example.com"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDetailsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateDetails}>
+              Update Details
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Role Dialog */}
+      <Dialog open={editRoleDialogOpen} onOpenChange={setEditRoleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User Role & Client</DialogTitle>
             <DialogDescription>
               Change the user's role and client assignment. Admins have full system access, clients can manage their account, and viewers have read-only access.
             </DialogDescription>
@@ -434,14 +550,15 @@ export default function AdminUsersPage() {
               <div className="space-y-2">
                 <Label htmlFor="editClient">Client</Label>
                 <Select
-                  value={selectedClientId}
-                  onValueChange={(value) => setSelectedClientId(value as Id<"clients">)}
+                  value={selectedClientId?.toString() || "none"}
+                  onValueChange={(value) => setSelectedClientId(value === "none" ? "none" : value as Id<"clients">)}
                 >
                   <SelectTrigger id="editClient">
                     <SelectValue placeholder="Select a client" />
                   </SelectTrigger>
                   <SelectContent>
-                    {clients.map((client) => (
+                    <SelectItem value="none">None (Unassigned)</SelectItem>
+                    {clients?.map((client) => (
                       <SelectItem key={client._id} value={client._id}>
                         {client.companyName}
                       </SelectItem>
@@ -449,14 +566,16 @@ export default function AdminUsersPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  {selectedRole === "viewer" ? "Viewers can only view this client's data" : "Required for client users"}
+                  {selectedRole === "viewer" 
+                    ? "Select a client or leave unassigned. Viewers can only view their assigned client's data." 
+                    : "Select a client or leave unassigned."}
                 </p>
               </div>
             )}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setEditRoleDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleUpdateRole}>
