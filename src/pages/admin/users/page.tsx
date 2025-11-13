@@ -31,18 +31,31 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, UserPlus, Mail, Shield } from "lucide-react";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Users, UserPlus, Mail, Shield, MoreVertical, Edit, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminUsersPage() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<Id<"users"> | null>(null);
   const [userEmail, setUserEmail] = useState("");
   const [selectedClientId, setSelectedClientId] = useState<Id<"clients"> | undefined>(undefined);
+  const [selectedRole, setSelectedRole] = useState<"admin" | "client" | "viewer">("client");
 
   const users = useQuery(api.admin.listUsers);
   const clients = useQuery(api.admin.listClients);
   const assignUserToClient = useMutation(api.admin.assignUserToClient);
+  const updateUserRole = useMutation(api.admin.updateUserRole);
+  const deleteUser = useMutation(api.admin.deleteUser);
 
   const handleAssignUser = async () => {
     if (!userEmail || !selectedClientId) {
@@ -68,6 +81,45 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleUpdateRole = async () => {
+    if (!selectedUserId) return;
+
+    try {
+      await updateUserRole({
+        userId: selectedUserId,
+        role: selectedRole,
+        clientId: selectedRole === "client" || selectedRole === "viewer" ? selectedClientId : undefined,
+      });
+      toast.success("User role updated successfully");
+      setEditDialogOpen(false);
+      setSelectedUserId(null);
+      setSelectedClientId(undefined);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to update user role");
+      }
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUserId) return;
+
+    try {
+      await deleteUser({ userId: selectedUserId });
+      toast.success("User deleted successfully");
+      setDeleteDialogOpen(false);
+      setSelectedUserId(null);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to delete user");
+      }
+    }
+  };
+
   if (users === undefined || clients === undefined || clients === null) {
     return (
       <div className="space-y-6">
@@ -79,6 +131,7 @@ export default function AdminUsersPage() {
 
   const admins = users.filter((u) => u.role === "admin");
   const clientUsers = users.filter((u) => u.role === "client");
+  const viewers = users.filter((u) => u.role === "viewer");
   const unassignedUsers = users.filter((u) => !u.role || (!u.clientId && u.role !== "admin"));
 
   return (
@@ -97,7 +150,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -125,6 +178,16 @@ export default function AdminUsersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{clientUsers.length}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Viewers</CardTitle>
+            <Eye className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{viewers.length}</div>
           </CardContent>
         </Card>
 
@@ -194,12 +257,13 @@ export default function AdminUsersPage() {
                 <TableHead>Role</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="w-[80px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
                     No users found
                   </TableCell>
                 </TableRow>
@@ -218,6 +282,11 @@ export default function AdminUsersPage() {
                           <Badge variant="default">Admin</Badge>
                         ) : user.role === "client" ? (
                           <Badge variant="secondary">Client</Badge>
+                        ) : user.role === "viewer" ? (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            <Eye className="h-3 w-3 mr-1" />
+                            Viewer
+                          </Badge>
                         ) : (
                           <Badge variant="outline">Unassigned</Badge>
                         )}
@@ -233,6 +302,40 @@ export default function AdminUsersPage() {
                         ) : (
                           <Badge variant="secondary">Pending</Badge>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUserId(user._id);
+                                setSelectedRole(user.role || "client");
+                                setSelectedClientId(user.clientId);
+                                setEditDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Role
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => {
+                                setSelectedUserId(user._id);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
@@ -294,6 +397,91 @@ export default function AdminUsersPage() {
             </Button>
             <Button onClick={handleAssignUser}>
               Assign User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Role Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User Role</DialogTitle>
+            <DialogDescription>
+              Change the user's role and client assignment. Admins have full system access, clients can manage their account, and viewers have read-only access.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Select
+                value={selectedRole}
+                onValueChange={(value) => setSelectedRole(value as "admin" | "client" | "viewer")}
+              >
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin - Full System Access</SelectItem>
+                  <SelectItem value="client">Client - Can Manage Account</SelectItem>
+                  <SelectItem value="viewer">Viewer - Read-Only Access</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {(selectedRole === "client" || selectedRole === "viewer") && (
+              <div className="space-y-2">
+                <Label htmlFor="editClient">Client</Label>
+                <Select
+                  value={selectedClientId}
+                  onValueChange={(value) => setSelectedClientId(value as Id<"clients">)}
+                >
+                  <SelectTrigger id="editClient">
+                    <SelectValue placeholder="Select a client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((client) => (
+                      <SelectItem key={client._id} value={client._id}>
+                        {client.companyName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {selectedRole === "viewer" ? "Viewers can only view this client's data" : "Required for client users"}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateRole}>
+              Update Role
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this user? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteUser}>
+              Delete User
             </Button>
           </DialogFooter>
         </DialogContent>

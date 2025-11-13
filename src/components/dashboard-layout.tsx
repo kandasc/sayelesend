@@ -57,6 +57,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     !effectiveUser?.clientId && 
     !isTestMode;
 
+  // If pending activation, render without the dashboard layout
+  if (isPendingActivation) {
+    return <PendingActivation />;
+  }
+
   const navItems = [
     { path: `/${lang}/dashboard`, label: "Dashboard", icon: <Home className="h-5 w-5" /> },
     { path: `/${lang}/messages`, label: "Outgoing", icon: <SendHorizontal className="h-5 w-5" /> },
@@ -238,9 +243,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       <main className="flex-1 overflow-auto">
-        <div className="container mx-auto p-6 max-w-7xl">
-          {isPendingActivation ? <PendingActivation /> : children}
-        </div>
+        <div className="container mx-auto p-6 max-w-7xl">{children}</div>
       </main>
     </div>
   );

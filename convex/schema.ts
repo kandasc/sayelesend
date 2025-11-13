@@ -6,7 +6,7 @@ export default defineSchema({
     tokenIdentifier: v.string(),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
-    role: v.optional(v.union(v.literal("admin"), v.literal("client"))),
+    role: v.optional(v.union(v.literal("admin"), v.literal("client"), v.literal("viewer"))),
     clientId: v.optional(v.id("clients")),
     testModeClientId: v.optional(v.id("clients")),
   })

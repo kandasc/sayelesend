@@ -188,6 +188,94 @@ export const listClients = query({
   },
 });
 
+// Update user role
+export const updateUserRole = mutation({
+  args: {
+    userId: v.id("users"),
+    role: v.union(v.literal("admin"), v.literal("client"), v.literal("viewer")),
+    clientId: v.optional(v.id("clients")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "User not logged in",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!admin || admin.role !== "admin") {
+      throw new ConvexError({
+        message: "Admin access required",
+        code: "FORBIDDEN",
+      });
+    }
+
+    // Prevent admin from changing their own role
+    if (admin._id === args.userId) {
+      throw new ConvexError({
+        message: "Cannot change your own role",
+        code: "FORBIDDEN",
+      });
+    }
+
+    await ctx.db.patch(args.userId, {
+      role: args.role,
+      clientId: args.clientId,
+    });
+
+    return { success: true };
+  },
+});
+
+// Delete user
+export const deleteUser = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "User not logged in",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!admin || admin.role !== "admin") {
+      throw new ConvexError({
+        message: "Admin access required",
+        code: "FORBIDDEN",
+      });
+    }
+
+    // Prevent admin from deleting themselves
+    if (admin._id === args.userId) {
+      throw new ConvexError({
+        message: "Cannot delete your own account",
+        code: "FORBIDDEN",
+      });
+    }
+
+    await ctx.db.delete(args.userId);
+    return { success: true };
+  },
+});
+
 // Get system stats for admin
 export const getSystemStats = query({
   args: {},
