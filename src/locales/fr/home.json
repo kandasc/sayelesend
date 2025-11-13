@@ -1,0 +1,21 @@
+{
+  "home.hero.title": "Sayele Message",
+  "home.hero.subtitle": "Plateforme de Messagerie Multi-Canal",
+  "home.hero.description": "API de messagerie puissante pour les entreprises. Envoyez des messages SMS, WhatsApp, Telegram et Facebook Messenger à grande échelle avec des analyses avancées et un support multi-fournisseurs.",
+  "home.features.multiChannel.title": "Messagerie Multi-Canal",
+  "home.features.multiChannel.description": "Envoyez des messages via SMS, WhatsApp, Telegram et Facebook Messenger depuis une seule plateforme.",
+  "home.features.analytics.title": "Analyses Avancées",
+  "home.features.analytics.description": "Suivez les taux de livraison, le volume de messages et les mesures de performance sur tous les canaux en temps réel.",
+  "home.features.multiProvider.title": "Support Multi-Fournisseurs",
+  "home.features.multiProvider.description": "Connectez-vous avec plusieurs fournisseurs incluant Twilio, Vonage, MTarget et plus pour une fiabilité maximale.",
+  "home.features.fast.title": "Ultra Rapide",
+  "home.features.fast.description": "Livraison de messages à haute vitesse à travers plusieurs opérateurs dans le monde entier.",
+  "home.features.secure.title": "Sécurisé & Fiable",
+  "home.features.secure.description": "Sécurité de niveau entreprise avec rappels webhook et basculement automatique.",
+  "home.features.bulk.title": "Messagerie en Masse",
+  "home.features.bulk.description": "Envoyez des milliers de messages sur tous les canaux avec gestion de campagnes et planification.",
+  "home.features.contacts.title": "Gestion des Contacts",
+  "home.features.contacts.description": "Organisez les contacts en groupes et gérez les conversations sur tous les canaux en un seul endroit.",
+  "home.features.templates.title": "Modèles & Automatisation",
+  "home.features.templates.description": "Gagnez du temps avec des modèles de messages, assistance IA et notifications de livraison en temps réel."
+}

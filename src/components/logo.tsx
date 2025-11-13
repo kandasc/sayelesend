@@ -1,12 +1,14 @@
 import { MessageSquare } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
   showText?: boolean;
   variant?: "default" | "light";
+  clickable?: boolean;
 }
 
-export default function Logo({ size = "md", showText = true, variant = "default" }: LogoProps) {
+export default function Logo({ size = "md", showText = true, variant = "default", clickable = true }: LogoProps) {
   const sizeClasses = {
     sm: "h-6 w-6",
     md: "h-8 w-8",
@@ -28,7 +30,7 @@ export default function Logo({ size = "md", showText = true, variant = "default"
   const iconColor = variant === "light" ? "text-white" : "text-primary";
   const textColor = variant === "light" ? "text-white" : "text-foreground";
 
-  return (
+  const content = (
     <div className="flex items-center gap-3">
       <div className={`relative ${iconColor}`}>
         <MessageSquare className={sizeClasses[size]} strokeWidth={2} fill="currentColor" fillOpacity={0.1} />
@@ -39,10 +41,20 @@ export default function Logo({ size = "md", showText = true, variant = "default"
             Sayele Message
           </h1>
           <p className={`${subtextSizeClasses[size]} text-muted-foreground leading-tight`}>
-            SMS Platform
+            Messaging Platform
           </p>
         </div>
       )}
     </div>
   );
+
+  if (clickable) {
+    return (
+      <Link to="/" className="hover:opacity-80 transition-opacity">
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 }

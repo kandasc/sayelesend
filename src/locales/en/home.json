@@ -1,0 +1,21 @@
+{
+  "home.hero.title": "Sayele Message",
+  "home.hero.subtitle": "Multi-Channel Messaging Platform",
+  "home.hero.description": "Powerful messaging API for businesses. Send SMS, WhatsApp, Telegram, and Facebook Messenger messages at scale with advanced analytics and multi-provider support.",
+  "home.features.multiChannel.title": "Multi-Channel Messaging",
+  "home.features.multiChannel.description": "Send messages via SMS, WhatsApp, Telegram, and Facebook Messenger from one platform.",
+  "home.features.analytics.title": "Advanced Analytics",
+  "home.features.analytics.description": "Track delivery rates, message volume, and performance metrics across all channels in real-time.",
+  "home.features.multiProvider.title": "Multi-Provider Support",
+  "home.features.multiProvider.description": "Connect with multiple providers including Twilio, Vonage, MTarget, and more for maximum reliability.",
+  "home.features.fast.title": "Lightning Fast",
+  "home.features.fast.description": "High-speed message delivery across multiple carriers worldwide.",
+  "home.features.secure.title": "Secure & Reliable",
+  "home.features.secure.description": "Enterprise-grade security with webhook callbacks and automatic failover.",
+  "home.features.bulk.title": "Bulk Messaging",
+  "home.features.bulk.description": "Send thousands of messages across all channels with campaign management and scheduling.",
+  "home.features.contacts.title": "Contact Management",
+  "home.features.contacts.description": "Organize contacts into groups and manage conversations across all channels in one place.",
+  "home.features.templates.title": "Templates & Automation",
+  "home.features.templates.description": "Save time with message templates, AI assistance, and real-time delivery notifications."
+}

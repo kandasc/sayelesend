@@ -1,5 +1,7 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { DefaultProviders } from "./components/providers/default.tsx";
+import { IntlProviderWrapper } from "./lib/IntlProviderWrapper.tsx";
 import DashboardLayout from "./components/dashboard-layout.tsx";
 import AuthCallback from "./pages/auth/Callback.tsx";
 import Index from "./pages/Index.tsx";
@@ -23,33 +25,61 @@ import Groups from "./pages/groups/page.tsx";
 import ApiDocs from "./pages/api-docs/page.tsx";
 import PublicApiDocs from "./pages/docs/page.tsx";
 
+function LanguageWrapper({ children }: { children: React.ReactNode }) {
+  const { lng } = useParams();
+
+  useEffect(() => {
+    if (lng) {
+      document.documentElement.lang = lng;
+      localStorage.setItem("preferredLanguage", lng);
+    }
+  }, [lng]);
+
+  return (
+    <IntlProviderWrapper locale={lng || "en"}>{children}</IntlProviderWrapper>
+  );
+}
+
 export default function App() {
+  // Get preferred language from localStorage or browser
+  const getPreferredLanguage = () => {
+    const stored = localStorage.getItem("preferredLanguage");
+    if (stored && ["en", "fr"].includes(stored)) return stored;
+    
+    const browserLang = navigator.language.split("-")[0];
+    return ["en", "fr"].includes(browserLang) ? browserLang : "en";
+  };
+
   return (
     <DefaultProviders>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/docs" element={<PublicApiDocs />} />
-          <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-          <Route path="/messages" element={<DashboardLayout><Messages /></DashboardLayout>} />
-          <Route path="/incoming" element={<DashboardLayout><IncomingMessages /></DashboardLayout>} />
-          <Route path="/bulk" element={<DashboardLayout><BulkSMS /></DashboardLayout>} />
-          <Route path="/contacts" element={<DashboardLayout><Contacts /></DashboardLayout>} />
-          <Route path="/groups" element={<DashboardLayout><Groups /></DashboardLayout>} />
-          <Route path="/templates" element={<DashboardLayout><Templates /></DashboardLayout>} />
-          <Route path="/webhooks" element={<DashboardLayout><Webhooks /></DashboardLayout>} />
-          <Route path="/reports" element={<DashboardLayout><Reports /></DashboardLayout>} />
-          <Route path="/api-keys" element={<DashboardLayout><ApiKeys /></DashboardLayout>} />
-          <Route path="/api-docs" element={<DashboardLayout><ApiDocs /></DashboardLayout>} />
-          <Route path="/settings" element={<DashboardLayout><Settings /></DashboardLayout>} />
-          <Route path="/admin/analytics" element={<DashboardLayout><AdminAnalytics /></DashboardLayout>} />
-          <Route path="/admin/clients" element={<DashboardLayout><AdminClients /></DashboardLayout>} />
-          <Route path="/admin/users" element={<DashboardLayout><AdminUsers /></DashboardLayout>} />
-          <Route path="/admin/providers" element={<DashboardLayout><AdminProviders /></DashboardLayout>} />
-          <Route path="/admin/ai-assistant" element={<DashboardLayout><AdminAIAssistant /></DashboardLayout>} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
+          {/* Redirect root to preferred language */}
+          <Route path="/" element={<Navigate to={`/${getPreferredLanguage()}`} replace />} />
+          
+          {/* Language-prefixed routes */}
+          <Route path="/:lng" element={<LanguageWrapper><Index /></LanguageWrapper>} />
+          <Route path="/:lng/docs" element={<LanguageWrapper><PublicApiDocs /></LanguageWrapper>} />
+          <Route path="/:lng/dashboard" element={<LanguageWrapper><DashboardLayout><Dashboard /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/messages" element={<LanguageWrapper><DashboardLayout><Messages /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/incoming" element={<LanguageWrapper><DashboardLayout><IncomingMessages /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/bulk" element={<LanguageWrapper><DashboardLayout><BulkSMS /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/contacts" element={<LanguageWrapper><DashboardLayout><Contacts /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/groups" element={<LanguageWrapper><DashboardLayout><Groups /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/templates" element={<LanguageWrapper><DashboardLayout><Templates /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/webhooks" element={<LanguageWrapper><DashboardLayout><Webhooks /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/reports" element={<LanguageWrapper><DashboardLayout><Reports /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/api-keys" element={<LanguageWrapper><DashboardLayout><ApiKeys /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/api-docs" element={<LanguageWrapper><DashboardLayout><ApiDocs /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/settings" element={<LanguageWrapper><DashboardLayout><Settings /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/admin/analytics" element={<LanguageWrapper><DashboardLayout><AdminAnalytics /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/admin/clients" element={<LanguageWrapper><DashboardLayout><AdminClients /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/admin/users" element={<LanguageWrapper><DashboardLayout><AdminUsers /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/admin/providers" element={<LanguageWrapper><DashboardLayout><AdminProviders /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/admin/ai-assistant" element={<LanguageWrapper><DashboardLayout><AdminAIAssistant /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/auth/callback" element={<LanguageWrapper><AuthCallback /></LanguageWrapper>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
+          <Route path="*" element={<Navigate to={`/${getPreferredLanguage()}`} replace />} />
         </Routes>
       </BrowserRouter>
     </DefaultProviders>

@@ -1,7 +1,8 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth.ts";
 import { Button } from "@/components/ui/button.tsx";
 import Logo from "@/components/logo.tsx";
+import { LanguageSwitcher } from "@/components/language-switcher.tsx";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import {
   Home,
@@ -37,6 +38,9 @@ import { Badge } from "@/components/ui/badge.tsx";
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, signoutRedirect } = useAuth();
   const location = useLocation();
+  const { lng } = useParams();
+  const lang = lng || "en";
+  
   const realUser = useQuery(api.users.getCurrentUser, {});
   const effectiveUser = useQuery(api.testMode.getEffectiveUser, {});
   const clients = useQuery(api.admin.listClients, realUser?.role === "admin" ? {} : "skip");
@@ -47,34 +51,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isTestMode = effectiveUser?.isTestMode ?? false;
 
   const navItems = [
-    { path: "/dashboard", label: "Dashboard", icon: <Home className="h-5 w-5" /> },
-    { path: "/messages", label: "Outgoing", icon: <SendHorizontal className="h-5 w-5" /> },
-    { path: "/incoming", label: "Incoming", icon: <Inbox className="h-5 w-5" /> },
-    { path: "/bulk", label: "Bulk SMS", icon: <Send className="h-5 w-5" /> },
-    { path: "/contacts", label: "Contacts", icon: <UserPlus className="h-5 w-5" /> },
-    { path: "/groups", label: "Groups", icon: <Folders className="h-5 w-5" /> },
-    { path: "/templates", label: "Templates", icon: <FileText className="h-5 w-5" /> },
-    { path: "/webhooks", label: "Webhooks", icon: <Webhook className="h-5 w-5" /> },
-    { path: "/reports", label: "Reports", icon: <BarChart3 className="h-5 w-5" /> },
-    { path: "/api-keys", label: "API Keys", icon: <Key className="h-5 w-5" /> },
-    { path: "/api-docs", label: "API Docs", icon: <BookOpen className="h-5 w-5" /> },
-    { path: "/settings", label: "Settings", icon: <Settings className="h-5 w-5" /> },
+    { path: `/${lang}/dashboard`, label: "Dashboard", icon: <Home className="h-5 w-5" /> },
+    { path: `/${lang}/messages`, label: "Outgoing", icon: <SendHorizontal className="h-5 w-5" /> },
+    { path: `/${lang}/incoming`, label: "Incoming", icon: <Inbox className="h-5 w-5" /> },
+    { path: `/${lang}/bulk`, label: "Bulk SMS", icon: <Send className="h-5 w-5" /> },
+    { path: `/${lang}/contacts`, label: "Contacts", icon: <UserPlus className="h-5 w-5" /> },
+    { path: `/${lang}/groups`, label: "Groups", icon: <Folders className="h-5 w-5" /> },
+    { path: `/${lang}/templates`, label: "Templates", icon: <FileText className="h-5 w-5" /> },
+    { path: `/${lang}/webhooks`, label: "Webhooks", icon: <Webhook className="h-5 w-5" /> },
+    { path: `/${lang}/reports`, label: "Reports", icon: <BarChart3 className="h-5 w-5" /> },
+    { path: `/${lang}/api-keys`, label: "API Keys", icon: <Key className="h-5 w-5" /> },
+    { path: `/${lang}/api-docs`, label: "API Docs", icon: <BookOpen className="h-5 w-5" /> },
+    { path: `/${lang}/settings`, label: "Settings", icon: <Settings className="h-5 w-5" /> },
   ];
 
   const adminNavItems = [
-    { path: "/admin/analytics", label: "Analytics", icon: <BarChart3 className="h-5 w-5" /> },
-    { path: "/admin/clients", label: "Clients", icon: <Users className="h-5 w-5" /> },
-    { path: "/admin/users", label: "Users", icon: <Users className="h-5 w-5" /> },
-    { path: "/admin/providers", label: "Providers", icon: <Server className="h-5 w-5" /> },
-    { path: "/admin/ai-assistant", label: "AI Assistant", icon: <Sparkles className="h-5 w-5" /> },
+    { path: `/${lang}/admin/analytics`, label: "Analytics", icon: <BarChart3 className="h-5 w-5" /> },
+    { path: `/${lang}/admin/clients`, label: "Clients", icon: <Users className="h-5 w-5" /> },
+    { path: `/${lang}/admin/users`, label: "Users", icon: <Users className="h-5 w-5" /> },
+    { path: `/${lang}/admin/providers`, label: "Providers", icon: <Server className="h-5 w-5" /> },
+    { path: `/${lang}/admin/ai-assistant`, label: "AI Assistant", icon: <Sparkles className="h-5 w-5" /> },
   ];
 
   return (
     <div className="flex h-screen bg-background">
       <aside className="w-64 border-r bg-card flex flex-col">
-        <Link to="/dashboard" className="p-6 border-b block">
-          <Logo size="sm" showText={true} />
-        </Link>
+        <div className="p-6 border-b">
+          <Link to={`/${lang}`}>
+            <Logo size="sm" showText={true} clickable={false} />
+          </Link>
+        </div>
 
         {isRealAdmin && (
           <div className="p-4 border-b bg-muted/50">
@@ -164,8 +170,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           )}
         </nav>
 
-        <div className="p-4 border-t">
-          <div className="flex items-center gap-3 mb-3">
+        <div className="p-4 border-t space-y-3">
+          <LanguageSwitcher />
+          <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-sm font-semibold text-primary">
                 {user?.profile.name?.charAt(0) || "U"}
