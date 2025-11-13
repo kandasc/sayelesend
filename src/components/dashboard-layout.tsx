@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
+import PendingActivation from "@/components/pending-activation.tsx";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, signoutRedirect } = useAuth();
@@ -49,6 +50,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isAdmin = effectiveUser?.role === "admin";
   const isRealAdmin = realUser?.role === "admin";
   const isTestMode = effectiveUser?.isTestMode ?? false;
+  
+  // Check if user is pending activation (client role but no clientId)
+  const isPendingActivation = 
+    effectiveUser?.role === "client" && 
+    !effectiveUser?.clientId && 
+    !isTestMode;
 
   const navItems = [
     { path: `/${lang}/dashboard`, label: "Dashboard", icon: <Home className="h-5 w-5" /> },
@@ -231,7 +238,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       <main className="flex-1 overflow-auto">
-        <div className="container mx-auto p-6 max-w-7xl">{children}</div>
+        <div className="container mx-auto p-6 max-w-7xl">
+          {isPendingActivation ? <PendingActivation /> : children}
+        </div>
       </main>
     </div>
   );
