@@ -9,9 +9,31 @@ export default defineSchema({
     role: v.optional(v.union(v.literal("admin"), v.literal("client"), v.literal("viewer"))),
     clientId: v.optional(v.id("clients")),
     testModeClientId: v.optional(v.id("clients")),
+    hasSubmittedContactForm: v.optional(v.boolean()),
   })
     .index("by_token", ["tokenIdentifier"])
     .index("by_client", ["clientId"]),
+
+  contactFormSubmissions: defineTable({
+    userId: v.id("users"),
+    companyName: v.string(),
+    contactName: v.string(),
+    email: v.string(),
+    phone: v.string(),
+    country: v.string(),
+    industry: v.optional(v.string()),
+    expectedMonthlyVolume: v.optional(v.string()),
+    useCase: v.optional(v.string()),
+    additionalNotes: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("reviewed"),
+      v.literal("approved"),
+      v.literal("rejected")
+    ),
+  })
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"]),
 
   clients: defineTable({
     companyName: v.string(),

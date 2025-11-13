@@ -19,6 +19,7 @@ import AdminAnalytics from "./pages/admin/analytics/page.tsx";
 import AdminClients from "./pages/admin/clients/page.tsx";
 import AdminUsers from "./pages/admin/users/page.tsx";
 import AdminProviders from "./pages/admin/providers/page.tsx";
+import AdminSubmissions from "./pages/admin/submissions/page.tsx";
 import AdminAIAssistant from "./pages/admin/ai-assistant/page.tsx";
 import Contacts from "./pages/contacts/page.tsx";
 import Groups from "./pages/groups/page.tsx";
@@ -76,6 +77,7 @@ export default function App() {
           <Route path="/:lng/admin/clients" element={<LanguageWrapper><DashboardLayout><AdminClients /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/admin/users" element={<LanguageWrapper><DashboardLayout><AdminUsers /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/admin/providers" element={<LanguageWrapper><DashboardLayout><AdminProviders /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/admin/submissions" element={<LanguageWrapper><DashboardLayout><AdminSubmissions /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/admin/ai-assistant" element={<LanguageWrapper><DashboardLayout><AdminAIAssistant /></DashboardLayout></LanguageWrapper>} />
           
           {/* Auth callback routes - both language-prefixed and non-prefixed for OIDC compatibility */}

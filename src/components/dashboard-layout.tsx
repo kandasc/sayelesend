@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import PendingActivation from "@/components/pending-activation.tsx";
+import ContactFormOnboarding from "@/components/contact-form-onboarding.tsx";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, signoutRedirect } = useAuth();
@@ -57,7 +58,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     !effectiveUser?.clientId && 
     !isTestMode;
 
-  // If pending activation, render without the dashboard layout
+  // Check if user needs to fill contact form
+  const needsContactForm = 
+    isPendingActivation && 
+    !effectiveUser?.hasSubmittedContactForm;
+
+  // If needs contact form, show it first
+  if (needsContactForm) {
+    return <ContactFormOnboarding />;
+  }
+
+  // If pending activation (after submitting form), show pending page
   if (isPendingActivation) {
     return <PendingActivation />;
   }
@@ -82,6 +93,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { path: `/${lang}/admin/clients`, label: "Clients", icon: <Users className="h-5 w-5" /> },
     { path: `/${lang}/admin/users`, label: "Users", icon: <Users className="h-5 w-5" /> },
     { path: `/${lang}/admin/providers`, label: "Providers", icon: <Server className="h-5 w-5" /> },
+    { path: `/${lang}/admin/submissions`, label: "Submissions", icon: <FileText className="h-5 w-5" /> },
     { path: `/${lang}/admin/ai-assistant`, label: "AI Assistant", icon: <Sparkles className="h-5 w-5" /> },
   ];
 

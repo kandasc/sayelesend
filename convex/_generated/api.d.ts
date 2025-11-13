@@ -14,6 +14,7 @@ import type * as analytics from "../analytics.js";
 import type * as apiKeys from "../apiKeys.js";
 import type * as bulk from "../bulk.js";
 import type * as clients from "../clients.js";
+import type * as contactForm from "../contactForm.js";
 import type * as contactGroups from "../contactGroups.js";
 import type * as contacts from "../contacts.js";
 import type * as http from "../http.js";
@@ -54,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   apiKeys: typeof apiKeys;
   bulk: typeof bulk;
   clients: typeof clients;
+  contactForm: typeof contactForm;
   contactGroups: typeof contactGroups;
   contacts: typeof contacts;
   http: typeof http;
