@@ -94,6 +94,11 @@ function MessagesContent() {
     }
 
     try {
+      const companyHeader = ["SAYELE Message - Outgoing Messages Report"];
+      const clientInfo = client ? [`Client: ${client.companyName}`] : ["Client: N/A"];
+      const dateInfo = [`Generated: ${format(new Date(), "yyyy-MM-dd HH:mm:ss")}`];
+      const emptyRow = [""];
+      
       const headers = ["Recipient", "Message", "Channel", "Status", "Credits Used", "Sent At"];
       const rows = filteredMessages.map(m => [
         m.to,
@@ -103,10 +108,19 @@ function MessagesContent() {
         m.creditsUsed.toString(),
         format(new Date(m._creationTime), "yyyy-MM-dd HH:mm:ss")
       ]);
+      
+      const footer = [""];
+      const madeBy = ["Made by SAYELE"];
 
       const csvContent = [
+        companyHeader.join(","),
+        clientInfo.join(","),
+        dateInfo.join(","),
+        emptyRow.join(","),
         headers.join(","),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(",")),
+        footer.join(","),
+        madeBy.join(",")
       ].join("\n");
 
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -135,33 +149,58 @@ function MessagesContent() {
     try {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 14;
       const contentWidth = pageWidth - (margin * 2);
       
+      // Header - Logo and Client Name
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("SAYELE Message", margin, 15);
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const clientText = client ? client.companyName : "N/A";
+      doc.text(`Client: ${clientText}`, margin, 22);
+      
+      // Separator line after header
+      doc.setDrawColor(200);
+      doc.line(margin, 26, pageWidth - margin, 26);
+      
       // Title
+      let yPos = 34;
       doc.setFontSize(16);
-      doc.text("Outgoing Messages Report", margin, 20);
+      doc.setFont("helvetica", "bold");
+      doc.text("Outgoing Messages Report", margin, yPos);
+      yPos += 8;
       
       // Date range if applicable
-      let yPos = 30;
       if (dateRange?.from) {
         doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
         const dateText = dateRange.to 
           ? `${format(dateRange.from, "MMM dd, yyyy")} - ${format(dateRange.to, "MMM dd, yyyy")}`
           : format(dateRange.from, "MMM dd, yyyy");
         doc.text(`Period: ${dateText}`, margin, yPos);
-        yPos += 10;
+        yPos += 6;
       }
       
       // Summary
       doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
       doc.text(`Total Messages: ${filteredMessages.length}`, margin, yPos);
       yPos += 10;
       
       // Messages
       doc.setFontSize(9);
       filteredMessages.forEach((message, index) => {
-        if (yPos > 270) {
+        // Check if we need a new page (leave space for footer)
+        if (yPos > 255) {
+          // Add footer to current page
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "italic");
+          doc.text("Made by SAYELE", pageWidth / 2, pageHeight - 10, { align: "center" });
+          
           doc.addPage();
           yPos = 20;
         }
@@ -196,9 +235,16 @@ function MessagesContent() {
         
         const messageLines = doc.splitTextToSize(message.message, contentWidth - 4);
         messageLines.forEach((line: string) => {
-          if (yPos > 270) {
+          if (yPos > 255) {
+            // Add footer to current page
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "italic");
+            doc.text("Made by SAYELE", pageWidth / 2, pageHeight - 10, { align: "center" });
+            
             doc.addPage();
             yPos = 20;
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
           }
           doc.text(line, margin + 4, yPos);
           yPos += 4;
@@ -213,6 +259,11 @@ function MessagesContent() {
           yPos += 6;
         }
       });
+      
+      // Add footer to the last page
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "italic");
+      doc.text("Made by SAYELE", pageWidth / 2, pageHeight - 10, { align: "center" });
       
       doc.save(`outgoing_messages_${format(new Date(), "yyyy-MM-dd")}.pdf`);
       toast.success("PDF exported successfully");
