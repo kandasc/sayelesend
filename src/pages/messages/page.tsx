@@ -140,7 +140,7 @@ function MessagesContent() {
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!filteredMessages || filteredMessages.length === 0) {
       toast.error("No messages to export");
       return;
@@ -153,22 +153,39 @@ function MessagesContent() {
       const margin = 14;
       const contentWidth = pageWidth - (margin * 2);
       
-      // Header - Logo and Client Name
-      doc.setFontSize(18);
-      doc.setFont("helvetica", "bold");
-      doc.text("SAYELE Message", margin, 15);
+      // Load and add logo
+      const logoUrl = "https://cdn.hercules.app/file_07jHYGpRDUJEALB5zWEPNQjd";
+      try {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = logoUrl;
+        });
+        
+        // Add logo image (adjust size to fit nicely in header)
+        const logoHeight = 12;
+        const logoWidth = (img.width / img.height) * logoHeight;
+        doc.addImage(img, "PNG", margin, 10, logoWidth, logoHeight);
+      } catch (error) {
+        // Fallback to text if image fails to load
+        doc.setFontSize(18);
+        doc.setFont("helvetica", "bold");
+        doc.text("SAYELE Message", margin, 15);
+      }
       
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       const clientText = client ? client.companyName : "N/A";
-      doc.text(`Client: ${clientText}`, margin, 22);
+      doc.text(`Client: ${clientText}`, margin, 24);
       
       // Separator line after header
       doc.setDrawColor(200);
-      doc.line(margin, 26, pageWidth - margin, 26);
+      doc.line(margin, 28, pageWidth - margin, 28);
       
       // Title
-      let yPos = 34;
+      let yPos = 36;
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.text("Outgoing Messages Report", margin, yPos);
