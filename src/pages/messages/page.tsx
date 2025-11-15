@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { Plus, Search, Download } from "lucide-react";
+import { Plus, Search, Download, Calendar as CalendarIcon, FileText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -26,9 +26,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.tsx";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover.tsx";
+import { Calendar } from "@/components/ui/calendar.tsx";
 import { AIAssistant } from "@/components/ai-assistant.tsx";
 import { AIImprover } from "@/components/ai-improver.tsx";
 import { useDebounce } from "@/hooks/use-debounce.ts";
+import jsPDF from "jspdf";
+import type { DateRange } from "react-day-picker";
 
 export default function Messages() {
   return (
@@ -49,14 +57,29 @@ function MessagesContent() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch] = useDebounce(searchQuery, 300);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   
   type MessageType = NonNullable<typeof messages>[number];
   const [selectedMessage, setSelectedMessage] = useState<MessageType | null>(null);
 
-  const filteredMessages = messages?.filter((m) =>
-    m.to.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-    m.message.toLowerCase().includes(debouncedSearch.toLowerCase())
-  );
+  const filteredMessages = messages?.filter((m) => {
+    // Search filter
+    const matchesSearch = m.to.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      m.message.toLowerCase().includes(debouncedSearch.toLowerCase());
+    
+    // Date range filter
+    if (dateRange?.from) {
+      const messageDate = new Date(m._creationTime);
+      const fromDate = startOfDay(dateRange.from);
+      const toDate = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+      
+      if (messageDate < fromDate || messageDate > toDate) {
+        return false;
+      }
+    }
+    
+    return matchesSearch;
+  });
 
   const getTruncatedMessage = (text: string) => {
     const words = text.split(' ');
@@ -64,18 +87,17 @@ function MessagesContent() {
     return words.slice(0, 2).join(' ') + '...';
   };
 
-  const handleExport = () => {
+  const handleExportCSV = () => {
     if (!filteredMessages || filteredMessages.length === 0) {
       toast.error("No messages to export");
       return;
     }
 
     try {
-      // Create CSV content
       const headers = ["Recipient", "Message", "Channel", "Status", "Credits Used", "Sent At"];
       const rows = filteredMessages.map(m => [
         m.to,
-        m.message.replace(/"/g, '""'), // Escape quotes
+        m.message.replace(/"/g, '""'),
         m.channel || "sms",
         m.status,
         m.creditsUsed.toString(),
@@ -87,7 +109,6 @@ function MessagesContent() {
         ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
       ].join("\n");
 
-      // Create blob and download
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
@@ -98,10 +119,106 @@ function MessagesContent() {
       link.click();
       document.body.removeChild(link);
 
-      toast.success("Messages exported successfully");
+      toast.success("CSV exported successfully");
     } catch (error) {
       console.error("Export error:", error);
-      toast.error("Failed to export messages");
+      toast.error("Failed to export CSV");
+    }
+  };
+
+  const handleExportPDF = () => {
+    if (!filteredMessages || filteredMessages.length === 0) {
+      toast.error("No messages to export");
+      return;
+    }
+
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 14;
+      const contentWidth = pageWidth - (margin * 2);
+      
+      // Title
+      doc.setFontSize(16);
+      doc.text("Outgoing Messages Report", margin, 20);
+      
+      // Date range if applicable
+      let yPos = 30;
+      if (dateRange?.from) {
+        doc.setFontSize(10);
+        const dateText = dateRange.to 
+          ? `${format(dateRange.from, "MMM dd, yyyy")} - ${format(dateRange.to, "MMM dd, yyyy")}`
+          : format(dateRange.from, "MMM dd, yyyy");
+        doc.text(`Period: ${dateText}`, margin, yPos);
+        yPos += 10;
+      }
+      
+      // Summary
+      doc.setFontSize(10);
+      doc.text(`Total Messages: ${filteredMessages.length}`, margin, yPos);
+      yPos += 10;
+      
+      // Messages
+      doc.setFontSize(9);
+      filteredMessages.forEach((message, index) => {
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        // Message header
+        doc.setFont("helvetica", "bold");
+        doc.text(`Message ${index + 1}`, margin, yPos);
+        yPos += 5;
+        
+        doc.setFont("helvetica", "normal");
+        
+        // Recipient
+        doc.text(`To: ${message.to}`, margin, yPos);
+        yPos += 5;
+        
+        // Channel and Status
+        const channelText = `Channel: ${message.channel || "SMS"} | Status: ${message.status}`;
+        doc.text(channelText, margin, yPos);
+        yPos += 5;
+        
+        // Credits
+        doc.text(`Credits: ${message.creditsUsed}`, margin, yPos);
+        yPos += 5;
+        
+        // Timestamp
+        doc.text(`Sent: ${format(new Date(message._creationTime), "MMM dd, yyyy HH:mm")}`, margin, yPos);
+        yPos += 5;
+        
+        // Message content
+        doc.text("Message:", margin, yPos);
+        yPos += 5;
+        
+        const messageLines = doc.splitTextToSize(message.message, contentWidth - 4);
+        messageLines.forEach((line: string) => {
+          if (yPos > 270) {
+            doc.addPage();
+            yPos = 20;
+          }
+          doc.text(line, margin + 4, yPos);
+          yPos += 4;
+        });
+        
+        yPos += 6;
+        
+        // Separator line
+        if (index < filteredMessages.length - 1) {
+          doc.setDrawColor(200);
+          doc.line(margin, yPos, pageWidth - margin, yPos);
+          yPos += 6;
+        }
+      });
+      
+      doc.save(`outgoing_messages_${format(new Date(), "yyyy-MM-dd")}.pdf`);
+      toast.success("PDF exported successfully");
+    } catch (error) {
+      console.error("PDF export error:", error);
+      toast.error("Failed to export PDF");
     }
   };
 
@@ -135,26 +252,78 @@ function MessagesContent() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>All Messages</CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              disabled={!filteredMessages || filteredMessages.length === 0}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCSV}
+                disabled={!filteredMessages || filteredMessages.length === 0}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                CSV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPDF}
+                disabled={!filteredMessages || filteredMessages.length === 0}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                PDF
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by recipient or message content..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by recipient or message content..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="min-w-[240px] justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "MMM dd, yyyy")} - {format(dateRange.to, "MMM dd, yyyy")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "MMM dd, yyyy")
+                    )
+                  ) : (
+                    <span>Pick a date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  initialFocus
+                />
+                {dateRange?.from && (
+                  <div className="p-3 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setDateRange(undefined)}
+                    >
+                      Clear dates
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
           </div>
 
           {!filteredMessages || filteredMessages.length === 0 ? (
