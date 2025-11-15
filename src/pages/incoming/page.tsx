@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty.tsx";
-import { MessageSquare, Search, Check, Clock } from "lucide-react";
+import { MessageSquare, Search, Check, Clock, Download, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce.ts";
@@ -27,12 +27,53 @@ function IncomingMessagesContent() {
   const stats = useQuery(api.incomingMessages.getIncomingStats);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch] = useDebounce(searchQuery, 300);
+  const [showContent, setShowContent] = useState(false);
 
   const filteredMessages = messages?.filter((m) =>
     m.from.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
     m.to.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
     m.message.toLowerCase().includes(debouncedSearch.toLowerCase())
   );
+
+  const handleExport = () => {
+    if (!filteredMessages || filteredMessages.length === 0) {
+      toast.error("No messages to export");
+      return;
+    }
+
+    try {
+      // Create CSV content
+      const headers = ["Sender", "Recipient", "Message", "Processed", "Received At"];
+      const rows = filteredMessages.map(m => [
+        m.from,
+        m.to,
+        m.message.replace(/"/g, '""'), // Escape quotes
+        m.processed ? "Yes" : "No",
+        format(new Date(m.receivedAt), "yyyy-MM-dd HH:mm:ss")
+      ]);
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+      ].join("\n");
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `incoming_messages_${format(new Date(), "yyyy-MM-dd")}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success("Messages exported successfully");
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export messages");
+    }
+  };
 
   if (messages === undefined || stats === undefined) {
     return (
@@ -59,11 +100,41 @@ function IncomingMessagesContent() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Incoming Messages</h1>
-        <p className="text-muted-foreground">
-          View and manage incoming SMS messages
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Incoming Messages</h1>
+          <p className="text-muted-foreground">
+            View and manage incoming SMS messages
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowContent(!showContent)}
+          >
+            {showContent ? (
+              <>
+                <EyeOff className="h-4 w-4 mr-2" />
+                Hide Content
+              </>
+            ) : (
+              <>
+                <Eye className="h-4 w-4 mr-2" />
+                Show Content
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={!filteredMessages || filteredMessages.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -127,7 +198,7 @@ function IncomingMessagesContent() {
       ) : (
         <div className="space-y-4">
           {filteredMessages.map((message) => (
-            <IncomingMessageCard key={message._id} message={message} />
+            <IncomingMessageCard key={message._id} message={message} showContent={showContent} />
           ))}
         </div>
       )}
@@ -137,6 +208,7 @@ function IncomingMessagesContent() {
 
 function IncomingMessageCard({
   message,
+  showContent,
 }: {
   message: {
     _id: Id<"incomingMessages">;
@@ -146,6 +218,7 @@ function IncomingMessageCard({
     receivedAt: number;
     processed: boolean;
   };
+  showContent: boolean;
 }) {
   const markAsProcessed = useMutation(api.incomingMessages.markAsProcessed);
 
@@ -186,7 +259,9 @@ function IncomingMessageCard({
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm">{message.message}</p>
+        <p className="text-sm">
+          {showContent ? message.message : "••••••••••••"}
+        </p>
       </CardContent>
     </Card>
   );

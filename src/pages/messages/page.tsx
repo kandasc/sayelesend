@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { Plus } from "lucide-react";
+import { Plus, Search, Download, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select.tsx";
 import { AIAssistant } from "@/components/ai-assistant.tsx";
 import { AIImprover } from "@/components/ai-improver.tsx";
+import { useDebounce } from "@/hooks/use-debounce.ts";
 
 export default function Messages() {
   return (
@@ -46,12 +47,61 @@ function MessagesContent() {
   );
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch] = useDebounce(searchQuery, 300);
+  const [showContent, setShowContent] = useState(false);
+
+  const filteredMessages = messages?.filter((m) =>
+    m.to.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+    m.message.toLowerCase().includes(debouncedSearch.toLowerCase())
+  );
+
+  const handleExport = () => {
+    if (!filteredMessages || filteredMessages.length === 0) {
+      toast.error("No messages to export");
+      return;
+    }
+
+    try {
+      // Create CSV content
+      const headers = ["Recipient", "Message", "Channel", "Status", "Credits Used", "Sent At"];
+      const rows = filteredMessages.map(m => [
+        m.to,
+        m.message.replace(/"/g, '""'), // Escape quotes
+        m.channel || "sms",
+        m.status,
+        m.creditsUsed.toString(),
+        format(new Date(m._creationTime), "yyyy-MM-dd HH:mm:ss")
+      ]);
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+      ].join("\n");
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `outgoing_messages_${format(new Date(), "yyyy-MM-dd")}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success("Messages exported successfully");
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export messages");
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Messages</h1>
+          <h1 className="text-3xl font-bold">Outgoing Messages</h1>
           <p className="text-muted-foreground">Send messages via SMS, WhatsApp, Telegram, and Facebook Messenger</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -75,16 +125,56 @@ function MessagesContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Messages</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>All Messages</CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowContent(!showContent)}
+              >
+                {showContent ? (
+                  <>
+                    <EyeOff className="h-4 w-4 mr-2" />
+                    Hide Content
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4 mr-2" />
+                    Show Content
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                disabled={!filteredMessages || filteredMessages.length === 0}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          {!messages || messages.length === 0 ? (
+        <CardContent className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by recipient or message content..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          {!filteredMessages || filteredMessages.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              No messages found
+              {searchQuery ? "No messages found matching your search" : "No messages found"}
             </p>
           ) : (
             <div className="space-y-2">
-              {messages.map((message) => (
+              {filteredMessages.map((message) => (
                 <div
                   key={message._id}
                   className="flex items-start justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
@@ -95,9 +185,15 @@ function MessagesContent() {
                       <Badge variant={getStatusVariant(message.status)}>
                         {message.status}
                       </Badge>
+                      {message.channel && message.channel !== "sms" && (
+                        <Badge variant="outline">
+                          {message.channel === "facebook_messenger" ? "Messenger" : 
+                           message.channel.charAt(0).toUpperCase() + message.channel.slice(1)}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {message.message}
+                      {showContent ? message.message : "••••••••••••"}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Sent: {format(new Date(message._creationTime), "PPp")}

@@ -216,28 +216,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Button
             variant="ghost"
             className="w-full justify-start"
-            onClick={async () => {
+            onClick={() => {
               try {
-                // Clear OIDC-related storage
-                Object.keys(sessionStorage).forEach(key => {
-                  if (key.startsWith('oidc.')) {
-                    sessionStorage.removeItem(key);
-                  }
-                });
-                Object.keys(localStorage).forEach(key => {
-                  if (key.startsWith('oidc.')) {
-                    localStorage.removeItem(key);
-                  }
-                });
+                // Clear ALL storage
+                sessionStorage.clear();
+                localStorage.clear();
                 
-                await signoutRedirect();
-                // Force redirect after a short delay
-                setTimeout(() => {
-                  window.location.href = "/";
-                }, 100);
+                // Reset language preference
+                const stored = localStorage.getItem("preferredLanguage");
+                const lang = stored && ["en", "fr"].includes(stored) ? stored : "en";
+                localStorage.setItem("preferredLanguage", lang);
+                
+                // Direct redirect without OIDC signout (to avoid "no end session endpoint" error)
+                window.location.href = `/${lang}`;
               } catch (error) {
                 console.error("Sign out error:", error);
-                // Force redirect even if signout fails
                 window.location.href = "/";
               }
             }}

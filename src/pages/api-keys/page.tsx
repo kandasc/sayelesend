@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.t
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { Plus, Eye, EyeOff, Copy, Trash2 } from "lucide-react";
+import { Plus, Copy, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -35,10 +35,13 @@ type ApiKey = {
   _id: Id<"apiKeys">;
   _creationTime: number;
   clientId: Id<"clients">;
-  key: string;
+  keyHash: string;
+  keyPreview: string;
   name: string;
   isActive: boolean;
   lastUsedAt?: number;
+  requestCount?: number;
+  lastRequestAt?: number;
 };
 
 export default function ApiKeys() {
@@ -182,11 +185,8 @@ function ApiKeysContent() {
 }
 
 function ApiKeyItem({ apiKey }: { apiKey: ApiKey }) {
-  const [showKey, setShowKey] = useState(false);
   const toggleApiKey = useMutation(api.apiKeys.toggleApiKey);
   const deleteApiKey = useMutation(api.apiKeys.deleteApiKey);
-
-  const maskedKey = apiKey.key.substring(0, 10) + "...";
 
   const handleToggle = async () => {
     try {
@@ -222,25 +222,14 @@ function ApiKeyItem({ apiKey }: { apiKey: ApiKey }) {
         </div>
         <div className="flex items-center gap-2">
           <code className="text-sm text-muted-foreground font-mono">
-            {showKey ? apiKey.key : maskedKey}
+            {apiKey.keyPreview}
           </code>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setShowKey(!showKey)}
-          >
-            {showKey ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
             onClick={() => {
-              navigator.clipboard.writeText(apiKey.key);
-              toast.success("API key copied");
+              navigator.clipboard.writeText(apiKey.keyPreview);
+              toast.success("API key preview copied");
             }}
           >
             <Copy className="h-4 w-4" />
@@ -249,6 +238,11 @@ function ApiKeyItem({ apiKey }: { apiKey: ApiKey }) {
         {apiKey.lastUsedAt && (
           <p className="text-xs text-muted-foreground">
             Last used: {format(new Date(apiKey.lastUsedAt), "PPp")}
+          </p>
+        )}
+        {apiKey.requestCount !== undefined && apiKey.requestCount > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Total requests: {apiKey.requestCount}
           </p>
         )}
       </div>

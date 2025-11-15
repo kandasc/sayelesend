@@ -2,36 +2,27 @@ import { Mail, Clock, CheckCircle2, Home, LogOut } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Link, useParams } from "react-router-dom";
-import { useAuth } from "@/hooks/use-auth.ts";
 import Logo from "@/components/logo.tsx";
 
 export default function PendingActivation() {
-  const { signoutRedirect } = useAuth();
   const { lng } = useParams();
   const lang = lng || "en";
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     try {
-      // Clear all storage
+      // Clear ALL storage
       sessionStorage.clear();
       localStorage.clear();
       
-      // Clear cookies
-      document.cookie.split(";").forEach((c) => {
-        document.cookie = c
-          .replace(/^ +/, "")
-          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-      });
+      // Reset language preference
+      const stored = localStorage.getItem("preferredLanguage");
+      const preferredLang = stored && ["en", "fr"].includes(stored) ? stored : "en";
+      localStorage.setItem("preferredLanguage", preferredLang);
       
-      await signoutRedirect();
-      
-      // Force redirect after a short delay
-      setTimeout(() => {
-        window.location.href = `/${lang}`;
-      }, 100);
+      // Direct redirect without OIDC signout (to avoid "no end session endpoint" error)
+      window.location.href = `/${lang}`;
     } catch (error) {
       console.error("Sign out error:", error);
-      // Force redirect even if signout fails
       window.location.href = `/${lang}`;
     }
   };
