@@ -8,11 +8,18 @@ import { Input } from "@/components/ui/input.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty.tsx";
-import { MessageSquare, Search, Check, Clock, Download, Eye, EyeOff } from "lucide-react";
+import { MessageSquare, Search, Check, Clock, Download } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce.ts";
 import { format } from "date-fns";
+import { Label } from "@/components/ui/label.tsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog.tsx";
 
 export default function IncomingMessages() {
   return (
@@ -27,13 +34,21 @@ function IncomingMessagesContent() {
   const stats = useQuery(api.incomingMessages.getIncomingStats);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch] = useDebounce(searchQuery, 300);
-  const [showContent, setShowContent] = useState(false);
+  
+  type MessageType = NonNullable<typeof messages>[number];
+  const [selectedMessage, setSelectedMessage] = useState<MessageType | null>(null);
 
   const filteredMessages = messages?.filter((m) =>
     m.from.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
     m.to.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
     m.message.toLowerCase().includes(debouncedSearch.toLowerCase())
   );
+
+  const getTruncatedMessage = (text: string) => {
+    const words = text.split(' ');
+    if (words.length <= 2) return text;
+    return words.slice(0, 2).join(' ') + '...';
+  };
 
   const handleExport = () => {
     if (!filteredMessages || filteredMessages.length === 0) {
@@ -107,34 +122,15 @@ function IncomingMessagesContent() {
             View and manage incoming SMS messages
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowContent(!showContent)}
-          >
-            {showContent ? (
-              <>
-                <EyeOff className="h-4 w-4 mr-2" />
-                Hide Content
-              </>
-            ) : (
-              <>
-                <Eye className="h-4 w-4 mr-2" />
-                Show Content
-              </>
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={!filteredMessages || filteredMessages.length === 0}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExport}
+          disabled={!filteredMessages || filteredMessages.length === 0}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -198,17 +194,65 @@ function IncomingMessagesContent() {
       ) : (
         <div className="space-y-4">
           {filteredMessages.map((message) => (
-            <IncomingMessageCard key={message._id} message={message} showContent={showContent} />
+            <IncomingMessageCard 
+              key={message._id} 
+              message={message} 
+              getTruncatedMessage={getTruncatedMessage}
+              onClick={() => setSelectedMessage(message)}
+            />
           ))}
         </div>
       )}
+
+      {/* Message Detail Dialog */}
+      <Dialog open={!!selectedMessage} onOpenChange={(open) => !open && setSelectedMessage(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Incoming Message Details</DialogTitle>
+          </DialogHeader>
+          {selectedMessage && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">From</Label>
+                  <p className="font-medium">{selectedMessage.from}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">To</Label>
+                  <p className="font-medium">{selectedMessage.to}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <div className="mt-1">
+                    <Badge variant={selectedMessage.processed ? "default" : "secondary"}>
+                      {selectedMessage.processed ? "Processed" : "Unprocessed"}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Received At</Label>
+                  <p className="font-medium">{format(new Date(selectedMessage.receivedAt), "PPpp")}</p>
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-xs text-muted-foreground">Message</Label>
+                <div className="mt-2 p-4 bg-muted rounded-lg">
+                  <p className="text-sm whitespace-pre-wrap">{selectedMessage.message}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 function IncomingMessageCard({
   message,
-  showContent,
+  getTruncatedMessage,
+  onClick,
 }: {
   message: {
     _id: Id<"incomingMessages">;
@@ -218,11 +262,13 @@ function IncomingMessageCard({
     receivedAt: number;
     processed: boolean;
   };
-  showContent: boolean;
+  getTruncatedMessage: (text: string) => string;
+  onClick: () => void;
 }) {
   const markAsProcessed = useMutation(api.incomingMessages.markAsProcessed);
 
-  const handleMarkAsProcessed = async () => {
+  const handleMarkAsProcessed = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
     try {
       await markAsProcessed({ messageId: message._id });
       toast.success("Message marked as processed");
@@ -232,7 +278,7 @@ function IncomingMessageCard({
   };
 
   return (
-    <Card>
+    <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={onClick}>
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="space-y-1 flex-1">
@@ -259,8 +305,8 @@ function IncomingMessageCard({
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm">
-          {showContent ? message.message : "••••••••••••"}
+        <p className="text-sm text-muted-foreground">
+          {getTruncatedMessage(message.message)}
         </p>
       </CardContent>
     </Card>

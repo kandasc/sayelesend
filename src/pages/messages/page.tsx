@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { Plus, Search, Download, Eye, EyeOff } from "lucide-react";
+import { Plus, Search, Download } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -49,12 +49,20 @@ function MessagesContent() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch] = useDebounce(searchQuery, 300);
-  const [showContent, setShowContent] = useState(false);
+  
+  type MessageType = NonNullable<typeof messages>[number];
+  const [selectedMessage, setSelectedMessage] = useState<MessageType | null>(null);
 
   const filteredMessages = messages?.filter((m) =>
     m.to.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
     m.message.toLowerCase().includes(debouncedSearch.toLowerCase())
   );
+
+  const getTruncatedMessage = (text: string) => {
+    const words = text.split(' ');
+    if (words.length <= 2) return text;
+    return words.slice(0, 2).join(' ') + '...';
+  };
 
   const handleExport = () => {
     if (!filteredMessages || filteredMessages.length === 0) {
@@ -127,34 +135,15 @@ function MessagesContent() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>All Messages</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowContent(!showContent)}
-              >
-                {showContent ? (
-                  <>
-                    <EyeOff className="h-4 w-4 mr-2" />
-                    Hide Content
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-4 w-4 mr-2" />
-                    Show Content
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                disabled={!filteredMessages || filteredMessages.length === 0}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={!filteredMessages || filteredMessages.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -177,7 +166,8 @@ function MessagesContent() {
               {filteredMessages.map((message) => (
                 <div
                   key={message._id}
-                  className="flex items-start justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                  className="flex items-start justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                  onClick={() => setSelectedMessage(message)}
                 >
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center gap-2">
@@ -193,7 +183,7 @@ function MessagesContent() {
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {showContent ? message.message : "••••••••••••"}
+                      {getTruncatedMessage(message.message)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Sent: {format(new Date(message._creationTime), "PPp")}
@@ -208,6 +198,55 @@ function MessagesContent() {
           )}
         </CardContent>
       </Card>
+
+      {/* Message Detail Dialog */}
+      <Dialog open={!!selectedMessage} onOpenChange={(open) => !open && setSelectedMessage(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Message Details</DialogTitle>
+          </DialogHeader>
+          {selectedMessage && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Recipient</Label>
+                  <p className="font-medium">{selectedMessage.to}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <div className="mt-1">
+                    <Badge variant={getStatusVariant(selectedMessage.status)}>
+                      {selectedMessage.status}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Channel</Label>
+                  <p className="font-medium capitalize">
+                    {selectedMessage.channel === "facebook_messenger" ? "Facebook Messenger" : 
+                     selectedMessage.channel || "SMS"}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Credits Used</Label>
+                  <p className="font-medium">{selectedMessage.creditsUsed}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Sent At</Label>
+                  <p className="font-medium">{format(new Date(selectedMessage._creationTime), "PPpp")}</p>
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-xs text-muted-foreground">Message</Label>
+                <div className="mt-2 p-4 bg-muted rounded-lg">
+                  <p className="text-sm whitespace-pre-wrap">{selectedMessage.message}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
