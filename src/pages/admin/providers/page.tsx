@@ -254,14 +254,78 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
 
       {providerType === "twilio" && (
         <>
+          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 mb-4">
+            <CardContent className="pt-4">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+                Twilio Multi-Channel Provider
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                Supports SMS and WhatsApp through a single provider. Select the channel when assigning to clients.
+              </p>
+            </CardContent>
+          </Card>
+          
           <div className="space-y-2">
-            <Label htmlFor="accountSid">Account SID</Label>
-            <Input id="accountSid" name="accountSid" required />
+            <Label htmlFor="accountSid">
+              Account SID <span className="text-destructive">*</span>
+            </Label>
+            <Input 
+              id="accountSid" 
+              name="accountSid"
+              placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              required 
+            />
+            <p className="text-xs text-muted-foreground">
+              Your Twilio Account SID from the Console Dashboard
+            </p>
           </div>
+          
           <div className="space-y-2">
-            <Label htmlFor="authToken">Auth Token</Label>
-            <Input id="authToken" name="authToken" type="password" required />
+            <Label htmlFor="authToken">
+              Auth Token <span className="text-destructive">*</span>
+            </Label>
+            <Input 
+              id="authToken" 
+              name="authToken" 
+              type="password"
+              placeholder="••••••••••••••••••••••••••••••••"
+              required 
+            />
+            <p className="text-xs text-muted-foreground">
+              Your Twilio Auth Token from the Console Dashboard
+            </p>
           </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="senderId">Sender Phone Number (Optional)</Label>
+            <Input 
+              id="senderId" 
+              name="senderId"
+              placeholder="+15551234567"
+            />
+            <p className="text-xs text-muted-foreground">
+              Your Twilio phone number in E.164 format. For WhatsApp, must be a WhatsApp-enabled number.
+            </p>
+          </div>
+          
+          <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
+            <CardContent className="pt-4">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">
+                📋 Setup Instructions
+              </p>
+              <ol className="text-xs text-amber-800 dark:text-amber-200 space-y-2 list-decimal list-inside">
+                <li>Sign up at <a href="https://www.twilio.com/try-twilio" target="_blank" rel="noopener noreferrer" className="underline">twilio.com</a></li>
+                <li>Get your Account SID and Auth Token from the Console Dashboard</li>
+                <li>For <strong>SMS</strong>: Purchase a phone number or use a Messaging Service</li>
+                <li>For <strong>WhatsApp</strong>: Request WhatsApp access and connect your WhatsApp Business number</li>
+                <li>Set the "Channel" field when creating this provider (SMS or WhatsApp)</li>
+                <li>Create separate provider entries for each channel you want to use</li>
+              </ol>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-3 font-medium">
+                💡 Tip: Create one Twilio provider for SMS and another for WhatsApp using the same credentials but different channels.
+              </p>
+            </CardContent>
+          </Card>
         </>
       )}
 

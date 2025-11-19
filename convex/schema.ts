@@ -41,7 +41,14 @@ export default defineSchema({
     contactName: v.string(),
     email: v.string(),
     phone: v.string(),
+    // Legacy: single credit balance (will be deprecated)
     credits: v.number(),
+    // Per-channel credit balances
+    smsCredits: v.optional(v.number()),
+    whatsappCredits: v.optional(v.number()),
+    telegramCredits: v.optional(v.number()),
+    facebookMessengerCredits: v.optional(v.number()),
+    // Provider assignments per channel
     smsProviderId: v.id("smsProviders"),
     whatsappProviderId: v.optional(v.id("smsProviders")),
     telegramProviderId: v.optional(v.id("smsProviders")),

@@ -173,6 +173,7 @@ export const sendSingleMessage = internalAction({
 async function sendViaSmsProvider(
   provider: {
     type: "twilio" | "vonage" | "africas_talking" | "mtarget" | "whatsapp" | "telegram" | "facebook_messenger" | "custom";
+    channel?: "sms" | "whatsapp" | "telegram" | "facebook_messenger";
     config: {
       apiKey?: string;
       apiSecret?: string;
@@ -194,11 +195,12 @@ async function sendViaSmsProvider(
       appSecret?: string;
     };
   },
-  message: { to: string; from: string; message: string; _id: string; clientId: string }
+  message: { to: string; from: string; message: string; _id: string; clientId: string; channel?: "sms" | "whatsapp" | "telegram" | "facebook_messenger" }
 ): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
   switch (provider.type) {
     case "twilio":
-      return await sendViaTwilio(provider.config, message);
+      // Twilio can handle both SMS and WhatsApp - pass channel info
+      return await sendViaTwilio(provider.config, { ...message, channel: message.channel || provider.channel });
     case "vonage":
       return await sendViaVonage(provider.config, message);
     case "africas_talking":
@@ -228,16 +230,32 @@ async function sendViaTwilio(
     senderId?: string;
     endpoint?: string;
   },
-  message: { to: string; from: string; message: string }
+  message: { to: string; from: string; message: string; channel?: "sms" | "whatsapp" | "telegram" | "facebook_messenger" }
 ): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
   try {
     const accountSid = config.accountSid || config.apiKey;
     const authToken = config.authToken || config.apiSecret;
     
     if (!accountSid || !authToken) {
-      return { success: false, error: "Missing Twilio credentials" };
+      return { success: false, error: "Missing Twilio credentials (Account SID and Auth Token required)" };
     }
-    const from = config.senderId || message.from;
+    
+    let from = config.senderId || message.from;
+    let to = message.to;
+    
+    // Add channel prefix for WhatsApp
+    if (message.channel === "whatsapp") {
+      // Ensure phone numbers are in E.164 format
+      const cleanFrom = from.replace(/\D/g, "");
+      const cleanTo = to.replace(/\D/g, "");
+      
+      if (!cleanFrom || cleanFrom.length < 10 || !cleanTo || cleanTo.length < 10) {
+        return { success: false, error: "Invalid phone number format. WhatsApp requires E.164 format (e.g., +15551234567)" };
+      }
+      
+      from = `whatsapp:+${cleanFrom}`;
+      to = `whatsapp:+${cleanTo}`;
+    }
 
     const response = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
@@ -249,7 +267,7 @@ async function sendViaTwilio(
             "Basic " + Buffer.from(`${accountSid}:${authToken}`).toString("base64"),
         },
         body: new URLSearchParams({
-          To: message.to,
+          To: to,
           From: from,
           Body: message.message,
         }).toString(),
@@ -264,15 +282,17 @@ async function sendViaTwilio(
         providerMessageId: data.sid,
       };
     } else {
+      const errorMessage = data.message || "Failed to send via Twilio";
+      const errorCode = data.code || "";
       return {
         success: false,
-        error: data.message || "Failed to send via Twilio",
+        error: errorCode ? `${errorMessage} (Code: ${errorCode})` : errorMessage,
       };
     }
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error instanceof Error ? error.message : "Unknown error connecting to Twilio API",
     };
   }
 }

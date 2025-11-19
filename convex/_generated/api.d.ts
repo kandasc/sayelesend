@@ -31,6 +31,7 @@ import type * as lib_securityLogger from "../lib/securityLogger.js";
 import type * as lib_validation from "../lib/validation.js";
 import type * as lib_webhookVerification from "../lib/webhookVerification.js";
 import type * as messages from "../messages.js";
+import type * as migrations from "../migrations.js";
 import type * as providers from "../providers.js";
 import type * as reports from "../reports.js";
 import type * as sms_queries from "../sms/queries.js";
@@ -80,6 +81,7 @@ declare const fullApi: ApiFromModules<{
   "lib/validation": typeof lib_validation;
   "lib/webhookVerification": typeof lib_webhookVerification;
   messages: typeof messages;
+  migrations: typeof migrations;
   providers: typeof providers;
   reports: typeof reports;
   "sms/queries": typeof sms_queries;
