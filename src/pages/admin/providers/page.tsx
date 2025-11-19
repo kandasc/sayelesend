@@ -142,6 +142,7 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
   const createProvider = useMutation(api.providers.createProvider);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [providerType, setProviderType] = useState<string>("twilio");
+  const [twilioChannel, setTwilioChannel] = useState<"sms" | "whatsapp">("sms");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -154,6 +155,7 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
     let channel: "sms" | "whatsapp" | "telegram" | "facebook_messenger" = "sms";
 
     if (providerType === "twilio") {
+      channel = twilioChannel; // Use selected channel for Twilio
       config.accountSid = formData.get("accountSid") as string;
       config.authToken = formData.get("authToken") as string;
       config.senderId = formData.get("senderId") as string;
@@ -260,10 +262,28 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
                 Twilio Multi-Channel Provider
               </p>
               <p className="text-xs text-blue-700 dark:text-blue-300">
-                Supports SMS and WhatsApp through a single provider. Select the channel when assigning to clients.
+                Supports SMS and WhatsApp through a single provider. Select the channel below.
               </p>
             </CardContent>
           </Card>
+          
+          <div className="space-y-2">
+            <Label htmlFor="twilioChannel">
+              Channel <span className="text-destructive">*</span>
+            </Label>
+            <Select value={twilioChannel} onValueChange={(value) => setTwilioChannel(value as "sms" | "whatsapp")} required>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sms">SMS</SelectItem>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Select which channel this provider will be used for. Create separate providers for each channel.
+            </p>
+          </div>
           
           <div className="space-y-2">
             <Label htmlFor="accountSid">
