@@ -334,29 +334,81 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
 
       {providerType === "whatsapp" && (
         <>
-          <div className="space-y-2">
-            <Label htmlFor="phoneNumberId">Phone Number ID</Label>
-            <Input id="phoneNumberId" name="phoneNumberId" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="businessAccountId">Business Account ID</Label>
-            <Input id="businessAccountId" name="businessAccountId" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="accessToken">Access Token</Label>
-            <Input id="accessToken" name="accessToken" type="password" required />
-          </div>
-          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 mb-4">
             <CardContent className="pt-4">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
-                WhatsApp Configuration Guide
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+                Meta WhatsApp Cloud API
               </p>
-              <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-                <li>1. Create a WhatsApp Business Account at business.facebook.com</li>
-                <li>2. Add a phone number and get it verified</li>
-                <li>3. Generate a permanent access token from the WhatsApp API settings</li>
-                <li>4. Copy the Phone Number ID and Business Account ID</li>
-              </ul>
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                Direct integration with Meta's WhatsApp Business Platform (no markup, pay Meta's rates directly)
+              </p>
+            </CardContent>
+          </Card>
+          
+          <div className="space-y-2">
+            <Label htmlFor="phoneNumberId">
+              Phone Number ID <span className="text-destructive">*</span>
+            </Label>
+            <Input 
+              id="phoneNumberId" 
+              name="phoneNumberId" 
+              placeholder="123456789012345"
+              required 
+            />
+            <p className="text-xs text-muted-foreground">
+              Your WhatsApp Business Phone Number ID from Meta Business Manager
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="businessAccountId">
+              Business Account ID (WABA ID) <span className="text-destructive">*</span>
+            </Label>
+            <Input 
+              id="businessAccountId" 
+              name="businessAccountId"
+              placeholder="123456789012345"
+              required 
+            />
+            <p className="text-xs text-muted-foreground">
+              Your WhatsApp Business Account ID from Meta Business Manager
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="accessToken">
+              Permanent Access Token <span className="text-destructive">*</span>
+            </Label>
+            <Input 
+              id="accessToken" 
+              name="accessToken" 
+              type="password"
+              placeholder="EAAxxxxxxxxxxxxxxxxxxxxxxxx"
+              required 
+            />
+            <p className="text-xs text-muted-foreground">
+              System User access token with whatsapp_business_messaging permission
+            </p>
+          </div>
+          
+          <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
+            <CardContent className="pt-4">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">
+                📋 Setup Instructions
+              </p>
+              <ol className="text-xs text-amber-800 dark:text-amber-200 space-y-2 list-decimal list-inside">
+                <li>Go to <a href="https://business.facebook.com" target="_blank" rel="noopener noreferrer" className="underline">business.facebook.com</a> and create a Meta Business Account</li>
+                <li>Create a WhatsApp Business App in <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" className="underline">Meta Developer Portal</a></li>
+                <li>Add and verify your phone number in WhatsApp → Getting Started</li>
+                <li>Create a System User in Business Settings → Users → System Users</li>
+                <li>Generate a permanent access token with <strong>whatsapp_business_messaging</strong> permission</li>
+                <li>Copy your Phone Number ID from WhatsApp → API Setup</li>
+                <li>Copy your Business Account ID (WABA ID) from WhatsApp Settings</li>
+                <li>Important: Phone numbers must be in E.164 format (e.g., +15551234567)</li>
+              </ol>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-3 font-medium">
+                💰 Pricing: Messages are billed by Meta based on country and conversation type. No markup added by SAYELE.
+              </p>
             </CardContent>
           </Card>
         </>

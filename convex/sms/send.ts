@@ -530,19 +530,26 @@ async function sendViaWhatsApp(
   config: {
     phoneNumberId?: string;
     accessToken?: string;
+    appSecret?: string;
   },
   message: { to: string; from: string; message: string }
 ): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
   try {
     if (!config.phoneNumberId || !config.accessToken) {
-      return { success: false, error: "Missing WhatsApp credentials" };
+      return { success: false, error: "Missing WhatsApp credentials (Phone Number ID and Access Token required)" };
     }
 
-    // Remove + or any non-digit characters from phone number
-    const cleanPhone = message.to.replace(/\D/g, "");
+    // Ensure phone number is in E.164 format (digits only, with country code)
+    let cleanPhone = message.to.replace(/\D/g, "");
+    
+    // If phone doesn't start with a country code, we can't send it
+    if (!cleanPhone || cleanPhone.length < 10) {
+      return { success: false, error: "Invalid phone number format. Must include country code (E.164 format)" };
+    }
 
+    // Use latest Graph API version (v21.0)
     const response = await fetch(
-      `https://graph.facebook.com/v18.0/${config.phoneNumberId}/messages`,
+      `https://graph.facebook.com/v21.0/${config.phoneNumberId}/messages`,
       {
         method: "POST",
         headers: {
@@ -568,15 +575,20 @@ async function sendViaWhatsApp(
         providerMessageId: data.messages[0].id,
       };
     } else {
+      // Provide more detailed error messages
+      const errorMessage = data.error?.message || "Failed to send via WhatsApp Cloud API";
+      const errorCode = data.error?.code || "unknown";
+      const errorType = data.error?.type || "";
+      
       return {
         success: false,
-        error: data.error?.message || "Failed to send via WhatsApp",
+        error: `${errorMessage} (Code: ${errorCode}${errorType ? `, Type: ${errorType}` : ""})`,
       };
     }
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error instanceof Error ? error.message : "Unknown error connecting to WhatsApp Cloud API",
     };
   }
 }
