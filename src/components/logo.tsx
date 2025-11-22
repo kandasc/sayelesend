@@ -1,4 +1,3 @@
-import { MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface LogoProps {
@@ -27,14 +26,15 @@ export default function Logo({ size = "md", showText = true, variant = "default"
     lg: "text-base",
   };
 
-  const iconColor = variant === "light" ? "text-white" : "text-primary";
   const textColor = variant === "light" ? "text-white" : "text-foreground";
 
   const content = (
     <div className="flex items-center gap-3">
-      <div className={`relative ${iconColor}`}>
-        <MessageSquare className={sizeClasses[size]} strokeWidth={2} fill="currentColor" fillOpacity={0.1} />
-      </div>
+      <img 
+        src="https://cdn.hercules.app/file_gLTdUXfPCK1bJYdBbIxIeipb" 
+        alt="Sayele Message Logo"
+        className={`${sizeClasses[size]} ${variant === "light" ? "brightness-0 invert" : "dark:brightness-0 dark:invert"}`}
+      />
       {showText && (
         <div className="flex flex-col">
           <h1 className={`${textSizeClasses[size]} font-bold leading-tight ${textColor}`}>
