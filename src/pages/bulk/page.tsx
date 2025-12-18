@@ -17,9 +17,10 @@ import {
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
-import { Plus, Send, Users, CheckCircle, XCircle, Clock, Calendar as CalendarIcon } from "lucide-react";
-import { useState } from "react";
+import { Plus, Send, Users, CheckCircle, XCircle, Clock, Calendar as CalendarIcon, Upload, FileText } from "lucide-react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
+import Papa from "papaparse";
 import { format, addDays, set } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Calendar } from "@/components/ui/calendar.tsx";
@@ -322,6 +323,7 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
   const [selectedTime, setSelectedTime] = useState("12:00");
   const [channel, setChannel] = useState<"sms" | "whatsapp" | "telegram" | "facebook_messenger">("sms");
   const [message, setMessage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleRecipientsChange = (value: string) => {
     setRecipients(value);
@@ -330,6 +332,90 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
       .map((n) => n.trim())
       .filter((n) => n.length > 0);
     setRecipientCount(numbers.length);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    const validTypes = ["text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+    if (!validTypes.includes(file.type) && !file.name.endsWith(".csv")) {
+      toast.error("Please upload a CSV file");
+      return;
+    }
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB");
+      return;
+    }
+
+    // Parse CSV
+    Papa.parse(file, {
+      complete: (results) => {
+        try {
+          const phoneNumbers: string[] = [];
+          const data = results.data as string[][];
+
+          // Skip empty rows
+          const nonEmptyRows = data.filter(row => row.some(cell => cell && cell.trim()));
+
+          if (nonEmptyRows.length === 0) {
+            toast.error("CSV file is empty");
+            return;
+          }
+
+          // Check if first row is header (contains common header keywords)
+          const firstRow = nonEmptyRows[0];
+          const headerKeywords = ["phone", "number", "mobile", "tel", "contact"];
+          const hasHeader = firstRow.some(cell => 
+            headerKeywords.some(keyword => cell.toLowerCase().includes(keyword))
+          );
+
+          const startIndex = hasHeader ? 1 : 0;
+
+          // Extract phone numbers
+          for (let i = startIndex; i < nonEmptyRows.length; i++) {
+            const row = nonEmptyRows[i];
+            // Try to find phone number in any column
+            for (const cell of row) {
+              const trimmed = cell.trim();
+              // Basic phone number validation (starts with + and contains digits)
+              if (trimmed && (trimmed.startsWith("+") || /^\d{9,}$/.test(trimmed.replace(/[\s()-]/g, "")))) {
+                // Normalize phone number
+                let normalized = trimmed.replace(/[\s()-]/g, "");
+                if (!normalized.startsWith("+")) {
+                  normalized = "+" + normalized;
+                }
+                phoneNumbers.push(normalized);
+                break; // Take first valid phone number from row
+              }
+            }
+          }
+
+          if (phoneNumbers.length === 0) {
+            toast.error("No valid phone numbers found in CSV");
+            return;
+          }
+
+          // Update recipients
+          setRecipients(phoneNumbers.join("\n"));
+          setRecipientCount(phoneNumbers.length);
+          toast.success(`Imported ${phoneNumbers.length} phone numbers`);
+        } catch (error) {
+          toast.error("Failed to parse CSV file");
+        }
+      },
+      error: (error) => {
+        toast.error(`Error reading file: ${error.message}`);
+      },
+    });
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -515,12 +601,32 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="recipients">Recipients</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="recipients">Recipients</Label>
+          <div className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload CSV
+            </Button>
+          </div>
+        </div>
         <Textarea
           id="recipients"
           value={recipients}
           onChange={(e) => handleRecipientsChange(e.target.value)}
-          placeholder="Enter phone numbers (one per line, or comma/semicolon separated)&#10;+1234567890&#10;+0987654321"
+          placeholder="Enter phone numbers (one per line, or comma/semicolon separated)&#10;+1234567890&#10;+0987654321&#10;&#10;Or upload a CSV file with phone numbers"
           rows={6}
           required
         />
@@ -531,6 +637,16 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
           <p className="text-muted-foreground">
             Estimated cost: <span className="font-medium">{estimatedCost} credits</span>
           </p>
+        </div>
+        <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg">
+          <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+          <div className="text-xs text-blue-800 dark:text-blue-200">
+            <p className="font-medium mb-1">CSV Format:</p>
+            <p>• Upload a CSV file with phone numbers in any column</p>
+            <p>• Supports headers like "phone", "number", "mobile", etc.</p>
+            <p>• Phone numbers should start with + (e.g., +1234567890)</p>
+            <p>• Maximum file size: 5MB</p>
+          </div>
         </div>
       </div>
 
