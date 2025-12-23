@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { MessageSquare, CheckCircle, XCircle, Coins, Send, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { format } from "date-fns";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 export default function Dashboard() {
   return (
@@ -18,6 +18,7 @@ export default function Dashboard() {
 }
 
 function DashboardContent() {
+  const { lng } = useParams();
   const currentUser = useQuery(api.testMode.getEffectiveUser, {});
   const client = useQuery(api.clients.getCurrentClient, {});
   const stats = useQuery(
@@ -53,16 +54,16 @@ function DashboardContent() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link to="/messages">
+          <Link to={`/${lng}/messages`}>
             <Button variant="outline">
               <MessageSquare className="h-4 w-4 mr-2" />
-              Send SMS
+              Send Message
             </Button>
           </Link>
-          <Link to="/bulk">
+          <Link to={`/${lng}/bulk`}>
             <Button>
               <Send className="h-4 w-4 mr-2" />
-              Bulk SMS
+              Bulk Message
             </Button>
           </Link>
         </div>
@@ -103,7 +104,7 @@ function DashboardContent() {
                 <p className="text-center text-muted-foreground">
                   No messages sent yet
                 </p>
-                <Link to="/messages">
+                <Link to={`/${lng}/messages`}>
                   <Button size="sm" className="mt-4">
                     Send Your First SMS
                   </Button>
@@ -142,25 +143,25 @@ function DashboardContent() {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Link to="/messages" className="block">
+            <Link to={`/${lng}/messages`} className="block">
               <Button variant="outline" className="w-full justify-start">
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Send Single SMS
               </Button>
             </Link>
-            <Link to="/bulk" className="block">
+            <Link to={`/${lng}/bulk`} className="block">
               <Button variant="outline" className="w-full justify-start">
                 <Send className="h-4 w-4 mr-2" />
                 Create Bulk Campaign
               </Button>
             </Link>
-            <Link to="/templates" className="block">
+            <Link to={`/${lng}/templates`} className="block">
               <Button variant="outline" className="w-full justify-start">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Template
               </Button>
             </Link>
-            <Link to="/api-keys" className="block">
+            <Link to={`/${lng}/api-keys`} className="block">
               <Button variant="outline" className="w-full justify-start">
                 <Coins className="h-4 w-4 mr-2" />
                 View API Keys
@@ -174,6 +175,7 @@ function DashboardContent() {
 }
 
 function AdminDashboard() {
+  const { lng } = useParams();
   const allClients = useQuery(api.clients.listClients, {});
   const systemStats = useQuery(api.admin.getSystemStats, {});
 
@@ -192,7 +194,7 @@ function AdminDashboard() {
           <p className="text-muted-foreground">System overview and management</p>
         </div>
         <div className="flex gap-2">
-          <Link to="/admin/clients">
+          <Link to={`/${lng}/admin/clients`}>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
               New Client
