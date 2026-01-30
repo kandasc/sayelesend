@@ -11,7 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -477,200 +476,206 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
   const estimatedCost = client ? recipientCount * 1 : 0; // Assuming 1 credit per SMS
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Campaign Name</Label>
-        <Input id="name" name="name" placeholder="Spring Sale 2025" required />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="channel">Channel</Label>
-        <Select value={channel} onValueChange={(v) => setChannel(v as typeof channel)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="sms">SMS</SelectItem>
-            <SelectItem value="whatsapp">WhatsApp</SelectItem>
-            <SelectItem value="telegram">Telegram</SelectItem>
-            <SelectItem value="facebook_messenger">Facebook Messenger</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="message">Message</Label>
-          <div className="flex gap-2">
-            <AIBulkGenerator 
-              channel={channel}
-              onMessagesGenerated={(msgs) => {
-                if (msgs.length > 0) {
-                  setMessage(msgs[0]);
-                  toast.info(`${msgs.length} variations generated. Using first one. You can use others in future campaigns.`);
-                }
-              }}
-            />
-            <AIAssistant 
-              channel={channel}
-              onMessageGenerated={setMessage}
-            />
-          </div>
-        </div>
-        <Textarea
-          id="message"
-          placeholder="Your message here..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          rows={4}
-          required
-          maxLength={channel === "sms" ? 160 : undefined}
-        />
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            {message.length} characters
-            {channel === "sms" && " (max 160)"}
-          </p>
-          <AIImprover 
-            message={message}
-            onMessageImproved={setMessage}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="from">Sender ID (Optional)</Label>
-        <Input id="from" name="from" placeholder="SAYELE" />
-      </div>
-
-      <div className="space-y-4 p-4 border rounded-lg">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <Label htmlFor="schedule">Schedule for Later</Label>
-            <p className="text-xs text-muted-foreground">
-              Send this campaign at a specific date and time
-            </p>
-          </div>
-          <Switch
-            id="schedule"
-            checked={isScheduled}
-            onCheckedChange={setIsScheduled}
-          />
+    <form onSubmit={handleSubmit} className="flex flex-col max-h-[70vh]">
+      {/* Scrollable content area */}
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+        <div className="space-y-2">
+          <Label htmlFor="name">Campaign Name</Label>
+          <Input id="name" name="name" placeholder="Spring Sale 2025" required />
         </div>
 
-        {isScheduled && (
-          <div className="grid grid-cols-2 gap-4 pt-2">
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    disabled={(date) => date < new Date()}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="channel">Channel</Label>
+          <Select value={channel} onValueChange={(v) => setChannel(v as typeof channel)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sms">SMS</SelectItem>
+              <SelectItem value="whatsapp">WhatsApp</SelectItem>
+              <SelectItem value="telegram">Telegram</SelectItem>
+              <SelectItem value="facebook_messenger">Facebook Messenger</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="time">Time</Label>
-              <Input
-                id="time"
-                type="time"
-                value={selectedTime}
-                onChange={(e) => setSelectedTime(e.target.value)}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor="message">Message</Label>
+            <div className="flex gap-2">
+              <AIBulkGenerator 
+                channel={channel}
+                onMessagesGenerated={(msgs) => {
+                  if (msgs.length > 0) {
+                    setMessage(msgs[0]);
+                    toast.info(`${msgs.length} variations generated. Using first one. You can use others in future campaigns.`);
+                  }
+                }}
+              />
+              <AIAssistant 
+                channel={channel}
+                onMessageGenerated={setMessage}
               />
             </div>
+          </div>
+          <Textarea
+            id="message"
+            placeholder="Your message here..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={3}
+            required
+            maxLength={channel === "sms" ? 160 : undefined}
+          />
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {message.length} characters
+              {channel === "sms" && " (max 160)"}
+            </p>
+            <AIImprover 
+              message={message}
+              onMessageImproved={setMessage}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="from">Sender ID (Optional)</Label>
+          <Input id="from" name="from" placeholder="SAYELE" />
+        </div>
+
+        <div className="space-y-4 p-4 border rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="schedule">Schedule for Later</Label>
+              <p className="text-xs text-muted-foreground">
+                Send this campaign at a specific date and time
+              </p>
+            </div>
+            <Switch
+              id="schedule"
+              checked={isScheduled}
+              onCheckedChange={setIsScheduled}
+            />
+          </div>
+
+          {isScheduled && (
+            <div className="grid grid-cols-2 gap-4 pt-2">
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      disabled={(date) => date < new Date()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="time">Time</Label>
+                <Input
+                  id="time"
+                  type="time"
+                  value={selectedTime}
+                  onChange={(e) => setSelectedTime(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="recipients">Recipients</Label>
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload CSV
+              </Button>
+            </div>
+          </div>
+          <Textarea
+            id="recipients"
+            value={recipients}
+            onChange={(e) => handleRecipientsChange(e.target.value)}
+            placeholder="Enter phone numbers (one per line, or comma/semicolon separated)&#10;+1234567890&#10;+0987654321&#10;&#10;Or upload a CSV file with phone numbers"
+            className="h-32 resize-none"
+            required
+          />
+          <div className="flex justify-between text-xs">
+            <p className="text-muted-foreground">
+              {recipientCount} recipient{recipientCount !== 1 ? "s" : ""}
+            </p>
+            <p className="text-muted-foreground">
+              Estimated cost: <span className="font-medium">{estimatedCost} credits</span>
+            </p>
+          </div>
+          <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg">
+            <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+            <div className="text-xs text-blue-800 dark:text-blue-200">
+              <p className="font-medium mb-1">CSV Format:</p>
+              <p>• Upload a CSV file with phone numbers in any column</p>
+              <p>• Supports headers like "phone", "number", "mobile", etc.</p>
+              <p>• Phone numbers should start with + (e.g., +1234567890)</p>
+              <p>• Maximum file size: 5MB</p>
+            </div>
+          </div>
+        </div>
+
+        {client && estimatedCost > client.credits && (
+          <div className="p-3 bg-destructive/10 border border-destructive rounded-lg">
+            <p className="text-sm text-destructive font-medium">
+              Insufficient credits. You need {estimatedCost} credits but only have{" "}
+              {client.credits} available.
+            </p>
           </div>
         )}
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="recipients">Recipients</Label>
-          <div className="flex gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload CSV
-            </Button>
-          </div>
-        </div>
-        <Textarea
-          id="recipients"
-          value={recipients}
-          onChange={(e) => handleRecipientsChange(e.target.value)}
-          placeholder="Enter phone numbers (one per line, or comma/semicolon separated)&#10;+1234567890&#10;+0987654321&#10;&#10;Or upload a CSV file with phone numbers"
-          rows={6}
-          required
-        />
-        <div className="flex justify-between text-xs">
-          <p className="text-muted-foreground">
-            {recipientCount} recipient{recipientCount !== 1 ? "s" : ""}
-          </p>
-          <p className="text-muted-foreground">
-            Estimated cost: <span className="font-medium">{estimatedCost} credits</span>
-          </p>
-        </div>
-        <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg">
-          <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-          <div className="text-xs text-blue-800 dark:text-blue-200">
-            <p className="font-medium mb-1">CSV Format:</p>
-            <p>• Upload a CSV file with phone numbers in any column</p>
-            <p>• Supports headers like "phone", "number", "mobile", etc.</p>
-            <p>• Phone numbers should start with + (e.g., +1234567890)</p>
-            <p>• Maximum file size: 5MB</p>
-          </div>
+      {/* Fixed footer with submit button */}
+      <div className="flex-shrink-0 pt-4 mt-4 border-t bg-background">
+        <div className="flex justify-end">
+          <Button 
+            type="submit" 
+            disabled={
+              isSubmitting || 
+              (client ? estimatedCost > client.credits : false) ||
+              (isScheduled && !selectedDate)
+            }
+          >
+            {isSubmitting ? "Creating..." : isScheduled ? "Schedule Campaign" : "Create Campaign"}
+          </Button>
         </div>
       </div>
-
-      {client && estimatedCost > client.credits && (
-        <div className="p-3 bg-destructive/10 border border-destructive rounded-lg">
-          <p className="text-sm text-destructive font-medium">
-            Insufficient credits. You need {estimatedCost} credits but only have{" "}
-            {client.credits} available.
-          </p>
-        </div>
-      )}
-
-      <DialogFooter>
-        <Button 
-          type="submit" 
-          disabled={
-            isSubmitting || 
-            (client ? estimatedCost > client.credits : false) ||
-            (isScheduled && !selectedDate)
-          }
-        >
-          {isSubmitting ? "Creating..." : isScheduled ? "Schedule Campaign" : "Create Campaign"}
-        </Button>
-      </DialogFooter>
     </form>
   );
 }
