@@ -25,6 +25,7 @@ import {
   Inbox,
   Coins,
   Zap,
+  CreditCard,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
@@ -88,6 +89,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { path: `/${lang}/reports`, label: "Reports", icon: <BarChart3 className="h-5 w-5" /> },
     { path: `/${lang}/api-keys`, label: "API Keys", icon: <Key className="h-5 w-5" /> },
     { path: `/${lang}/api-docs`, label: "API Docs", icon: <BookOpen className="h-5 w-5" /> },
+    { path: `/${lang}/payments`, label: "Buy Credits", icon: <CreditCard className="h-5 w-5" /> },
     { path: `/${lang}/settings`, label: "Settings", icon: <Settings className="h-5 w-5" /> },
   ];
 

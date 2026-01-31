@@ -204,8 +204,9 @@ export default defineSchema({
 
   apiKeys: defineTable({
     clientId: v.id("clients"),
-    keyHash: v.string(), // SHA-256 hash of the API key
-    keyPreview: v.string(), // Last 4 characters for display
+    key: v.optional(v.string()), // Legacy field - kept for backward compatibility
+    keyHash: v.optional(v.string()), // SHA-256 hash of the API key
+    keyPreview: v.optional(v.string()), // Last 4 characters for display
     name: v.string(),
     isActive: v.boolean(),
     lastUsedAt: v.optional(v.number()),
@@ -298,13 +299,14 @@ export default defineSchema({
     amount: v.number(),
     type: v.union(
       v.literal("purchase"),
+      v.literal("add"),
       v.literal("deduction"),
       v.literal("refund"),
       v.literal("bonus"),
       v.literal("adjustment")
     ),
     description: v.string(),
-    balanceBefore: v.number(),
+    balanceBefore: v.optional(v.number()),
     balanceAfter: v.number(),
     performedBy: v.optional(v.id("users")),
     relatedMessageId: v.optional(v.id("messages")),
@@ -412,4 +414,27 @@ export default defineSchema({
   })
     .index("by_identifier", ["identifier"])
     .index("by_window", ["windowStart"]),
+
+  paymentTransactions: defineTable({
+    transactionId: v.string(),
+    clientId: v.id("clients"),
+    userId: v.id("users"),
+    packageId: v.string(),
+    credits: v.number(),
+    amount: v.number(),
+    currency: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("cancelled")
+    ),
+    completedAt: v.optional(v.number()),
+    failedAt: v.optional(v.number()),
+    failureReason: v.optional(v.string()),
+  })
+    .index("by_transaction_id", ["transactionId"])
+    .index("by_client", ["clientId"])
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"]),
 });

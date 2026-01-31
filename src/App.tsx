@@ -27,6 +27,7 @@ import Groups from "./pages/groups/page.tsx";
 import Automation from "./pages/automation/page.tsx";
 import ApiDocs from "./pages/api-docs/page.tsx";
 import PublicApiDocs from "./pages/docs/page.tsx";
+import Payments from "./pages/payments/page.tsx";
 
 function LanguageWrapper({ children }: { children: React.ReactNode }) {
   const { lng } = useParams();
@@ -76,6 +77,7 @@ export default function App() {
           <Route path="/:lng/api-keys" element={<LanguageWrapper><DashboardLayout><ApiKeys /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/api-docs" element={<LanguageWrapper><DashboardLayout><ApiDocs /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/settings" element={<LanguageWrapper><DashboardLayout><Settings /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/payments" element={<LanguageWrapper><DashboardLayout><Payments /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/admin/analytics" element={<LanguageWrapper><DashboardLayout><AdminAnalytics /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/admin/clients" element={<LanguageWrapper><DashboardLayout><AdminClients /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/admin/users" element={<LanguageWrapper><DashboardLayout><AdminUsers /></DashboardLayout></LanguageWrapper>} />
