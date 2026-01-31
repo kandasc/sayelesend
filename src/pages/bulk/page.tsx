@@ -344,67 +344,72 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
       return;
     }
 
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File size must be less than 5MB");
+    // Check file size (max 10MB for larger files)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size must be less than 10MB");
       return;
     }
 
-    // Parse CSV
+    toast.info("Processing CSV file...");
+
+    // Use streaming mode for large files
+    const phoneNumbers: string[] = [];
+    let isFirstRow = true;
+    let hasHeader = false;
+    const headerKeywords = ["phone", "number", "mobile", "tel", "contact", "msisdn", "recipient"];
+
     Papa.parse(file, {
-      complete: (results) => {
-        try {
-          const phoneNumbers: string[] = [];
-          const data = results.data as string[][];
-
-          // Skip empty rows
-          const nonEmptyRows = data.filter(row => row.some(cell => cell && cell.trim()));
-
-          if (nonEmptyRows.length === 0) {
-            toast.error("CSV file is empty");
-            return;
-          }
-
-          // Check if first row is header (contains common header keywords)
-          const firstRow = nonEmptyRows[0];
-          const headerKeywords = ["phone", "number", "mobile", "tel", "contact"];
-          const hasHeader = firstRow.some(cell => 
-            headerKeywords.some(keyword => cell.toLowerCase().includes(keyword))
+      skipEmptyLines: true,
+      step: (row) => {
+        const data = row.data as string[];
+        
+        // Check if first row is header
+        if (isFirstRow) {
+          isFirstRow = false;
+          hasHeader = data.some(cell => 
+            cell && headerKeywords.some(keyword => cell.toLowerCase().includes(keyword))
           );
+          if (hasHeader) return; // Skip header row
+        }
 
-          const startIndex = hasHeader ? 1 : 0;
-
-          // Extract phone numbers
-          for (let i = startIndex; i < nonEmptyRows.length; i++) {
-            const row = nonEmptyRows[i];
-            // Try to find phone number in any column
-            for (const cell of row) {
-              const trimmed = cell.trim();
-              // Basic phone number validation (starts with + and contains digits)
-              if (trimmed && (trimmed.startsWith("+") || /^\d{9,}$/.test(trimmed.replace(/[\s()-]/g, "")))) {
-                // Normalize phone number
-                let normalized = trimmed.replace(/[\s()-]/g, "");
-                if (!normalized.startsWith("+")) {
-                  normalized = "+" + normalized;
-                }
-                phoneNumbers.push(normalized);
-                break; // Take first valid phone number from row
-              }
+        // Try to find phone number in any column
+        for (const cell of data) {
+          if (!cell) continue;
+          const trimmed = cell.trim();
+          // Basic phone number validation (starts with + or has enough digits)
+          if (trimmed && (trimmed.startsWith("+") || /^\d{9,}$/.test(trimmed.replace(/[\s().-]/g, "")))) {
+            // Normalize phone number
+            let normalized = trimmed.replace(/[\s().-]/g, "");
+            if (!normalized.startsWith("+")) {
+              normalized = "+" + normalized;
+            }
+            // Validate it looks like a real phone number
+            if (/^\+\d{9,15}$/.test(normalized)) {
+              phoneNumbers.push(normalized);
+              break; // Take first valid phone number from row
             }
           }
-
-          if (phoneNumbers.length === 0) {
-            toast.error("No valid phone numbers found in CSV");
-            return;
-          }
-
-          // Update recipients
-          setRecipients(phoneNumbers.join("\n"));
-          setRecipientCount(phoneNumbers.length);
-          toast.success(`Imported ${phoneNumbers.length} phone numbers`);
-        } catch (error) {
-          toast.error("Failed to parse CSV file");
         }
+      },
+      complete: () => {
+        // Check if we exceeded the limit
+        if (phoneNumbers.length > 10000) {
+          toast.error(`CSV contains ${phoneNumbers.length} numbers. Maximum is 10,000 per campaign.`);
+          const truncated = phoneNumbers.slice(0, 10000);
+          setRecipients(truncated.join("\n"));
+          setRecipientCount(truncated.length);
+          return;
+        }
+
+        if (phoneNumbers.length === 0) {
+          toast.error("No valid phone numbers found in CSV. Ensure numbers are in E.164 format (e.g., +22507XXXXXXX)");
+          return;
+        }
+
+        // Update recipients
+        setRecipients(phoneNumbers.join("\n"));
+        setRecipientCount(phoneNumbers.length);
+        toast.success(`Imported ${phoneNumbers.length} phone numbers`);
       },
       error: (error) => {
         toast.error(`Error reading file: ${error.message}`);
@@ -644,9 +649,10 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
             <div className="text-xs text-blue-800 dark:text-blue-200">
               <p className="font-medium mb-1">CSV Format:</p>
               <p>• Upload a CSV file with phone numbers in any column</p>
-              <p>• Supports headers like "phone", "number", "mobile", etc.</p>
-              <p>• Phone numbers should start with + (e.g., +1234567890)</p>
-              <p>• Maximum file size: 5MB</p>
+              <p>• Supports headers like "phone", "number", "mobile", "msisdn", etc.</p>
+              <p>• Phone numbers in E.164 format (e.g., +22507XXXXXXX)</p>
+              <p>• Maximum: <span className="font-semibold">10,000 recipients</span> per campaign</p>
+              <p>• Maximum file size: 10MB</p>
             </div>
           </div>
         </div>
