@@ -4,6 +4,55 @@ import { action, internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 
+// Internal action to send bulk campaign via MTarget
+export const sendBulkCampaignMTarget = internalAction({
+  args: {
+    bulkMessageId: v.id("bulkMessages"),
+    config: v.object({
+      username: v.optional(v.string()),
+      password: v.optional(v.string()),
+      senderId: v.optional(v.string()),
+      serviceId: v.optional(v.string()),
+    }),
+    campaign: v.object({
+      message: v.string(),
+      sender: v.string(),
+      recipients: v.array(v.object({
+        phoneNumber: v.string(),
+        recipientId: v.string(),
+      })),
+      scheduledAt: v.optional(v.number()),
+    }),
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; error?: string; campaignId?: string }> => {
+    const result = await sendBulkViaMTarget(args.config, args.campaign);
+    
+    if (result.success) {
+      // Update bulk message status to completed
+      await ctx.runMutation(internal.bulk.updateBulkCampaignStatus, {
+        bulkMessageId: args.bulkMessageId,
+        status: "completed",
+        sentCount: result.successCount || args.campaign.recipients.length,
+        failedCount: result.failedCount || 0,
+        providerCampaignId: result.campaignId,
+      });
+      
+      return { success: true, campaignId: result.campaignId };
+    } else {
+      // Update bulk message status to failed
+      await ctx.runMutation(internal.bulk.updateBulkCampaignStatus, {
+        bulkMessageId: args.bulkMessageId,
+        status: "failed",
+        sentCount: 0,
+        failedCount: args.campaign.recipients.length,
+        errorMessage: result.error,
+      });
+      
+      return { success: false, error: result.error };
+    }
+  },
+});
+
 export const processPendingMessages = internalAction({
   args: {},
   handler: async (ctx) => {
@@ -714,4 +763,146 @@ async function sendViaFacebookMessenger(
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
+}
+
+// MTarget Bulk Campaign API - sends all recipients in a single batch request
+export async function sendBulkViaMTarget(
+  config: {
+    username?: string;
+    password?: string;
+    senderId?: string;
+    serviceId?: string;
+  },
+  campaign: {
+    message: string;
+    sender: string;
+    recipients: Array<{ phoneNumber: string; recipientId: string }>;
+    scheduledAt?: number;
+  }
+): Promise<{ 
+  success: boolean; 
+  campaignId?: string; 
+  error?: string;
+  successCount?: number;
+  failedCount?: number;
+}> {
+  try {
+    if (!config.username || !config.password) {
+      return { success: false, error: "Missing MTarget credentials (username and password required)" };
+    }
+
+    if (campaign.recipients.length === 0) {
+      return { success: false, error: "No recipients provided" };
+    }
+
+    const sender = config.senderId || campaign.sender || "SAYELE";
+    const serviceId = config.serviceId || "34916";
+    
+    // Format time for MTarget: YYYYMMdd HH:mm:ss
+    const now = campaign.scheduledAt ? new Date(campaign.scheduledAt) : new Date();
+    const timesend = formatDateForMTarget(now);
+    
+    // Build msisdns array in MTarget format
+    // Format: [{"msisdn":"+2250565443686","param1":"sayele","remoteid":"001"}, ...]
+    const msisdns = campaign.recipients.map((recipient, index) => ({
+      msisdn: normalizePhoneNumber(recipient.phoneNumber),
+      [`param${index + 1}`]: "sayele",
+      remoteid: recipient.recipientId
+    }));
+
+    // Build the POST body for MTarget bulk API
+    const postBody = {
+      username: config.username,
+      password: config.password,
+      sender: sender,
+      msg: campaign.message,
+      timetosend: timesend,
+      serviceid: parseInt(serviceId, 10),
+      msisdns: msisdns,
+      validationrequired: false,
+      packetsize: 50,
+      interval: 300
+    };
+
+    // MTarget bulk API endpoint
+    const url = "https://api-public.mtarget.fr/messages";
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Cookie": "SERVERID=A"
+      },
+      body: JSON.stringify(postBody)
+    });
+
+    const responseText = await response.text();
+    
+    // Try to parse as JSON
+    let responseData: Record<string, unknown> = {};
+    try {
+      responseData = JSON.parse(responseText) as Record<string, unknown>;
+    } catch {
+      // Response might not be JSON
+      responseData = { raw: responseText };
+    }
+
+    if (response.ok) {
+      // Generate campaign ID for tracking
+      const campaignId = `bulk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      return {
+        success: true,
+        campaignId: campaignId,
+        successCount: campaign.recipients.length,
+        failedCount: 0
+      };
+    } else {
+      return {
+        success: false,
+        error: typeof responseData.error === "string" 
+          ? responseData.error 
+          : `Failed to send bulk SMS via MTarget: ${responseText}`,
+        successCount: 0,
+        failedCount: campaign.recipients.length
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error connecting to MTarget bulk API",
+      successCount: 0,
+      failedCount: campaign.recipients.length
+    };
+  }
+}
+
+// Helper function to format date for MTarget (YYYYMMdd HH:mm:ss)
+function formatDateForMTarget(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}${month}${day} ${hours}:${minutes}:${seconds}`;
+}
+
+// Helper function to normalize phone number for MTarget
+function normalizePhoneNumber(phone: string): string {
+  // Remove all non-digit characters except +
+  let cleaned = phone.replace(/[^\d+]/g, "");
+  
+  // Ensure it starts with +
+  if (!cleaned.startsWith("+")) {
+    // If it looks like it has a country code (starts with common codes)
+    if (cleaned.startsWith("225") || cleaned.startsWith("33") || cleaned.startsWith("1")) {
+      cleaned = "+" + cleaned;
+    } else {
+      // Default to +225 (Côte d'Ivoire) if no country code
+      cleaned = "+225" + cleaned;
+    }
+  }
+  
+  return cleaned;
 }

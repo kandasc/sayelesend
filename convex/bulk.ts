@@ -5,6 +5,50 @@ import { ConvexError } from "convex/values";
 import type { Id } from "./_generated/dataModel.d.ts";
 import { validateBulkRecipients, validateMessage, sanitizeMessage } from "./lib/validation";
 
+// Internal mutation to update bulk campaign status (called by bulk sending actions)
+export const updateBulkCampaignStatus = internalMutation({
+  args: {
+    bulkMessageId: v.id("bulkMessages"),
+    status: v.union(v.literal("pending"), v.literal("processing"), v.literal("completed"), v.literal("failed")),
+    sentCount: v.optional(v.number()),
+    failedCount: v.optional(v.number()),
+    providerCampaignId: v.optional(v.string()),
+    errorMessage: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const updates: Record<string, unknown> = {
+      status: args.status,
+    };
+    
+    if (args.sentCount !== undefined) {
+      updates.sentCount = args.sentCount;
+    }
+    if (args.failedCount !== undefined) {
+      updates.failedCount = args.failedCount;
+    }
+    if (args.providerCampaignId !== undefined) {
+      updates.providerCampaignId = args.providerCampaignId;
+    }
+    if (args.errorMessage !== undefined) {
+      updates.errorMessage = args.errorMessage;
+    }
+    
+    await ctx.db.patch(args.bulkMessageId, updates);
+    
+    // Update all recipient statuses based on campaign status
+    const recipients = await ctx.db
+      .query("bulkMessageRecipients")
+      .withIndex("by_bulk", (q) => q.eq("bulkMessageId", args.bulkMessageId))
+      .collect();
+    
+    const recipientStatus = args.status === "completed" ? "sent" : args.status === "failed" ? "failed" : "sending";
+    
+    for (const recipient of recipients) {
+      await ctx.db.patch(recipient._id, { status: recipientStatus });
+    }
+  },
+});
+
 // Create a bulk SMS campaign
 export const createBulkMessage = mutation({
   args: {
@@ -193,8 +237,7 @@ export const processBulkMessage = internalMutation({
       return;
     }
 
-    // Process each recipient individually
-    // Note: MTarget bulk API can be integrated here for better performance
+    // Get all pending recipients
     const recipients = await ctx.db
       .query("bulkMessageRecipients")
       .withIndex("by_bulk_and_status", (q) =>
@@ -202,7 +245,40 @@ export const processBulkMessage = internalMutation({
       )
       .collect();
 
-    // Process each recipient
+    // Check if provider is MTarget - use bulk API for efficiency
+    if (provider.type === "mtarget") {
+      // Format recipients for MTarget bulk API
+      const formattedRecipients = recipients.map((r) => ({
+        phoneNumber: r.phoneNumber,
+        recipientId: r._id,
+      }));
+
+      // Update all recipients to "sending" status
+      for (const recipient of recipients) {
+        await ctx.db.patch(recipient._id, { status: "sending" });
+      }
+
+      // Schedule the MTarget bulk action
+      await ctx.scheduler.runAfter(0, internal.sms.send.sendBulkCampaignMTarget, {
+        bulkMessageId: args.bulkMessageId,
+        config: {
+          username: provider.config.username,
+          password: provider.config.password,
+          senderId: client.senderId || provider.config.senderId,
+          serviceId: provider.config.serviceId,
+        },
+        campaign: {
+          message: bulkMessage.message,
+          sender: client.senderId || provider.config.senderId || "SAYELE",
+          recipients: formattedRecipients,
+          scheduledAt: bulkMessage.scheduledAt,
+        },
+      });
+
+      return;
+    }
+
+    // For non-MTarget providers, process each recipient individually
     for (const recipient of recipients) {
       try {
         // Create individual message

@@ -177,6 +177,9 @@ export default defineSchema({
     ),
     scheduledAt: v.optional(v.number()),
     creditsUsed: v.number(),
+    // MTarget bulk campaign tracking
+    providerCampaignId: v.optional(v.string()),
+    errorMessage: v.optional(v.string()),
   })
     .index("by_client", ["clientId"])
     .index("by_status", ["status"]),
@@ -187,6 +190,7 @@ export default defineSchema({
     messageId: v.optional(v.id("messages")),
     status: v.union(
       v.literal("pending"),
+      v.literal("sending"),
       v.literal("sent"),
       v.literal("delivered"),
       v.literal("failed")

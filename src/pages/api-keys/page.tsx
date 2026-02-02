@@ -35,8 +35,8 @@ type ApiKey = {
   _id: Id<"apiKeys">;
   _creationTime: number;
   clientId: Id<"clients">;
-  keyHash: string;
-  keyPreview: string;
+  keyHash?: string;
+  keyPreview?: string;
   name: string;
   isActive: boolean;
   lastUsedAt?: number;
@@ -222,14 +222,16 @@ function ApiKeyItem({ apiKey }: { apiKey: ApiKey }) {
         </div>
         <div className="flex items-center gap-2">
           <code className="text-sm text-muted-foreground font-mono">
-            {apiKey.keyPreview}
+            {apiKey.keyPreview || "****"}
           </code>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
-              navigator.clipboard.writeText(apiKey.keyPreview);
-              toast.success("API key preview copied");
+              if (apiKey.keyPreview) {
+                navigator.clipboard.writeText(apiKey.keyPreview);
+                toast.success("API key preview copied");
+              }
             }}
           >
             <Copy className="h-4 w-4" />
