@@ -459,3 +459,160 @@ export const updateBulkMessageStats = internalMutation({
     });
   },
 });
+
+// Resend a completed or failed bulk campaign
+export const resendBulkMessage = mutation({
+  args: { bulkMessageId: v.id("bulkMessages") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "User not logged in",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user) {
+      throw new ConvexError({
+        message: "User not found",
+        code: "NOT_FOUND",
+      });
+    }
+
+    const originalBulkMessage = await ctx.db.get(args.bulkMessageId);
+    if (!originalBulkMessage) {
+      throw new ConvexError({
+        message: "Bulk message not found",
+        code: "NOT_FOUND",
+      });
+    }
+
+    // Check access
+    let clientId: Id<"clients"> | undefined;
+    if (user.role === "admin" && user.testModeClientId) {
+      clientId = user.testModeClientId;
+    } else if (user.role === "client" && user.clientId) {
+      clientId = user.clientId;
+    } else if (user.role === "admin") {
+      clientId = originalBulkMessage.clientId;
+    }
+
+    if (!clientId || clientId !== originalBulkMessage.clientId) {
+      throw new ConvexError({
+        message: "Access denied",
+        code: "FORBIDDEN",
+      });
+    }
+
+    // Only allow resending completed or failed campaigns
+    if (originalBulkMessage.status !== "completed" && originalBulkMessage.status !== "failed") {
+      throw new ConvexError({
+        message: "Can only resend completed or failed campaigns",
+        code: "BAD_REQUEST",
+      });
+    }
+
+    const client = await ctx.db.get(clientId);
+    if (!client) {
+      throw new ConvexError({
+        message: "Client not found",
+        code: "NOT_FOUND",
+      });
+    }
+
+    if (client.status !== "active") {
+      throw new ConvexError({
+        message: "Client account is not active",
+        code: "FORBIDDEN",
+      });
+    }
+
+    // Get original recipients
+    const originalRecipients = await ctx.db
+      .query("bulkMessageRecipients")
+      .withIndex("by_bulk", (q) => q.eq("bulkMessageId", args.bulkMessageId))
+      .collect();
+
+    const recipients = originalRecipients.map((r) => r.phoneNumber);
+
+    // Check provider
+    const channel = originalBulkMessage.channel || "sms";
+    let providerId = client.smsProviderId;
+    
+    if (channel === "whatsapp" && client.whatsappProviderId) {
+      providerId = client.whatsappProviderId;
+    } else if (channel === "telegram" && client.telegramProviderId) {
+      providerId = client.telegramProviderId;
+    } else if (channel === "facebook_messenger" && client.facebookMessengerProviderId) {
+      providerId = client.facebookMessengerProviderId;
+    }
+
+    const provider = await ctx.db.get(providerId);
+    if (!provider) {
+      throw new ConvexError({
+        message: `${channel} provider not found for this client`,
+        code: "NOT_FOUND",
+      });
+    }
+
+    if (!provider.isActive) {
+      throw new ConvexError({
+        message: "Provider is not active",
+        code: "BAD_REQUEST",
+      });
+    }
+
+    const totalRecipients = recipients.length;
+    const totalCost = totalRecipients * provider.costPerSms;
+
+    if (client.credits < totalCost) {
+      throw new ConvexError({
+        message: `Insufficient credits. Need ${totalCost} credits for ${totalRecipients} recipients`,
+        code: "BAD_REQUEST",
+      });
+    }
+
+    // Deduct credits
+    await ctx.db.patch(clientId, {
+      credits: client.credits - totalCost,
+    });
+
+    // Create new bulk message record
+    const newBulkMessageId = await ctx.db.insert("bulkMessages", {
+      clientId,
+      name: `${originalBulkMessage.name} (Resend)`,
+      message: originalBulkMessage.message,
+      from: originalBulkMessage.from,
+      channel: originalBulkMessage.channel,
+      totalRecipients,
+      sentCount: 0,
+      deliveredCount: 0,
+      failedCount: 0,
+      status: "pending",
+      creditsUsed: totalCost,
+    });
+
+    // Create recipient records
+    for (const phoneNumber of recipients) {
+      await ctx.db.insert("bulkMessageRecipients", {
+        bulkMessageId: newBulkMessageId,
+        phoneNumber,
+        status: "pending",
+      });
+    }
+
+    // Schedule processing
+    await ctx.scheduler.runAfter(0, internal.bulk.processBulkMessage, {
+      bulkMessageId: newBulkMessageId,
+    });
+
+    return newBulkMessageId;
+  },
+});

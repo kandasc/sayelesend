@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
-import { Plus, Send, Users, CheckCircle, XCircle, Clock, Calendar as CalendarIcon, Upload, FileText } from "lucide-react";
+import { Plus, Send, Users, CheckCircle, XCircle, Clock, Calendar as CalendarIcon, Upload, FileText, RefreshCw } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import Papa from "papaparse";
@@ -688,6 +688,8 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
 
 function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> }) {
   const details = useQuery(api.bulk.getBulkMessageDetails, { bulkMessageId });
+  const resendCampaign = useMutation(api.bulk.resendBulkMessage);
+  const [isResending, setIsResending] = useState(false);
 
   if (!details) {
     return <div className="space-y-4">
@@ -698,11 +700,37 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
 
   const { bulkMessage, recipients } = details;
 
+  const handleResend = async () => {
+    setIsResending(true);
+    try {
+      await resendCampaign({ bulkMessageId });
+      toast.success("Campaign resent successfully! A new campaign has been created.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to resend campaign");
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  const canResend = bulkMessage.status === "completed" || bulkMessage.status === "failed";
+
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-xl font-semibold mb-2">{bulkMessage.name}</h3>
-        <p className="text-sm text-muted-foreground">{bulkMessage.message}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="text-xl font-semibold mb-2">{bulkMessage.name}</h3>
+          <p className="text-sm text-muted-foreground">{bulkMessage.message}</p>
+        </div>
+        {canResend && (
+          <Button 
+            onClick={handleResend} 
+            disabled={isResending}
+            variant="outline"
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", isResending && "animate-spin")} />
+            {isResending ? "Resending..." : "Resend Campaign"}
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-4 gap-4">
