@@ -231,7 +231,9 @@ export const processBulkMessage = internalMutation({
       return;
     }
 
-    const provider = await ctx.db.get(client.smsProviderId);
+    // Use bulkSmsProviderId if available, otherwise fall back to smsProviderId
+    const providerId = client.bulkSmsProviderId || client.smsProviderId;
+    const provider = await ctx.db.get(providerId);
     if (!provider) {
       await ctx.db.patch(args.bulkMessageId, { status: "failed" });
       return;
@@ -289,7 +291,7 @@ export const processBulkMessage = internalMutation({
           message: bulkMessage.message,
           channel: provider.channel || "sms",
           status: "pending",
-          providerId: client.smsProviderId,
+          providerId: providerId,
           creditsUsed: provider.costPerSms,
           type: "bulk",
           bulkMessageId: args.bulkMessageId,

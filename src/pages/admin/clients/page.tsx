@@ -109,9 +109,17 @@ function ClientsContent() {
                         <p className="font-medium">{client.phone}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">SMS Provider</p>
+                        <p className="text-muted-foreground">Single SMS Provider</p>
                         <p className="font-medium">{provider?.name || "N/A"}</p>
                       </div>
+                      {client.bulkSmsProviderId && (
+                        <div>
+                          <p className="text-muted-foreground">Bulk SMS Provider</p>
+                          <p className="font-medium">
+                            {providers.find((p) => p._id === client.bulkSmsProviderId)?.name || "N/A"}
+                          </p>
+                        </div>
+                      )}
                       <div>
                         <p className="text-muted-foreground">Credits</p>
                         <p className="font-medium text-lg">{client.credits.toLocaleString()}</p>
@@ -400,6 +408,7 @@ function EditClientForm({
 
     const formData = new FormData(e.currentTarget);
     try {
+      const bulkSmsId = formData.get("bulkSmsProviderId") as string;
       const whatsappId = formData.get("whatsappProviderId") as string;
       const telegramId = formData.get("telegramProviderId") as string;
       const facebookId = formData.get("facebookMessengerProviderId") as string;
@@ -411,6 +420,7 @@ function EditClientForm({
         email: formData.get("email") as string,
         phone: formData.get("phone") as string,
         smsProviderId: formData.get("providerId") as Id<"smsProviders">,
+        bulkSmsProviderId: bulkSmsId && bulkSmsId !== "none" ? bulkSmsId as Id<"smsProviders"> : undefined,
         whatsappProviderId: whatsappId && whatsappId !== "none" ? whatsappId as Id<"smsProviders"> : undefined,
         telegramProviderId: telegramId && telegramId !== "none" ? telegramId as Id<"smsProviders"> : undefined,
         facebookMessengerProviderId: facebookId && facebookId !== "none" ? facebookId as Id<"smsProviders"> : undefined,
@@ -429,155 +439,183 @@ function EditClientForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="companyName">Company Name</Label>
-          <Input id="companyName" name="companyName" defaultValue={client.companyName} required />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="contactName">Contact Name</Label>
-          <Input id="contactName" name="contactName" defaultValue={client.contactName} required />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" name="email" type="email" defaultValue={client.email} required />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="phone">Phone</Label>
-          <Input id="phone" name="phone" type="tel" defaultValue={client.phone} required />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="status">Status</Label>
-        <Select name="status" defaultValue={client.status} required>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="suspended">Suspended</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="border-t pt-4">
-        <h3 className="font-semibold mb-4">Channel Providers</h3>
+    <form onSubmit={handleSubmit} className="flex flex-col max-h-[70vh]">
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="providerId">SMS Provider *</Label>
-            <Select name="providerId" defaultValue={client.smsProviderId} required>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {providers.filter((p) => !p.channel || p.channel === "sms").map((p) => (
-                  <SelectItem key={p._id} value={p._id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="companyName">Company Name</Label>
+            <Input id="companyName" name="companyName" defaultValue={client.companyName} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="whatsappProviderId">WhatsApp Provider</Label>
-            <Select name="whatsappProviderId" defaultValue={client.whatsappProviderId || "none"}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {providers.filter((p) => p.channel === "whatsapp").map((p) => (
-                  <SelectItem key={p._id} value={p._id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="telegramProviderId">Telegram Provider</Label>
-            <Select name="telegramProviderId" defaultValue={client.telegramProviderId || "none"}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {providers.filter((p) => p.channel === "telegram").map((p) => (
-                  <SelectItem key={p._id} value={p._id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="facebookMessengerProviderId">Facebook Messenger Provider</Label>
-            <Select name="facebookMessengerProviderId" defaultValue={client.facebookMessengerProviderId || "none"}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {providers.filter((p) => p.channel === "facebook_messenger").map((p) => (
-                  <SelectItem key={p._id} value={p._id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="contactName">Contact Name</Label>
+            <Input id="contactName" name="contactName" defaultValue={client.contactName} required />
           </div>
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="webhookUrl">Webhook URL</Label>
-        <Input
-          id="webhookUrl"
-          name="webhookUrl"
-          type="url"
-          defaultValue={client.webhookUrl}
-          placeholder="https://example.com/webhook"
-        />
-      </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" name="email" type="email" defaultValue={client.email} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone</Label>
+            <Input id="phone" name="phone" type="tel" defaultValue={client.phone} required />
+          </div>
+        </div>
 
-      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="senderId">Sender ID</Label>
-          <Input
-            id="senderId"
-            name="senderId"
-            defaultValue={client.senderId}
-            placeholder="COMPANY"
-          />
-          <p className="text-xs text-muted-foreground">
-            Used for MTarget SMS provider
-          </p>
+          <Label htmlFor="status">Status</Label>
+          <Select name="status" defaultValue={client.status} required>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="suspended">Suspended</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
+        <div className="border-t pt-4">
+          <h3 className="font-semibold mb-4">SMS Providers</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="providerId">Single SMS Provider *</Label>
+              <Select name="providerId" defaultValue={client.smsProviderId} required>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {providers.filter((p) => !p.channel || p.channel === "sms").map((p) => (
+                    <SelectItem key={p._id} value={p._id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Used for single SMS sending</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bulkSmsProviderId">Bulk SMS Provider</Label>
+              <Select name="bulkSmsProviderId" defaultValue={client.bulkSmsProviderId || "none"}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Same as Single SMS</SelectItem>
+                  {providers.filter((p) => !p.channel || p.channel === "sms").map((p) => (
+                    <SelectItem key={p._id} value={p._id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Used for bulk campaigns (optional)</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t pt-4">
+          <h3 className="font-semibold mb-4">Other Channel Providers</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="whatsappProviderId">WhatsApp Provider</Label>
+              <Select name="whatsappProviderId" defaultValue={client.whatsappProviderId || "none"}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {providers.filter((p) => p.channel === "whatsapp").map((p) => (
+                    <SelectItem key={p._id} value={p._id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="telegramProviderId">Telegram Provider</Label>
+              <Select name="telegramProviderId" defaultValue={client.telegramProviderId || "none"}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {providers.filter((p) => p.channel === "telegram").map((p) => (
+                    <SelectItem key={p._id} value={p._id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="facebookMessengerProviderId">Facebook Messenger Provider</Label>
+              <Select name="facebookMessengerProviderId" defaultValue={client.facebookMessengerProviderId || "none"}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {providers.filter((p) => p.channel === "facebook_messenger").map((p) => (
+                    <SelectItem key={p._id} value={p._id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
         <div className="space-y-2">
-          <Label htmlFor="remoteId">Remote ID</Label>
+          <Label htmlFor="webhookUrl">Webhook URL</Label>
           <Input
-            id="remoteId"
-            name="remoteId"
-            defaultValue={client.remoteId}
-            placeholder="company_id"
+            id="webhookUrl"
+            name="webhookUrl"
+            type="url"
+            defaultValue={client.webhookUrl}
+            placeholder="https://example.com/webhook"
           />
-          <p className="text-xs text-muted-foreground">
-            Used for MTarget SMS provider
-          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="senderId">Sender ID</Label>
+            <Input
+              id="senderId"
+              name="senderId"
+              defaultValue={client.senderId}
+              placeholder="COMPANY"
+            />
+            <p className="text-xs text-muted-foreground">
+              Used for MTarget SMS provider
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="remoteId">Remote ID</Label>
+            <Input
+              id="remoteId"
+              name="remoteId"
+              defaultValue={client.remoteId}
+              placeholder="company_id"
+            />
+            <p className="text-xs text-muted-foreground">
+              Used for MTarget SMS provider
+            </p>
+          </div>
         </div>
       </div>
 
-      <DialogFooter>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Updating..." : "Update Client"}
-        </Button>
-      </DialogFooter>
+      <div className="flex-shrink-0 pt-4 mt-4 border-t">
+        <DialogFooter>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Updating..." : "Update Client"}
+          </Button>
+        </DialogFooter>
+      </div>
     </form>
   );
 }

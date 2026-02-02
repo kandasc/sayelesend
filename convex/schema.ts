@@ -50,6 +50,7 @@ export default defineSchema({
     facebookMessengerCredits: v.optional(v.number()),
     // Provider assignments per channel
     smsProviderId: v.id("smsProviders"),
+    bulkSmsProviderId: v.optional(v.id("smsProviders")), // Separate provider for bulk SMS
     whatsappProviderId: v.optional(v.id("smsProviders")),
     telegramProviderId: v.optional(v.id("smsProviders")),
     facebookMessengerProviderId: v.optional(v.id("smsProviders")),

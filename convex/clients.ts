@@ -219,6 +219,7 @@ export const updateClient = mutation({
     phone: v.optional(v.string()),
     credits: v.optional(v.number()),
     smsProviderId: v.optional(v.id("smsProviders")),
+    bulkSmsProviderId: v.optional(v.id("smsProviders")),
     whatsappProviderId: v.optional(v.id("smsProviders")),
     telegramProviderId: v.optional(v.id("smsProviders")),
     facebookMessengerProviderId: v.optional(v.id("smsProviders")),
@@ -267,6 +268,7 @@ export const updateClient = mutation({
       phone: string;
       credits: number;
       smsProviderId: Id<"smsProviders">;
+      bulkSmsProviderId: Id<"smsProviders"> | undefined;
       whatsappProviderId: Id<"smsProviders"> | undefined;
       telegramProviderId: Id<"smsProviders"> | undefined;
       facebookMessengerProviderId: Id<"smsProviders"> | undefined;
@@ -283,6 +285,8 @@ export const updateClient = mutation({
     if (args.credits !== undefined) updates.credits = args.credits;
     if (args.smsProviderId !== undefined)
       updates.smsProviderId = args.smsProviderId;
+    if (args.bulkSmsProviderId !== undefined)
+      updates.bulkSmsProviderId = args.bulkSmsProviderId;
     if (args.whatsappProviderId !== undefined)
       updates.whatsappProviderId = args.whatsappProviderId;
     if (args.telegramProviderId !== undefined)
