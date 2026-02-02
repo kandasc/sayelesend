@@ -280,8 +280,23 @@ export const updateClient = mutation({
 
     if (args.companyName !== undefined) updates.companyName = args.companyName;
     if (args.contactName !== undefined) updates.contactName = args.contactName;
-    if (args.email !== undefined) updates.email = args.email;
-    if (args.phone !== undefined) updates.phone = args.phone;
+    
+    // Only validate email if it's actually changed
+    if (args.email !== undefined && args.email !== client.email) {
+      validateEmail(args.email);
+      updates.email = args.email;
+    } else if (args.email !== undefined) {
+      updates.email = args.email;
+    }
+    
+    // Only validate phone if it's actually changed
+    if (args.phone !== undefined && args.phone !== client.phone) {
+      validatePhoneNumber(args.phone);
+      updates.phone = args.phone;
+    } else if (args.phone !== undefined) {
+      updates.phone = args.phone;
+    }
+    
     if (args.credits !== undefined) updates.credits = args.credits;
     if (args.smsProviderId !== undefined)
       updates.smsProviderId = args.smsProviderId;
@@ -294,14 +309,10 @@ export const updateClient = mutation({
     if (args.facebookMessengerProviderId !== undefined)
       updates.facebookMessengerProviderId = args.facebookMessengerProviderId;
     if (args.status !== undefined) updates.status = args.status;
-    if (args.email !== undefined) {
-      validateEmail(args.email);
-    }
-    if (args.phone !== undefined) {
-      validatePhoneNumber(args.phone);
-    }
+    
+    // Only validate webhook URL if it's actually changed
     if (args.webhookUrl !== undefined) {
-      if (args.webhookUrl) {
+      if (args.webhookUrl && args.webhookUrl !== client.webhookUrl) {
         validateWebhookUrl(args.webhookUrl);
       }
       updates.webhookUrl = args.webhookUrl;
