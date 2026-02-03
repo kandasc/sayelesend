@@ -394,3 +394,31 @@ export const updateLastUsed = mutation({
     return args.apiKeyId;
   },
 });
+
+// Query to verify legacy API keys (stored as plain text before security update)
+export const verifyLegacyApiKeyQuery = query({
+  args: { key: v.string() },
+  handler: async (ctx, args) => {
+    // Find API key by the raw key value (legacy format)
+    const allApiKeys = await ctx.db.query("apiKeys").collect();
+    
+    // Find the key that matches
+    const apiKey = allApiKeys.find(k => k.key === args.key && k.isActive);
+    
+    if (!apiKey) {
+      return null;
+    }
+
+    const client = await ctx.db.get(apiKey.clientId);
+    if (!client || client.status !== "active") {
+      return null;
+    }
+
+    return {
+      apiKeyId: apiKey._id,
+      keyHash: args.key, // Use the key itself as the identifier for legacy keys
+      clientId: apiKey.clientId,
+      client,
+    };
+  },
+});
