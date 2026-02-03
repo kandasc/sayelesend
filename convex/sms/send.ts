@@ -765,7 +765,10 @@ async function sendViaFacebookMessenger(
   }
 }
 
-// MTarget Bulk Campaign API - sends all recipients in a single batch request
+// MTarget maximum recipients per request
+const MTARGET_MAX_BATCH_SIZE = 500;
+
+// MTarget Bulk Campaign API - automatically batches recipients if over 500
 export async function sendBulkViaMTarget(
   config: {
     username?: string;
@@ -802,76 +805,106 @@ export async function sendBulkViaMTarget(
     const now = campaign.scheduledAt ? new Date(campaign.scheduledAt) : new Date();
     const timesend = formatDateForMTarget(now);
     
-    // Build msisdns array in MTarget format exactly as PHP does:
-    // [{"msisdn":"+2250565443686","param1":"sayele","remoteid":"0"}, ...]
-    const msisdns = campaign.recipients.map((recipient, index) => {
-      const entry: Record<string, string | number> = {
-        msisdn: normalizePhoneNumber(recipient.phoneNumber),
-        remoteid: String(index)
-      };
-      // Add param with index (param1, param2, etc.)
-      entry[`param${index + 1}`] = "sayele";
-      return entry;
-    });
-
-    // Build the POST body for MTarget bulk API - matching PHP format exactly
-    const postBody = {
-      username: config.username,
-      password: config.password,
-      sender: sender,
-      msg: campaign.message,
-      timetosend: timesend,
-      serviceid: parseInt(serviceId, 10),
-      msisdns: msisdns,
-      validationrequired: true,
-      packetsize: 50,
-      interval: 300
-    };
-
-    // MTarget bulk API endpoint
-    const url = "https://api-public.mtarget.fr/messages";
-
-    console.log("MTarget Bulk API Request:", JSON.stringify(postBody, null, 2));
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Cookie": "SERVERID=A"
-      },
-      body: JSON.stringify(postBody)
-    });
-
-    const responseText = await response.text();
-    console.log("MTarget Bulk API Response:", response.status, responseText);
-    
-    // Try to parse as JSON
-    let responseData: Record<string, unknown> = {};
-    try {
-      responseData = JSON.parse(responseText) as Record<string, unknown>;
-    } catch {
-      // Response might not be JSON
-      responseData = { raw: responseText };
+    // Split recipients into batches of 500 (MTarget limit)
+    const batches: Array<Array<{ phoneNumber: string; recipientId: string }>> = [];
+    for (let i = 0; i < campaign.recipients.length; i += MTARGET_MAX_BATCH_SIZE) {
+      batches.push(campaign.recipients.slice(i, i + MTARGET_MAX_BATCH_SIZE));
     }
-
-    if (response.ok) {
-      // Generate campaign ID for tracking
-      const campaignId = `bulk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    console.log(`MTarget Bulk: Splitting ${campaign.recipients.length} recipients into ${batches.length} batch(es) of max ${MTARGET_MAX_BATCH_SIZE}`);
+    
+    // Track totals across all batches
+    let totalSuccess = 0;
+    let totalFailed = 0;
+    const errors: string[] = [];
+    const campaignId = `bulk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Send each batch
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+      console.log(`MTarget Bulk: Sending batch ${batchIndex + 1}/${batches.length} with ${batch.length} recipients`);
       
+      // Build msisdns array in MTarget format
+      const msisdns = batch.map((recipient, index) => {
+        const entry: Record<string, string | number> = {
+          msisdn: normalizePhoneNumber(recipient.phoneNumber),
+          remoteid: String(batchIndex * MTARGET_MAX_BATCH_SIZE + index)
+        };
+        // Add param with index (param1, param2, etc.)
+        entry[`param${index + 1}`] = "sayele";
+        return entry;
+      });
+
+      // Build the POST body for MTarget bulk API
+      const postBody = {
+        username: config.username,
+        password: config.password,
+        sender: sender,
+        msg: campaign.message,
+        timetosend: timesend,
+        serviceid: parseInt(serviceId, 10),
+        msisdns: msisdns,
+        validationrequired: true,
+        packetsize: 50,
+        interval: 300
+      };
+
+      // MTarget bulk API endpoint
+      const url = "https://api-public.mtarget.fr/messages";
+
+      console.log(`MTarget Bulk API Request (Batch ${batchIndex + 1}):`, JSON.stringify({ ...postBody, msisdns: `[${msisdns.length} recipients]` }));
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Cookie": "SERVERID=A"
+        },
+        body: JSON.stringify(postBody)
+      });
+
+      const responseText = await response.text();
+      console.log(`MTarget Bulk API Response (Batch ${batchIndex + 1}):`, response.status, responseText);
+      
+      if (response.ok) {
+        totalSuccess += batch.length;
+      } else {
+        totalFailed += batch.length;
+        // Try to parse error
+        try {
+          const errorData = JSON.parse(responseText) as Record<string, unknown>;
+          const results = errorData.results as Array<{ reason?: string }> | undefined;
+          if (results && results[0]?.reason) {
+            errors.push(`Batch ${batchIndex + 1}: ${results[0].reason}`);
+          } else {
+            errors.push(`Batch ${batchIndex + 1}: ${responseText}`);
+          }
+        } catch {
+          errors.push(`Batch ${batchIndex + 1}: ${responseText}`);
+        }
+      }
+      
+      // Small delay between batches to avoid rate limiting
+      if (batchIndex < batches.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    // Determine overall success
+    if (totalSuccess > 0) {
       return {
         success: true,
         campaignId: campaignId,
-        successCount: campaign.recipients.length,
-        failedCount: 0
+        successCount: totalSuccess,
+        failedCount: totalFailed,
+        error: errors.length > 0 ? errors.join("; ") : undefined
       };
     } else {
       return {
         success: false,
-        error: typeof responseData.error === "string" 
-          ? responseData.error 
-          : `Failed to send bulk SMS via MTarget: ${responseText}`,
+        error: errors.join("; ") || "All batches failed",
         successCount: 0,
-        failedCount: campaign.recipients.length
+        failedCount: totalFailed
       };
     }
   } catch (error) {
