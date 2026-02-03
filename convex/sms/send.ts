@@ -166,19 +166,25 @@ export const sendSingleMessage = internalAction({
     messageId: v.id("messages"),
   },
   handler: async (ctx, args) => {
+    console.log(`[sendSingleMessage] Starting for message ${args.messageId}`);
+    
     const message = await ctx.runQuery(internal.sms.queries.getMessageById, {
       messageId: args.messageId,
     });
 
     if (!message) {
+      console.log(`[sendSingleMessage] Message ${args.messageId} not found`);
       throw new Error("Message not found");
     }
+    
+    console.log(`[sendSingleMessage] Message status: ${message.status}, to: ${message.to}`);
 
     const provider = await ctx.runQuery(internal.sms.queries.getProviderById, {
       providerId: message.providerId,
     });
 
     if (!provider || !provider.isActive) {
+      console.log(`[sendSingleMessage] Provider not available or inactive for message ${args.messageId}`);
       await ctx.runMutation(internal.messages.updateMessageStatus, {
         messageId: message._id,
         status: "failed",
@@ -186,9 +192,12 @@ export const sendSingleMessage = internalAction({
       });
       return { success: false, error: "Provider not available" };
     }
+    
+    console.log(`[sendSingleMessage] Using provider: ${provider.name} (${provider.type})`);
 
     try {
       const result = await sendViaSmsProvider(provider, message);
+      console.log(`[sendSingleMessage] Send result:`, result);
 
       if (result.success) {
         await ctx.runMutation(internal.messages.updateMessageStatus, {
@@ -206,6 +215,7 @@ export const sendSingleMessage = internalAction({
         return { success: false, error: result.error };
       }
     } catch (error) {
+      console.log(`[sendSingleMessage] Error:`, error);
       await ctx.runMutation(internal.messages.updateMessageStatus, {
         messageId: message._id,
         status: "failed",

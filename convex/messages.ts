@@ -142,7 +142,10 @@ export const sendSms = mutation({
         messageId,
       });
     } else {
-      await ctx.scheduler.runAfter(0, internal.sms.send.processPendingMessages, {});
+      // Send immediately using sendSingleMessage for this specific message
+      await ctx.scheduler.runAfter(0, internal.sms.send.sendSingleMessage, {
+        messageId,
+      });
     }
 
     return messageId;
@@ -481,7 +484,10 @@ export const sendSmsViaApi = mutation({
         messageId,
       });
     } else {
-      await ctx.scheduler.runAfter(0, internal.sms.send.processPendingMessages, {});
+      // Send immediately using sendSingleMessage for this specific message
+      await ctx.scheduler.runAfter(0, internal.sms.send.sendSingleMessage, {
+        messageId,
+      });
     }
 
     return messageId;

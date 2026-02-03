@@ -1,13 +1,15 @@
 import { Authenticated } from "convex/react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { MessageSquare, CheckCircle, XCircle, Coins, Send, Plus } from "lucide-react";
+import { MessageSquare, CheckCircle, XCircle, Coins, Send, Plus, RefreshCw, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { format } from "date-fns";
 import { Link, useParams } from "react-router-dom";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function Dashboard() {
   return (
@@ -178,6 +180,24 @@ function AdminDashboard() {
   const { lng } = useParams();
   const allClients = useQuery(api.clients.listClients, {});
   const systemStats = useQuery(api.admin.getSystemStats, {});
+  const retryPendingMessages = useMutation(api.admin.retryPendingMessages);
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  // Get pending message count
+  const pendingMessages = useQuery(api.messages.getMessages, { status: "pending" });
+  const pendingCount = pendingMessages?.length || 0;
+
+  const handleRetryPending = async () => {
+    setIsRetrying(true);
+    try {
+      const result = await retryPendingMessages({});
+      toast.success(`Scheduled ${result.scheduledCount} pending messages for retry`);
+    } catch (error) {
+      toast.error("Failed to retry pending messages");
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
   if (!allClients || !systemStats) {
     return <DashboardSkeleton />;
@@ -194,6 +214,20 @@ function AdminDashboard() {
           <p className="text-muted-foreground">System overview and management</p>
         </div>
         <div className="flex gap-2">
+          {pendingCount > 0 && (
+            <Button 
+              variant="outline" 
+              onClick={handleRetryPending}
+              disabled={isRetrying}
+            >
+              {isRetrying ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Clock className="h-4 w-4 mr-2" />
+              )}
+              Retry Pending ({pendingCount})
+            </Button>
+          )}
           <Link to={`/${lng}/admin/clients`}>
             <Button>
               <Plus className="h-4 w-4 mr-2" />

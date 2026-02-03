@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { ConvexError } from "convex/values";
 import { logSecurityEvent } from "./lib/securityLogger";
 
@@ -419,6 +420,54 @@ export const getSystemStats = query({
       totalMessages: messages.length,
       totalSent,
       totalDelivered,
+    };
+  },
+});
+
+// Retry all pending messages
+export const retryPendingMessages = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "User not logged in",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({
+        message: "Admin access required",
+        code: "FORBIDDEN",
+      });
+    }
+
+    // Get all pending messages
+    const pendingMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .collect();
+
+    // Schedule sending for each pending message
+    let scheduledCount = 0;
+    for (const message of pendingMessages) {
+      await ctx.scheduler.runAfter(scheduledCount * 500, internal.sms.send.sendSingleMessage, {
+        messageId: message._id,
+      });
+      scheduledCount++;
+    }
+
+    return {
+      pendingCount: pendingMessages.length,
+      scheduledCount,
     };
   },
 });
