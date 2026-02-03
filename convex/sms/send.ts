@@ -798,19 +798,23 @@ export async function sendBulkViaMTarget(
     const sender = config.senderId || campaign.sender || "SAYELE";
     const serviceId = config.serviceId || "34916";
     
-    // Format time for MTarget: YYYYMMdd HH:mm:ss
+    // Format time for MTarget: yyyy-MM-dd HH:mm:ss
     const now = campaign.scheduledAt ? new Date(campaign.scheduledAt) : new Date();
     const timesend = formatDateForMTarget(now);
     
-    // Build msisdns array in MTarget format
-    // Format: [{"msisdn":"+2250565443686","param1":"sayele","remoteid":"001"}, ...]
-    const msisdns = campaign.recipients.map((recipient, index) => ({
-      msisdn: normalizePhoneNumber(recipient.phoneNumber),
-      [`param${index + 1}`]: "sayele",
-      remoteid: recipient.recipientId
-    }));
+    // Build msisdns array in MTarget format exactly as PHP does:
+    // [{"msisdn":"+2250565443686","param1":"sayele","remoteid":"0"}, ...]
+    const msisdns = campaign.recipients.map((recipient, index) => {
+      const entry: Record<string, string | number> = {
+        msisdn: normalizePhoneNumber(recipient.phoneNumber),
+        remoteid: String(index)
+      };
+      // Add param with index (param1, param2, etc.)
+      entry[`param${index + 1}`] = "sayele";
+      return entry;
+    });
 
-    // Build the POST body for MTarget bulk API
+    // Build the POST body for MTarget bulk API - matching PHP format exactly
     const postBody = {
       username: config.username,
       password: config.password,
@@ -819,13 +823,15 @@ export async function sendBulkViaMTarget(
       timetosend: timesend,
       serviceid: parseInt(serviceId, 10),
       msisdns: msisdns,
-      validationrequired: false,
+      validationrequired: true,
       packetsize: 50,
       interval: 300
     };
 
     // MTarget bulk API endpoint
     const url = "https://api-public.mtarget.fr/messages";
+
+    console.log("MTarget Bulk API Request:", JSON.stringify(postBody, null, 2));
 
     const response = await fetch(url, {
       method: "POST",
@@ -837,6 +843,7 @@ export async function sendBulkViaMTarget(
     });
 
     const responseText = await response.text();
+    console.log("MTarget Bulk API Response:", response.status, responseText);
     
     // Try to parse as JSON
     let responseData: Record<string, unknown> = {};
