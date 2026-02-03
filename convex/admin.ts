@@ -424,8 +424,71 @@ export const getSystemStats = query({
   },
 });
 
-// Retry all pending messages
+// Retry pending single messages (not bulk messages which use different sending method)
 export const retryPendingMessages = mutation({
+  args: {
+    includeBulk: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "User not logged in",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({
+        message: "Admin access required",
+        code: "FORBIDDEN",
+      });
+    }
+
+    // Get all pending messages
+    const allPendingMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .collect();
+
+    // Filter to only single messages (bulk messages use different sending method)
+    const pendingMessages = args.includeBulk 
+      ? allPendingMessages 
+      : allPendingMessages.filter(m => m.type === "single");
+    
+    const bulkPendingCount = allPendingMessages.filter(m => m.type === "bulk").length;
+
+    // Limit to 500 messages per batch to stay under Convex's 1000 scheduled function limit
+    const maxBatchSize = 500;
+    const messagesToRetry = pendingMessages.slice(0, maxBatchSize);
+
+    // Schedule sending for each pending message
+    let scheduledCount = 0;
+    for (const message of messagesToRetry) {
+      await ctx.scheduler.runAfter(scheduledCount * 200, internal.sms.send.sendSingleMessage, {
+        messageId: message._id,
+      });
+      scheduledCount++;
+    }
+
+    return {
+      pendingCount: pendingMessages.length,
+      scheduledCount,
+      remaining: pendingMessages.length - scheduledCount,
+      bulkPendingCount,
+    };
+  },
+});
+
+// Clean up old pending bulk messages by marking them as failed
+export const cleanupPendingBulkMessages = mutation({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -450,24 +513,32 @@ export const retryPendingMessages = mutation({
       });
     }
 
-    // Get all pending messages
+    // Get all pending bulk messages
     const pendingMessages = await ctx.db
       .query("messages")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
       .collect();
 
-    // Schedule sending for each pending message
-    let scheduledCount = 0;
-    for (const message of pendingMessages) {
-      await ctx.scheduler.runAfter(scheduledCount * 500, internal.sms.send.sendSingleMessage, {
-        messageId: message._id,
+    const bulkPendingMessages = pendingMessages.filter(m => m.type === "bulk");
+    
+    // Limit to 500 per batch
+    const maxBatchSize = 500;
+    const messagesToCleanup = bulkPendingMessages.slice(0, maxBatchSize);
+
+    // Mark as failed
+    let cleanedCount = 0;
+    for (const message of messagesToCleanup) {
+      await ctx.db.patch(message._id, {
+        status: "failed",
+        failureReason: "Orphaned bulk message - cleaned up by admin",
       });
-      scheduledCount++;
+      cleanedCount++;
     }
 
     return {
-      pendingCount: pendingMessages.length,
-      scheduledCount,
+      totalBulkPending: bulkPendingMessages.length,
+      cleanedCount,
+      remaining: bulkPendingMessages.length - cleanedCount,
     };
   },
 });

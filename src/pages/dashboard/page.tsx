@@ -181,21 +181,46 @@ function AdminDashboard() {
   const allClients = useQuery(api.clients.listClients, {});
   const systemStats = useQuery(api.admin.getSystemStats, {});
   const retryPendingMessages = useMutation(api.admin.retryPendingMessages);
+  const cleanupPendingBulk = useMutation(api.admin.cleanupPendingBulkMessages);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isCleaning, setIsCleaning] = useState(false);
 
   // Get pending message count
   const pendingMessages = useQuery(api.messages.getMessages, { status: "pending" });
-  const pendingCount = pendingMessages?.length || 0;
+  const singlePendingCount = pendingMessages?.filter(m => m.type === "single").length || 0;
+  const bulkPendingCount = pendingMessages?.filter(m => m.type === "bulk").length || 0;
 
   const handleRetryPending = async () => {
     setIsRetrying(true);
     try {
       const result = await retryPendingMessages({});
-      toast.success(`Scheduled ${result.scheduledCount} pending messages for retry`);
+      if (result.remaining > 0) {
+        toast.success(`Scheduled ${result.scheduledCount} messages. ${result.remaining} remaining - click again to continue.`);
+      } else if (result.scheduledCount > 0) {
+        toast.success(`Scheduled ${result.scheduledCount} pending messages for retry`);
+      } else {
+        toast.info(`No single messages to retry. ${result.bulkPendingCount} bulk messages need cleanup.`);
+      }
     } catch (error) {
       toast.error("Failed to retry pending messages");
     } finally {
       setIsRetrying(false);
+    }
+  };
+
+  const handleCleanupBulk = async () => {
+    setIsCleaning(true);
+    try {
+      const result = await cleanupPendingBulk({});
+      if (result.remaining > 0) {
+        toast.success(`Cleaned up ${result.cleanedCount} bulk messages. ${result.remaining} remaining - click again.`);
+      } else {
+        toast.success(`Cleaned up ${result.cleanedCount} orphaned bulk messages`);
+      }
+    } catch (error) {
+      toast.error("Failed to cleanup bulk messages");
+    } finally {
+      setIsCleaning(false);
     }
   };
 
@@ -214,7 +239,7 @@ function AdminDashboard() {
           <p className="text-muted-foreground">System overview and management</p>
         </div>
         <div className="flex gap-2">
-          {pendingCount > 0 && (
+          {singlePendingCount > 0 && (
             <Button 
               variant="outline" 
               onClick={handleRetryPending}
@@ -225,7 +250,21 @@ function AdminDashboard() {
               ) : (
                 <Clock className="h-4 w-4 mr-2" />
               )}
-              Retry Pending ({pendingCount})
+              Retry Single ({singlePendingCount})
+            </Button>
+          )}
+          {bulkPendingCount > 0 && (
+            <Button 
+              variant="secondary" 
+              onClick={handleCleanupBulk}
+              disabled={isCleaning}
+            >
+              {isCleaning ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <XCircle className="h-4 w-4 mr-2" />
+              )}
+              Cleanup Bulk ({bulkPendingCount})
             </Button>
           )}
           <Link to={`/${lng}/admin/clients`}>
