@@ -420,6 +420,74 @@ export default defineSchema({
     .index("by_identifier", ["identifier"])
     .index("by_window", ["windowStart"]),
 
+  aiAssistants: defineTable({
+    clientId: v.id("clients"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    companyName: v.string(),
+    companyDescription: v.optional(v.string()),
+    industry: v.optional(v.string()),
+    welcomeMessage: v.optional(v.string()),
+    personality: v.union(
+      v.literal("professional"),
+      v.literal("friendly"),
+      v.literal("casual"),
+      v.literal("formal")
+    ),
+    primaryColor: v.optional(v.string()),
+    logoUrl: v.optional(v.string()),
+    isActive: v.boolean(),
+    customInstructions: v.optional(v.string()),
+    totalConversations: v.number(),
+    totalMessages: v.number(),
+  })
+    .index("by_client", ["clientId"]),
+
+  aiKnowledgeBase: defineTable({
+    assistantId: v.id("aiAssistants"),
+    clientId: v.id("clients"),
+    title: v.string(),
+    content: v.string(),
+    category: v.optional(v.string()),
+    isActive: v.boolean(),
+  })
+    .index("by_assistant", ["assistantId"])
+    .index("by_client", ["clientId"]),
+
+  aiChatSessions: defineTable({
+    assistantId: v.id("aiAssistants"),
+    sessionId: v.string(),
+    visitorName: v.optional(v.string()),
+    visitorEmail: v.optional(v.string()),
+    visitorPhone: v.optional(v.string()),
+    channel: v.union(
+      v.literal("web"),
+      v.literal("sms"),
+      v.literal("whatsapp"),
+      v.literal("api")
+    ),
+    status: v.union(
+      v.literal("active"),
+      v.literal("closed"),
+      v.literal("transferred")
+    ),
+    messageCount: v.number(),
+    lastMessageAt: v.optional(v.string()),
+  })
+    .index("by_assistant", ["assistantId"])
+    .index("by_session_id", ["sessionId"]),
+
+  aiChatMessages: defineTable({
+    sessionId: v.id("aiChatSessions"),
+    role: v.union(
+      v.literal("user"),
+      v.literal("assistant"),
+      v.literal("system")
+    ),
+    content: v.string(),
+  })
+    .index("by_session", ["sessionId"]),
+
   paymentTransactions: defineTable({
     transactionId: v.string(),
     clientId: v.id("clients"),
