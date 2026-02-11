@@ -1,9 +1,45 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { ConvexError } from "convex/values";
-import type { Id } from "./_generated/dataModel.d.ts";
 
-// ─── Queries ────────────────────────────────────────────────────────────────
+// ─── Validators ─────────────────────────────────────────────────────────────
+
+const personalityValidator = v.union(
+  v.literal("professional"),
+  v.literal("friendly"),
+  v.literal("casual"),
+  v.literal("formal")
+);
+
+const channelValidator = v.union(
+  v.literal("web"),
+  v.literal("sms"),
+  v.literal("whatsapp"),
+  v.literal("api")
+);
+
+const sourceTypeValidator = v.union(
+  v.literal("manual"),
+  v.literal("api"),
+  v.literal("document"),
+  v.literal("website")
+);
+
+const httpMethodValidator = v.union(
+  v.literal("GET"),
+  v.literal("POST"),
+  v.literal("PUT"),
+  v.literal("DELETE")
+);
+
+const taskParamValidator = v.object({
+  name: v.string(),
+  description: v.string(),
+  type: v.union(v.literal("string"), v.literal("number"), v.literal("boolean")),
+  required: v.boolean(),
+});
+
+// ─── Assistant Queries ──────────────────────────────────────────────────────
 
 export const listByClient = query({
   args: { clientId: v.id("clients") },
@@ -44,6 +80,35 @@ export const getKnowledgeBase = query({
   },
 });
 
+export const getTasks = query({
+  args: { assistantId: v.id("aiAssistants") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    return await ctx.db
+      .query("aiAssistantTasks")
+      .withIndex("by_assistant", (q) => q.eq("assistantId", args.assistantId))
+      .collect();
+  },
+});
+
+export const getTaskExecutionLogs = query({
+  args: { assistantId: v.id("aiAssistants") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    return await ctx.db
+      .query("aiTaskExecutionLogs")
+      .withIndex("by_assistant", (q) => q.eq("assistantId", args.assistantId))
+      .order("desc")
+      .take(50);
+  },
+});
+
 export const getChatSessions = query({
   args: { assistantId: v.id("aiAssistants") },
   handler: async (ctx, args) => {
@@ -73,13 +138,13 @@ export const getChatMessages = query({
   },
 });
 
-// Public query: get assistant by ID without auth (for widget/API usage)
+// ─── Public Queries (no auth, for widget/API) ───────────────────────────────
+
 export const getPublicAssistant = query({
   args: { assistantId: v.id("aiAssistants") },
   handler: async (ctx, args) => {
     const assistant = await ctx.db.get(args.assistantId);
     if (!assistant || !assistant.isActive) return null;
-    // Return only public-safe fields
     return {
       _id: assistant._id,
       name: assistant.name,
@@ -92,7 +157,6 @@ export const getPublicAssistant = query({
   },
 });
 
-// Public query: get chat messages by session string ID
 export const getPublicChatMessages = query({
   args: { sessionId: v.string() },
   handler: async (ctx, args) => {
@@ -108,7 +172,29 @@ export const getPublicChatMessages = query({
   },
 });
 
-// ─── Mutations ──────────────────────────────────────────────────────────────
+export const getSessionByPublicId = query({
+  args: { sessionId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("aiChatSessions")
+      .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
+      .unique();
+  },
+});
+
+// Internal query: get active tasks for an assistant (used by chat action)
+export const getActiveTasksInternal = query({
+  args: { assistantId: v.id("aiAssistants") },
+  handler: async (ctx, args) => {
+    const tasks = await ctx.db
+      .query("aiAssistantTasks")
+      .withIndex("by_assistant", (q) => q.eq("assistantId", args.assistantId))
+      .collect();
+    return tasks.filter((t) => t.isActive);
+  },
+});
+
+// ─── Assistant Mutations ────────────────────────────────────────────────────
 
 export const create = mutation({
   args: {
@@ -119,12 +205,7 @@ export const create = mutation({
     companyDescription: v.optional(v.string()),
     industry: v.optional(v.string()),
     welcomeMessage: v.optional(v.string()),
-    personality: v.union(
-      v.literal("professional"),
-      v.literal("friendly"),
-      v.literal("casual"),
-      v.literal("formal")
-    ),
+    personality: personalityValidator,
     primaryColor: v.optional(v.string()),
     logoUrl: v.optional(v.string()),
     customInstructions: v.optional(v.string()),
@@ -152,12 +233,7 @@ export const update = mutation({
     companyDescription: v.optional(v.string()),
     industry: v.optional(v.string()),
     welcomeMessage: v.optional(v.string()),
-    personality: v.optional(v.union(
-      v.literal("professional"),
-      v.literal("friendly"),
-      v.literal("casual"),
-      v.literal("formal")
-    )),
+    personality: v.optional(personalityValidator),
     primaryColor: v.optional(v.string()),
     logoUrl: v.optional(v.string()),
     customInstructions: v.optional(v.string()),
@@ -169,7 +245,6 @@ export const update = mutation({
       throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
     }
     const { assistantId, ...updates } = args;
-    // Remove undefined fields
     const cleanUpdates: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
@@ -195,6 +270,22 @@ export const remove = mutation({
     for (const entry of entries) {
       await ctx.db.delete(entry._id);
     }
+    // Delete tasks
+    const tasks = await ctx.db
+      .query("aiAssistantTasks")
+      .withIndex("by_assistant", (q) => q.eq("assistantId", args.assistantId))
+      .collect();
+    for (const task of tasks) {
+      await ctx.db.delete(task._id);
+    }
+    // Delete task execution logs
+    const logs = await ctx.db
+      .query("aiTaskExecutionLogs")
+      .withIndex("by_assistant", (q) => q.eq("assistantId", args.assistantId))
+      .collect();
+    for (const log of logs) {
+      await ctx.db.delete(log._id);
+    }
     // Delete chat sessions and messages
     const sessions = await ctx.db
       .query("aiChatSessions")
@@ -214,7 +305,7 @@ export const remove = mutation({
   },
 });
 
-// ─── Knowledge Base ─────────────────────────────────────────────────────────
+// ─── Knowledge Base Mutations ───────────────────────────────────────────────
 
 export const addKnowledge = mutation({
   args: {
@@ -223,6 +314,9 @@ export const addKnowledge = mutation({
     title: v.string(),
     content: v.string(),
     category: v.optional(v.string()),
+    sourceType: sourceTypeValidator,
+    sourceUrl: v.optional(v.string()),
+    sourceHeaders: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -232,6 +326,7 @@ export const addKnowledge = mutation({
     return await ctx.db.insert("aiKnowledgeBase", {
       ...args,
       isActive: true,
+      lastSyncedAt: args.sourceType !== "manual" ? new Date().toISOString() : undefined,
     });
   },
 });
@@ -242,7 +337,10 @@ export const updateKnowledge = mutation({
     title: v.optional(v.string()),
     content: v.optional(v.string()),
     category: v.optional(v.string()),
+    sourceUrl: v.optional(v.string()),
+    sourceHeaders: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
+    lastSyncedAt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -271,18 +369,87 @@ export const removeKnowledge = mutation({
   },
 });
 
-// ─── Chat Session Management (used by HTTP actions) ─────────────────────────
+// ─── Task Mutations ─────────────────────────────────────────────────────────
+
+export const createTask = mutation({
+  args: {
+    assistantId: v.id("aiAssistants"),
+    clientId: v.id("clients"),
+    name: v.string(),
+    description: v.string(),
+    apiEndpoint: v.string(),
+    httpMethod: httpMethodValidator,
+    headers: v.optional(v.string()),
+    bodyTemplate: v.optional(v.string()),
+    parameters: v.array(taskParamValidator),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    return await ctx.db.insert("aiAssistantTasks", {
+      ...args,
+      isActive: true,
+      executionCount: 0,
+    });
+  },
+});
+
+export const updateTask = mutation({
+  args: {
+    taskId: v.id("aiAssistantTasks"),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+    apiEndpoint: v.optional(v.string()),
+    httpMethod: v.optional(httpMethodValidator),
+    headers: v.optional(v.string()),
+    bodyTemplate: v.optional(v.string()),
+    parameters: v.optional(v.array(taskParamValidator)),
+    isActive: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    const { taskId, ...updates } = args;
+    const cleanUpdates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        cleanUpdates[key] = value;
+      }
+    }
+    await ctx.db.patch(taskId, cleanUpdates);
+  },
+});
+
+export const removeTask = mutation({
+  args: { taskId: v.id("aiAssistantTasks") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    // Delete execution logs
+    const logs = await ctx.db
+      .query("aiTaskExecutionLogs")
+      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
+      .collect();
+    for (const log of logs) {
+      await ctx.db.delete(log._id);
+    }
+    await ctx.db.delete(args.taskId);
+  },
+});
+
+// ─── Chat Session Management ────────────────────────────────────────────────
 
 export const createChatSession = mutation({
   args: {
     assistantId: v.id("aiAssistants"),
     sessionId: v.string(),
-    channel: v.union(
-      v.literal("web"),
-      v.literal("sms"),
-      v.literal("whatsapp"),
-      v.literal("api")
-    ),
+    channel: channelValidator,
     visitorName: v.optional(v.string()),
     visitorEmail: v.optional(v.string()),
     visitorPhone: v.optional(v.string()),
@@ -308,19 +475,19 @@ export const addChatMessage = internalMutation({
       role: args.role,
       content: args.content,
     });
-    // Update session counters
     const session = await ctx.db.get(args.sessionId);
     if (session) {
       await ctx.db.patch(args.sessionId, {
         messageCount: session.messageCount + 1,
         lastMessageAt: new Date().toISOString(),
       });
-      // Update assistant counters
-      const assistant = await ctx.db.get(session.assistantId);
-      if (assistant && args.role === "user") {
-        await ctx.db.patch(session.assistantId, {
-          totalMessages: assistant.totalMessages + 1,
-        });
+      if (args.role === "user") {
+        const assistant = await ctx.db.get(session.assistantId);
+        if (assistant) {
+          await ctx.db.patch(session.assistantId, {
+            totalMessages: assistant.totalMessages + 1,
+          });
+        }
       }
     }
   },
@@ -338,14 +505,30 @@ export const incrementConversationCount = internalMutation({
   },
 });
 
-// Get session by public session ID (internal)
-export const getSessionByPublicId = query({
-  args: { sessionId: v.string() },
+export const logTaskExecution = internalMutation({
+  args: {
+    taskId: v.id("aiAssistantTasks"),
+    sessionId: v.id("aiChatSessions"),
+    assistantId: v.id("aiAssistants"),
+    parameters: v.string(),
+    responseStatus: v.number(),
+    responseBody: v.optional(v.string()),
+    success: v.boolean(),
+    errorMessage: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("aiChatSessions")
-      .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
-      .unique();
+    await ctx.db.insert("aiTaskExecutionLogs", {
+      ...args,
+      executedAt: new Date().toISOString(),
+    });
+    // Update task execution count
+    const task = await ctx.db.get(args.taskId);
+    if (task) {
+      await ctx.db.patch(args.taskId, {
+        executionCount: task.executionCount + 1,
+        lastExecutedAt: new Date().toISOString(),
+      });
+    }
   },
 });
 

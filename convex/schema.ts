@@ -449,10 +449,61 @@ export default defineSchema({
     title: v.string(),
     content: v.string(),
     category: v.optional(v.string()),
+    sourceType: v.union(
+      v.literal("manual"),
+      v.literal("api"),
+      v.literal("document"),
+      v.literal("website")
+    ),
+    sourceUrl: v.optional(v.string()),
+    sourceHeaders: v.optional(v.string()),
+    lastSyncedAt: v.optional(v.string()),
     isActive: v.boolean(),
   })
     .index("by_assistant", ["assistantId"])
     .index("by_client", ["clientId"]),
+
+  aiAssistantTasks: defineTable({
+    assistantId: v.id("aiAssistants"),
+    clientId: v.id("clients"),
+    name: v.string(),
+    description: v.string(),
+    apiEndpoint: v.string(),
+    httpMethod: v.union(
+      v.literal("GET"),
+      v.literal("POST"),
+      v.literal("PUT"),
+      v.literal("DELETE")
+    ),
+    headers: v.optional(v.string()),
+    bodyTemplate: v.optional(v.string()),
+    parameters: v.array(v.object({
+      name: v.string(),
+      description: v.string(),
+      type: v.union(v.literal("string"), v.literal("number"), v.literal("boolean")),
+      required: v.boolean(),
+    })),
+    isActive: v.boolean(),
+    executionCount: v.number(),
+    lastExecutedAt: v.optional(v.string()),
+  })
+    .index("by_assistant", ["assistantId"])
+    .index("by_client", ["clientId"]),
+
+  aiTaskExecutionLogs: defineTable({
+    taskId: v.id("aiAssistantTasks"),
+    sessionId: v.id("aiChatSessions"),
+    assistantId: v.id("aiAssistants"),
+    parameters: v.string(),
+    responseStatus: v.number(),
+    responseBody: v.optional(v.string()),
+    success: v.boolean(),
+    errorMessage: v.optional(v.string()),
+    executedAt: v.string(),
+  })
+    .index("by_task", ["taskId"])
+    .index("by_assistant", ["assistantId"])
+    .index("by_session", ["sessionId"]),
 
   aiChatSessions: defineTable({
     assistantId: v.id("aiAssistants"),
