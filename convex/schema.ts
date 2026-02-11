@@ -439,6 +439,16 @@ export default defineSchema({
     isActive: v.boolean(),
     customInstructions: v.optional(v.string()),
     handoverEmail: v.optional(v.string()),
+    // Training & tone configuration
+    toneDescription: v.optional(v.string()),
+    sampleQA: v.optional(v.array(v.object({ question: v.string(), answer: v.string() }))),
+    responseGuidelines: v.optional(v.array(v.string())),
+    restrictionGuidelines: v.optional(v.array(v.string())),
+    vocabulary: v.optional(v.array(v.object({ term: v.string(), definition: v.string() }))),
+    greetingStyle: v.optional(v.string()),
+    closingStyle: v.optional(v.string()),
+    responseLength: v.optional(v.union(v.literal("short"), v.literal("medium"), v.literal("detailed"))),
+    primaryLanguage: v.optional(v.string()),
     totalConversations: v.number(),
     totalMessages: v.number(),
   })

@@ -24,6 +24,12 @@ function buildSystemPrompt(
     prompt += `\nIndustry: ${assistant.industry}`;
   }
 
+  // Primary language
+  if (assistant.primaryLanguage) {
+    prompt += `\n\nPrimary language: ${assistant.primaryLanguage}. Always respond in this language unless the user writes in a different language.`;
+  }
+
+  // Personality & tone
   const personalityMap: Record<string, string> = {
     professional: "Be professional, clear, and concise. Use formal language.",
     friendly: "Be warm, approachable, and helpful. Use a conversational tone.",
@@ -31,6 +37,65 @@ function buildSystemPrompt(
     formal: "Be very formal and business-appropriate. Use polished language.",
   };
   prompt += `\n\nCommunication style: ${personalityMap[assistant.personality] ?? personalityMap.professional}`;
+
+  // Detailed tone description
+  if (assistant.toneDescription) {
+    prompt += `\n\nTone & voice guidelines:\n${assistant.toneDescription}`;
+  }
+
+  // Response length preference
+  if (assistant.responseLength) {
+    const lengthMap: Record<string, string> = {
+      short: "Keep responses brief and to the point (1-2 sentences when possible).",
+      medium: "Provide moderate-length responses with enough detail to be helpful (2-4 sentences).",
+      detailed: "Provide thorough, detailed responses with full explanations and examples.",
+    };
+    prompt += `\n\nResponse length: ${lengthMap[assistant.responseLength]}`;
+  }
+
+  // Greeting & closing style
+  if (assistant.greetingStyle) {
+    prompt += `\n\nGreeting style: ${assistant.greetingStyle}`;
+  }
+  if (assistant.closingStyle) {
+    prompt += `\n\nClosing style: ${assistant.closingStyle}`;
+  }
+
+  // Company vocabulary
+  if (assistant.vocabulary && assistant.vocabulary.length > 0) {
+    prompt += "\n\n--- COMPANY VOCABULARY ---";
+    for (const entry of assistant.vocabulary) {
+      prompt += `\n- ${entry.term}: ${entry.definition}`;
+    }
+    prompt += "\n--- END VOCABULARY ---";
+    prompt += "\nAlways use these terms correctly and consistently in your responses.";
+  }
+
+  // Response guidelines (do's)
+  if (assistant.responseGuidelines && assistant.responseGuidelines.length > 0) {
+    prompt += "\n\nRESPONSE GUIDELINES (always follow these):";
+    for (const guideline of assistant.responseGuidelines) {
+      prompt += `\n- ${guideline}`;
+    }
+  }
+
+  // Restrictions (don'ts)
+  if (assistant.restrictionGuidelines && assistant.restrictionGuidelines.length > 0) {
+    prompt += "\n\nRESTRICTIONS (never do these):";
+    for (const restriction of assistant.restrictionGuidelines) {
+      prompt += `\n- ${restriction}`;
+    }
+  }
+
+  // Sample Q&A pairs (few-shot training)
+  if (assistant.sampleQA && assistant.sampleQA.length > 0) {
+    prompt += "\n\n--- EXAMPLE CONVERSATIONS ---";
+    prompt += "\nUse these as examples of how you should respond:";
+    for (const qa of assistant.sampleQA) {
+      prompt += `\n\nCustomer: ${qa.question}\nYou: ${qa.answer}`;
+    }
+    prompt += "\n--- END EXAMPLES ---";
+  }
 
   if (activeKnowledge.length > 0) {
     prompt += "\n\n--- KNOWLEDGE BASE ---";

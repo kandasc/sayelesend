@@ -70,9 +70,15 @@ import {
   ArrowRightLeft,
   CheckCircle,
   Clock,
+  GraduationCap,
+  ListChecks,
+  Ban,
+  BookA,
+  Languages,
 } from "lucide-react";
 
 type Personality = "professional" | "friendly" | "casual" | "formal";
+type ResponseLength = "short" | "medium" | "detailed";
 type SourceType = "manual" | "api" | "document" | "website";
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -505,6 +511,7 @@ function AssistantDetail({
       <Tabs defaultValue="knowledge">
         <TabsList className="flex-wrap">
           <TabsTrigger value="knowledge"><Brain className="h-4 w-4 mr-1" />Knowledge</TabsTrigger>
+          <TabsTrigger value="training"><GraduationCap className="h-4 w-4 mr-1" />Training</TabsTrigger>
           <TabsTrigger value="tasks"><Zap className="h-4 w-4 mr-1" />Tasks</TabsTrigger>
           <TabsTrigger value="test"><MessageSquare className="h-4 w-4 mr-1" />Test Chat</TabsTrigger>
           <TabsTrigger value="conversations"><Eye className="h-4 w-4 mr-1" />Conversations</TabsTrigger>
@@ -516,6 +523,9 @@ function AssistantDetail({
 
         <TabsContent value="knowledge" className="mt-4">
           <KnowledgeBaseTab assistantId={assistantId} clientId={assistant.clientId} entries={knowledgeBase ?? []} />
+        </TabsContent>
+        <TabsContent value="training" className="mt-4">
+          <TrainingTab assistant={assistant} />
         </TabsContent>
         <TabsContent value="tasks" className="mt-4">
           <TasksTab assistantId={assistantId} clientId={assistant.clientId} tasks={tasks ?? []} />
@@ -1862,6 +1872,343 @@ function HandoversTab({
           </CardContent>
         </Card>
       ))}
+    </div>
+  );
+}
+
+// ─── Training Tab ──────────────────────────────────────────────────────────
+
+function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
+  const updateAssistant = useMutation(api.aiAssistants.update);
+
+  // Tone & style
+  const [toneDescription, setToneDescription] = useState(assistant.toneDescription ?? "");
+  const [responseLength, setResponseLength] = useState<ResponseLength>(assistant.responseLength ?? "medium");
+  const [greetingStyle, setGreetingStyle] = useState(assistant.greetingStyle ?? "");
+  const [closingStyle, setClosingStyle] = useState(assistant.closingStyle ?? "");
+  const [primaryLanguage, setPrimaryLanguage] = useState(assistant.primaryLanguage ?? "");
+
+  // Sample Q&A
+  const [sampleQA, setSampleQA] = useState<Array<{ question: string; answer: string }>>(
+    assistant.sampleQA ?? []
+  );
+  const [newQuestion, setNewQuestion] = useState("");
+  const [newAnswer, setNewAnswer] = useState("");
+
+  // Guidelines (do's)
+  const [responseGuidelines, setResponseGuidelines] = useState<string[]>(
+    assistant.responseGuidelines ?? []
+  );
+  const [newGuideline, setNewGuideline] = useState("");
+
+  // Restrictions (don'ts)
+  const [restrictionGuidelines, setRestrictionGuidelines] = useState<string[]>(
+    assistant.restrictionGuidelines ?? []
+  );
+  const [newRestriction, setNewRestriction] = useState("");
+
+  // Vocabulary
+  const [vocabulary, setVocabulary] = useState<Array<{ term: string; definition: string }>>(
+    assistant.vocabulary ?? []
+  );
+  const [newTerm, setNewTerm] = useState("");
+  const [newDefinition, setNewDefinition] = useState("");
+
+  const handleSaveAll = async () => {
+    try {
+      await updateAssistant({
+        assistantId: assistant._id,
+        toneDescription: toneDescription.trim() || undefined,
+        responseLength,
+        greetingStyle: greetingStyle.trim() || undefined,
+        closingStyle: closingStyle.trim() || undefined,
+        primaryLanguage: primaryLanguage.trim() || undefined,
+        sampleQA: sampleQA.length > 0 ? sampleQA : undefined,
+        responseGuidelines: responseGuidelines.length > 0 ? responseGuidelines : undefined,
+        restrictionGuidelines: restrictionGuidelines.length > 0 ? restrictionGuidelines : undefined,
+        vocabulary: vocabulary.length > 0 ? vocabulary : undefined,
+      });
+      toast.success("Training settings saved");
+    } catch {
+      toast.error("Failed to save training settings");
+    }
+  };
+
+  const addSampleQA = () => {
+    if (!newQuestion.trim() || !newAnswer.trim()) {
+      toast.error("Both question and answer are required");
+      return;
+    }
+    setSampleQA([...sampleQA, { question: newQuestion.trim(), answer: newAnswer.trim() }]);
+    setNewQuestion("");
+    setNewAnswer("");
+  };
+
+  const addGuideline = () => {
+    if (!newGuideline.trim()) return;
+    setResponseGuidelines([...responseGuidelines, newGuideline.trim()]);
+    setNewGuideline("");
+  };
+
+  const addRestriction = () => {
+    if (!newRestriction.trim()) return;
+    setRestrictionGuidelines([...restrictionGuidelines, newRestriction.trim()]);
+    setNewRestriction("");
+  };
+
+  const addVocabulary = () => {
+    if (!newTerm.trim() || !newDefinition.trim()) {
+      toast.error("Both term and definition are required");
+      return;
+    }
+    setVocabulary([...vocabulary, { term: newTerm.trim(), definition: newDefinition.trim() }]);
+    setNewTerm("");
+    setNewDefinition("");
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold">Training & Tone</h3>
+        <p className="text-sm text-muted-foreground">
+          Train your AI on how to respond based on your company{"'"}s habits, tone, and style.
+        </p>
+      </div>
+
+      {/* Tone & Language */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Languages className="h-4 w-4" /> Tone & Language
+          </CardTitle>
+          <CardDescription>Define the voice and style of your assistant</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Tone Description</Label>
+            <Textarea
+              value={toneDescription}
+              onChange={(e) => setToneDescription(e.target.value)}
+              placeholder="Describe how the assistant should communicate. Example: 'Speak like a friendly local shopkeeper. Use short sentences. Add warmth without being overly casual. Use humor sparingly.'"
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">
+              Describe in detail how you want the AI to sound — personality, formality, warmth, humor, etc.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Response Length</Label>
+              <Select value={responseLength} onValueChange={(v) => setResponseLength(v as ResponseLength)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="short">Short (1-2 sentences)</SelectItem>
+                  <SelectItem value="medium">Medium (2-4 sentences)</SelectItem>
+                  <SelectItem value="detailed">Detailed (full explanations)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Primary Language</Label>
+              <Input
+                value={primaryLanguage}
+                onChange={(e) => setPrimaryLanguage(e.target.value)}
+                placeholder="e.g. French, English, Arabic"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Greeting Style</Label>
+              <Textarea
+                value={greetingStyle}
+                onChange={(e) => setGreetingStyle(e.target.value)}
+                placeholder="e.g. 'Always greet with Bonjour! and the visitor's name if known.'"
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Closing Style</Label>
+              <Textarea
+                value={closingStyle}
+                onChange={(e) => setClosingStyle(e.target.value)}
+                placeholder="e.g. 'End conversations with: Merci et bonne journée!'"
+                rows={2}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Sample Q&A (Few-shot training) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" /> Example Conversations
+          </CardTitle>
+          <CardDescription>
+            Teach the AI by example — provide sample questions and the ideal response
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {sampleQA.map((qa, index) => (
+            <div key={index} className="border rounded-lg p-3 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm"><span className="font-medium text-muted-foreground">Customer:</span> {qa.question}</p>
+                  <p className="text-sm"><span className="font-medium text-primary">AI:</span> {qa.answer}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSampleQA(sampleQA.filter((_, i) => i !== index))}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          ))}
+          <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
+            <div className="space-y-2">
+              <Label className="text-xs">Customer Question</Label>
+              <Input
+                value={newQuestion}
+                onChange={(e) => setNewQuestion(e.target.value)}
+                placeholder="e.g. What are your delivery times?"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Ideal AI Response</Label>
+              <Textarea
+                value={newAnswer}
+                onChange={(e) => setNewAnswer(e.target.value)}
+                placeholder="e.g. Our standard delivery takes 2-3 business days within Abidjan. For other cities, it's 5-7 days. Need it faster? We offer express 24h delivery for 2000 FCFA extra!"
+                rows={3}
+              />
+            </div>
+            <Button size="sm" onClick={addSampleQA}>
+              <Plus className="h-3 w-3 mr-1" />Add Example
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Response Guidelines (Do's) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <ListChecks className="h-4 w-4" /> Response Guidelines
+          </CardTitle>
+          <CardDescription>Rules the AI should always follow</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {responseGuidelines.map((guideline, index) => (
+            <div key={index} className="flex items-center gap-2 text-sm">
+              <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+              <span className="flex-1">{guideline}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setResponseGuidelines(responseGuidelines.filter((_, i) => i !== index))}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+          <div className="flex gap-2">
+            <Input
+              value={newGuideline}
+              onChange={(e) => setNewGuideline(e.target.value)}
+              placeholder="e.g. Always mention our WhatsApp number for follow-up"
+              onKeyDown={(e) => e.key === "Enter" && addGuideline()}
+            />
+            <Button size="sm" onClick={addGuideline}><Plus className="h-3 w-3" /></Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Restrictions (Don'ts) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Ban className="h-4 w-4" /> Restrictions
+          </CardTitle>
+          <CardDescription>Things the AI should never do</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {restrictionGuidelines.map((restriction, index) => (
+            <div key={index} className="flex items-center gap-2 text-sm">
+              <X className="h-4 w-4 text-red-500 shrink-0" />
+              <span className="flex-1">{restriction}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setRestrictionGuidelines(restrictionGuidelines.filter((_, i) => i !== index))}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+          <div className="flex gap-2">
+            <Input
+              value={newRestriction}
+              onChange={(e) => setNewRestriction(e.target.value)}
+              placeholder="e.g. Never discuss competitor pricing"
+              onKeyDown={(e) => e.key === "Enter" && addRestriction()}
+            />
+            <Button size="sm" onClick={addRestriction}><Plus className="h-3 w-3" /></Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Company Vocabulary */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <BookA className="h-4 w-4" /> Company Vocabulary
+          </CardTitle>
+          <CardDescription>Terms and definitions the AI should know and use consistently</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {vocabulary.map((entry, index) => (
+            <div key={index} className="flex items-center gap-2 text-sm border rounded-lg p-2">
+              <div className="flex-1">
+                <span className="font-medium">{entry.term}</span>
+                <span className="text-muted-foreground"> — {entry.definition}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setVocabulary(vocabulary.filter((_, i) => i !== index))}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+          <div className="grid grid-cols-3 gap-2">
+            <Input
+              value={newTerm}
+              onChange={(e) => setNewTerm(e.target.value)}
+              placeholder="Term"
+            />
+            <Input
+              value={newDefinition}
+              onChange={(e) => setNewDefinition(e.target.value)}
+              placeholder="Definition"
+              className="col-span-1"
+              onKeyDown={(e) => e.key === "Enter" && addVocabulary()}
+            />
+            <Button size="sm" onClick={addVocabulary}><Plus className="h-3 w-3 mr-1" />Add</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <Button onClick={handleSaveAll} size="lg">
+          Save Training Settings
+        </Button>
+      </div>
     </div>
   );
 }
