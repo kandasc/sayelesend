@@ -438,6 +438,7 @@ export default defineSchema({
     logoUrl: v.optional(v.string()),
     isActive: v.boolean(),
     customInstructions: v.optional(v.string()),
+    handoverEmail: v.optional(v.string()),
     totalConversations: v.number(),
     totalMessages: v.number(),
   })
@@ -520,13 +521,38 @@ export default defineSchema({
     status: v.union(
       v.literal("active"),
       v.literal("closed"),
-      v.literal("transferred")
+      v.literal("transferred"),
+      v.literal("handed_over")
     ),
     messageCount: v.number(),
     lastMessageAt: v.optional(v.string()),
   })
     .index("by_assistant", ["assistantId"])
     .index("by_session_id", ["sessionId"]),
+
+  aiHandoverRequests: defineTable({
+    sessionId: v.id("aiChatSessions"),
+    assistantId: v.id("aiAssistants"),
+    clientId: v.id("clients"),
+    reason: v.optional(v.string()),
+    summary: v.string(),
+    visitorName: v.optional(v.string()),
+    visitorEmail: v.optional(v.string()),
+    visitorPhone: v.optional(v.string()),
+    emailSentTo: v.optional(v.string()),
+    emailSentAt: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("email_sent"),
+      v.literal("resolved")
+    ),
+    resolvedAt: v.optional(v.string()),
+    resolvedBy: v.optional(v.id("users")),
+  })
+    .index("by_assistant", ["assistantId"])
+    .index("by_client", ["clientId"])
+    .index("by_session", ["sessionId"])
+    .index("by_status", ["status"]),
 
   aiChatMessages: defineTable({
     sessionId: v.id("aiChatSessions"),

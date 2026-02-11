@@ -479,4 +479,60 @@ http.route({
   }),
 });
 
+// ─── AI Chat Handover API ─────────────────────────────────────────────────
+
+// OPTIONS for handover
+http.route({
+  path: "/api/v1/ai/handover",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, request) => {
+    const origin = request.headers.get("Origin");
+    return new Response(null, { status: 204, headers: getCorsHeaders(origin) });
+  }),
+});
+
+// POST /api/v1/ai/handover - Request human handover (public, for widget)
+http.route({
+  path: "/api/v1/ai/handover",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const origin = request.headers.get("Origin");
+    const headers = getCorsHeaders(origin);
+
+    try {
+      const body = await request.json();
+
+      if (!body.assistantId || !body.sessionId) {
+        return new Response(
+          JSON.stringify({ error: "Missing required fields: assistantId, sessionId" }),
+          { status: 400, headers }
+        );
+      }
+
+      const result = await ctx.runAction(internal.aiHandoverActions.requestPublicHandover, {
+        assistantId: body.assistantId as Id<"aiAssistants">,
+        sessionId: body.sessionId,
+        reason: body.reason,
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: result.success,
+          error: result.error,
+          message: result.success
+            ? "Your conversation has been forwarded to a human agent. They will get back to you soon."
+            : result.error,
+        }),
+        { status: result.success ? 200 : 400, headers }
+      );
+    } catch (error) {
+      console.error("Handover API error:", error);
+      return new Response(
+        JSON.stringify({ error: "An error occurred processing your request" }),
+        { status: 500, headers }
+      );
+    }
+  }),
+});
+
 export default http;

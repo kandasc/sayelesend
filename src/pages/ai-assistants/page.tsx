@@ -65,6 +65,11 @@ import {
   MicOff,
   Volume2,
   VolumeX,
+  UserCheck,
+  Mail,
+  ArrowRightLeft,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 
 type Personality = "professional" | "friendly" | "casual" | "formal";
@@ -424,6 +429,7 @@ function AssistantDetail({
   const tasks = useQuery(api.aiAssistants.getTasks, { assistantId });
   const sessions = useQuery(api.aiAssistants.getChatSessions, { assistantId });
   const executionLogs = useQuery(api.aiAssistants.getTaskExecutionLogs, { assistantId });
+  const handoverRequests = useQuery(api.aiAssistants.getHandoverRequests, { assistantId });
   const updateAssistant = useMutation(api.aiAssistants.update);
   const deleteAssistant = useMutation(api.aiAssistants.remove);
   const clients = useQuery(api.clients.listClients, isSuperAdmin ? {} : "skip");
@@ -503,6 +509,7 @@ function AssistantDetail({
           <TabsTrigger value="test"><MessageSquare className="h-4 w-4 mr-1" />Test Chat</TabsTrigger>
           <TabsTrigger value="conversations"><Eye className="h-4 w-4 mr-1" />Conversations</TabsTrigger>
           <TabsTrigger value="logs"><Activity className="h-4 w-4 mr-1" />Execution Logs</TabsTrigger>
+          <TabsTrigger value="handovers"><ArrowRightLeft className="h-4 w-4 mr-1" />Handovers{handoverRequests && handoverRequests.filter(h => h.status !== "resolved").length > 0 ? ` (${handoverRequests.filter(h => h.status !== "resolved").length})` : ""}</TabsTrigger>
           <TabsTrigger value="api"><Code className="h-4 w-4 mr-1" />API / Integration</TabsTrigger>
           <TabsTrigger value="settings"><Pencil className="h-4 w-4 mr-1" />Settings</TabsTrigger>
         </TabsList>
@@ -521,6 +528,9 @@ function AssistantDetail({
         </TabsContent>
         <TabsContent value="logs" className="mt-4">
           <ExecutionLogsTab logs={executionLogs ?? []} tasks={tasks ?? []} />
+        </TabsContent>
+        <TabsContent value="handovers" className="mt-4">
+          <HandoversTab requests={handoverRequests ?? []} sessions={sessions ?? []} />
         </TabsContent>
         <TabsContent value="api" className="mt-4">
           <ApiIntegrationTab assistantId={assistantId} assistant={assistant} />
@@ -1305,20 +1315,23 @@ function TasksTab({
 // ─── Test Chat Tab ──────────────────────────────────────────────────────────
 
 function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
-  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant" | "system"; content: string }>>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [handedOver, setHandedOver] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const testChat = useAction(api.aiAssistantsActions.testChat);
   const speechToText = useAction(api.aiAssistantsActions.speechToText);
+  const requestHandover = useAction(api.aiHandoverActions.requestHandover);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+  const sessions = useQuery(api.aiAssistants.getChatSessions, { assistantId });
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -1428,6 +1441,40 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
     window.speechSynthesis.speak(utterance);
   };
 
+  // ── Human Handover ───────────────────────────────────────────────────────
+  const handleHandover = async () => {
+    // Find the test session for this assistant
+    const testSession = sessions?.find(
+      (s) => s.sessionId.startsWith("test_") && s.assistantId === assistantId
+    );
+    if (!testSession) {
+      toast.error("No active test session found. Send at least one message first.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const result = await requestHandover({
+        sessionId: testSession._id,
+        assistantId,
+        reason: "Manual handover from test chat",
+      });
+      if (result.success) {
+        setHandedOver(true);
+        setMessages((prev) => [...prev, {
+          role: "system",
+          content: "Conversation handed over to a human agent. An email summary has been sent.",
+        }]);
+        toast.success("Handover requested successfully");
+      } else {
+        toast.error(result.error ?? "Handover failed");
+      }
+    } catch {
+      toast.error("Failed to request handover");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -1446,9 +1493,11 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
               </div>
             )}
             {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} gap-1`}>
+              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"} gap-1`}>
                 <div className={`max-w-[80%] rounded-lg px-4 py-2 text-sm whitespace-pre-wrap ${
-                  msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+                  msg.role === "user" ? "bg-primary text-primary-foreground" :
+                  msg.role === "system" ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 text-center italic text-xs" :
+                  "bg-muted"
                 }`}>
                   {msg.content}
                 </div>
@@ -1489,17 +1538,28 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
               variant={isRecording ? "destructive" : "secondary"}
               className="shrink-0"
               onClick={isRecording ? stopRecording : startRecording}
-              disabled={isLoading || isTranscribing}
+              disabled={isLoading || isTranscribing || handedOver}
               title={isRecording ? "Stop recording" : "Start voice input"}
             >
               {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </Button>
-            <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type or speak a message..."
+            <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder={handedOver ? "Conversation handed over" : "Type or speak a message..."}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              disabled={isLoading || isRecording || isTranscribing} />
-            <Button size="sm" onClick={() => handleSend()} disabled={isLoading || !input.trim() || isRecording}>
+              disabled={isLoading || isRecording || isTranscribing || handedOver} />
+            <Button size="sm" onClick={() => handleSend()} disabled={isLoading || !input.trim() || isRecording || handedOver}>
               <Send className="h-4 w-4" />
             </Button>
+            {messages.length > 0 && !handedOver && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleHandover}
+                disabled={isLoading}
+                title="Transfer to human agent"
+              >
+                <UserCheck className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>
@@ -1522,15 +1582,26 @@ function ConversationsTab({ sessions }: { sessions: Doc<"aiChatSessions">[] }) {
         </Button>
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">{session?.visitorName || "Anonymous"} ({session?.channel})</CardTitle>
-            <CardDescription>{session?.messageCount} messages</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">{session?.visitorName || "Anonymous"} ({session?.channel})</CardTitle>
+                <CardDescription>{session?.messageCount} messages</CardDescription>
+              </div>
+              {session?.status === "handed_over" && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <UserCheck className="h-3 w-3" /> Handed Over
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {chatMessages.map((msg) => (
-                <div key={msg._id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div key={msg._id} className={`flex ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"}`}>
                   <div className={`max-w-[80%] rounded-lg px-4 py-2 text-sm whitespace-pre-wrap ${
-                    msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+                    msg.role === "user" ? "bg-primary text-primary-foreground" :
+                    msg.role === "system" ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 text-center italic text-xs" :
+                    "bg-muted"
                   }`}>
                     {msg.content}
                   </div>
@@ -1565,9 +1636,14 @@ function ConversationsTab({ sessions }: { sessions: Doc<"aiChatSessions">[] }) {
                 <p className="font-medium text-sm">{session.visitorName || "Anonymous"}</p>
                 <p className="text-xs text-muted-foreground">{session.visitorEmail || session.sessionId.slice(0, 16)}</p>
               </div>
-              <div className="text-right">
+              <div className="text-right flex items-center gap-2">
                 <Badge variant="outline" className="text-xs capitalize">{session.channel}</Badge>
-                <p className="text-xs text-muted-foreground mt-1">{session.messageCount} msgs</p>
+                {session.status === "handed_over" && (
+                  <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                    <UserCheck className="h-3 w-3" /> Handover
+                  </Badge>
+                )}
+                <p className="text-xs text-muted-foreground">{session.messageCount} msgs</p>
               </div>
             </div>
           </CardContent>
@@ -1638,6 +1714,158 @@ function ExecutionLogsTab({
   );
 }
 
+// ─── Handovers Tab ─────────────────────────────────────────────────────────
+
+function HandoversTab({
+  requests,
+  sessions,
+}: {
+  requests: Doc<"aiHandoverRequests">[];
+  sessions: Doc<"aiChatSessions">[];
+}) {
+  const resolveHandover = useMutation(api.aiAssistants.resolveHandover);
+  const [selectedSession, setSelectedSession] = useState<Id<"aiChatSessions"> | null>(null);
+  const chatMessages = useQuery(api.aiAssistants.getChatMessages, selectedSession ? { sessionId: selectedSession } : "skip");
+
+  if (selectedSession && chatMessages) {
+    const request = requests.find((r) => r.sessionId === selectedSession);
+    const session = sessions.find((s) => s._id === selectedSession);
+    return (
+      <div className="space-y-4">
+        <Button variant="ghost" size="sm" onClick={() => setSelectedSession(null)}>
+          <ChevronLeft className="h-4 w-4 mr-1" />Back
+        </Button>
+
+        {/* Summary card */}
+        {request && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">AI Summary</CardTitle>
+                <Badge variant={request.status === "resolved" ? "default" : request.status === "email_sent" ? "secondary" : "destructive"}>
+                  {request.status === "resolved" ? "Resolved" : request.status === "email_sent" ? "Email Sent" : "Pending"}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm whitespace-pre-wrap text-muted-foreground mb-4">{request.summary}</div>
+              {request.reason && (
+                <div className="text-sm"><strong>Reason:</strong> {request.reason}</div>
+              )}
+              <div className="flex items-center gap-4 text-xs text-muted-foreground mt-3">
+                {request.visitorName && <span>Name: {request.visitorName}</span>}
+                {request.visitorEmail && <span>Email: {request.visitorEmail}</span>}
+                {request.visitorPhone && <span>Phone: {request.visitorPhone}</span>}
+              </div>
+              {request.emailSentTo && (
+                <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                  <Mail className="h-3 w-3" /> Email sent to {request.emailSentTo} at {new Date(request.emailSentAt ?? "").toLocaleString()}
+                </div>
+              )}
+              {request.status !== "resolved" && (
+                <Button size="sm" className="mt-4" onClick={async () => {
+                  await resolveHandover({ handoverId: request._id });
+                  toast.success("Marked as resolved");
+                }}>
+                  <CheckCircle className="h-4 w-4 mr-1" />Mark Resolved
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Conversation */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{session?.visitorName || "Anonymous"} - Full Conversation</CardTitle>
+            <CardDescription>{chatMessages.length} messages</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {chatMessages.map((msg) => (
+                <div key={msg._id} className={`flex ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"}`}>
+                  <div className={`max-w-[80%] rounded-lg px-4 py-2 text-sm whitespace-pre-wrap ${
+                    msg.role === "user" ? "bg-primary text-primary-foreground" :
+                    msg.role === "system" ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 text-center italic" :
+                    "bg-muted"
+                  }`}>
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (requests.length === 0) {
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon"><ArrowRightLeft /></EmptyMedia>
+          <EmptyTitle>No handover requests</EmptyTitle>
+          <EmptyDescription>
+            When visitors request to speak with a human agent, their requests appear here with an AI-generated conversation summary.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {requests.map((request) => (
+        <Card
+          key={request._id}
+          className="cursor-pointer hover:shadow-sm transition-shadow"
+          onClick={() => setSelectedSession(request.sessionId)}
+        >
+          <CardContent className="pt-4">
+            <div className="flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <p className="font-medium text-sm">{request.visitorName || "Anonymous"}</p>
+                  <Badge
+                    variant={request.status === "resolved" ? "default" : request.status === "email_sent" ? "secondary" : "destructive"}
+                    className="text-xs"
+                  >
+                    {request.status === "resolved" ? "Resolved" : request.status === "email_sent" ? "Email Sent" : "Pending"}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{request.summary.slice(0, 150)}...</p>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  {request.visitorEmail && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{request.visitorEmail}</span>}
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {new Date(request._creationTime).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              <div className="ml-4">
+                {request.status !== "resolved" && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await resolveHandover({ handoverId: request._id });
+                      toast.success("Resolved");
+                    }}
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 // ─── Settings Tab ───────────────────────────────────────────────────────────
 
 function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
@@ -1650,6 +1878,7 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
   const [personality, setPersonality] = useState<Personality>(assistant.personality);
   const [primaryColor, setPrimaryColor] = useState(assistant.primaryColor ?? "#3B82F6");
   const [customInstructions, setCustomInstructions] = useState(assistant.customInstructions ?? "");
+  const [handoverEmail, setHandoverEmail] = useState(assistant.handoverEmail ?? "");
   const updateAssistant = useMutation(api.aiAssistants.update);
 
   const handleSave = async () => {
@@ -1659,6 +1888,7 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
         companyName: companyName.trim(), companyDescription: companyDescription.trim() || undefined,
         industry: industry.trim() || undefined, welcomeMessage: welcomeMessage.trim() || undefined,
         personality, primaryColor, customInstructions: customInstructions.trim() || undefined,
+        handoverEmail: handoverEmail.trim() || undefined,
       });
       toast.success("Settings updated");
     } catch {
@@ -1702,6 +1932,26 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
           </div>
         </div>
         <div className="space-y-2"><Label>Custom Instructions</Label><Textarea value={customInstructions} onChange={(e) => setCustomInstructions(e.target.value)} rows={3} /></div>
+        
+        {/* Human Handover Settings */}
+        <div className="border-t pt-4 mt-4">
+          <h4 className="font-medium mb-3 flex items-center gap-2">
+            <UserCheck className="h-4 w-4" /> Human Handover Settings
+          </h4>
+          <div className="space-y-2">
+            <Label>Handover Email</Label>
+            <Input
+              type="email"
+              value={handoverEmail}
+              onChange={(e) => setHandoverEmail(e.target.value)}
+              placeholder="support@yourcompany.com"
+            />
+            <p className="text-xs text-muted-foreground">
+              When a visitor requests to speak with a human, an email with the conversation summary will be sent to this address.
+            </p>
+          </div>
+        </div>
+
         <Button onClick={handleSave}>Save Changes</Button>
       </CardContent>
     </Card>

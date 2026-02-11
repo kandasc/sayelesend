@@ -60,6 +60,9 @@ function buildSystemPrompt(
 - If a task requires parameters that the user hasn't provided, ask them for the missing information before executing.`;
   }
 
+  prompt += `\n- If the user asks to speak with a human, a real person, or an agent, respond with exactly: "[HANDOVER_REQUEST]" followed by a brief explanation of why they need human assistance.
+- If you cannot answer a question after 2 attempts, suggest that the user can request to speak with a human agent for further help.`;
+
   return prompt;
 }
 

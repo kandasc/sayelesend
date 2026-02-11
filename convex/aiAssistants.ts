@@ -372,6 +372,7 @@ export const update = mutation({
     primaryColor: v.optional(v.string()),
     logoUrl: v.optional(v.string()),
     customInstructions: v.optional(v.string()),
+    handoverEmail: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -723,5 +724,81 @@ export const closeChatSession = mutation({
       throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
     }
     await ctx.db.patch(args.sessionId, { status: "closed" });
+  },
+});
+
+// ─── Handover Queries and Mutations ────────────────────────────────────────
+
+export const getHandoverRequests = query({
+  args: { assistantId: v.id("aiAssistants") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    return await ctx.db
+      .query("aiHandoverRequests")
+      .withIndex("by_assistant", (q) => q.eq("assistantId", args.assistantId))
+      .order("desc")
+      .take(50);
+  },
+});
+
+export const createHandoverRequest = internalMutation({
+  args: {
+    sessionId: v.id("aiChatSessions"),
+    assistantId: v.id("aiAssistants"),
+    clientId: v.id("clients"),
+    reason: v.optional(v.string()),
+    summary: v.string(),
+    visitorName: v.optional(v.string()),
+    visitorEmail: v.optional(v.string()),
+    visitorPhone: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Mark session as handed over
+    await ctx.db.patch(args.sessionId, { status: "handed_over" });
+
+    // Create handover request
+    return await ctx.db.insert("aiHandoverRequests", {
+      ...args,
+      status: "pending",
+    });
+  },
+});
+
+export const markHandoverEmailSent = internalMutation({
+  args: {
+    handoverId: v.id("aiHandoverRequests"),
+    emailSentTo: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.handoverId, {
+      emailSentTo: args.emailSentTo,
+      emailSentAt: new Date().toISOString(),
+      status: "email_sent",
+    });
+  },
+});
+
+export const resolveHandover = mutation({
+  args: { handoverId: v.id("aiHandoverRequests") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user) {
+      throw new ConvexError({ message: "User not found", code: "NOT_FOUND" });
+    }
+    await ctx.db.patch(args.handoverId, {
+      status: "resolved",
+      resolvedAt: new Date().toISOString(),
+      resolvedBy: user._id,
+    });
   },
 });

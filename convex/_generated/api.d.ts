@@ -12,6 +12,7 @@ import type * as admin from "../admin.js";
 import type * as ai from "../ai.js";
 import type * as aiAssistants from "../aiAssistants.js";
 import type * as aiAssistantsActions from "../aiAssistantsActions.js";
+import type * as aiHandoverActions from "../aiHandoverActions.js";
 import type * as analytics from "../analytics.js";
 import type * as apiKeys from "../apiKeys.js";
 import type * as apiKeysActions from "../apiKeysActions.js";
@@ -67,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   ai: typeof ai;
   aiAssistants: typeof aiAssistants;
   aiAssistantsActions: typeof aiAssistantsActions;
+  aiHandoverActions: typeof aiHandoverActions;
   analytics: typeof analytics;
   apiKeys: typeof apiKeys;
   apiKeysActions: typeof apiKeysActions;
