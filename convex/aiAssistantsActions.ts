@@ -256,15 +256,14 @@ export const chat = action({
     // 6. Build tools from active tasks
     const tools = activeTasks.length > 0 ? tasksToOpenAITools(activeTasks) : undefined;
 
-    // 7. Call AI via Hercules AI Gateway
+    // 7. Call OpenAI directly
     const openai = new OpenAI({
-      baseURL: "http://ai-gateway.hercules.app/v1",
-      apiKey: process.env.HERCULES_API_KEY,
+      apiKey: process.env.OPENAI_API_KEY,
     });
 
     try {
       const completionArgs: OpenAI.ChatCompletionCreateParamsNonStreaming = {
-        model: "openai/gpt-5-mini",
+        model: "gpt-4o-mini",
         messages: openaiMessages,
       };
       if (tools && tools.length > 0) {
@@ -324,7 +323,7 @@ export const chat = action({
 
         // Get next response after tool execution
         response = await openai.chat.completions.create({
-          model: "openai/gpt-5-mini",
+          model: "gpt-4o-mini",
           messages: openaiMessages,
           tools,
         });
@@ -438,15 +437,14 @@ export const publicChat = internalAction({
     // 6. Build tools from active tasks
     const tools = activeTasks.length > 0 ? tasksToOpenAITools(activeTasks) : undefined;
 
-    // 7. Call AI via Hercules AI Gateway
+    // 7. Call OpenAI directly
     const openai = new OpenAI({
-      baseURL: "http://ai-gateway.hercules.app/v1",
-      apiKey: process.env.HERCULES_API_KEY,
+      apiKey: process.env.OPENAI_API_KEY,
     });
 
     try {
       const completionArgs: OpenAI.ChatCompletionCreateParamsNonStreaming = {
-        model: "openai/gpt-5-mini",
+        model: "gpt-4o-mini",
         messages: openaiMessages,
       };
       if (tools && tools.length > 0) {
@@ -497,7 +495,7 @@ export const publicChat = internalAction({
         }
 
         response = await openai.chat.completions.create({
-          model: "openai/gpt-5-mini",
+          model: "gpt-4o-mini",
           messages: openaiMessages,
           tools,
         });
@@ -653,14 +651,13 @@ export const textToSpeech = action({
     }
 
     const openai = new OpenAI({
-      apiKey: process.env.HERCULES_API_KEY,
+      apiKey: process.env.OPENAI_API_KEY,
     });
 
     const mp3 = await openai.audio.speech.create({
-      model: "gpt-4o-mini-tts",
+      model: "tts-1",
       voice: (args.voice ?? "coral") as "coral",
       input: args.text.slice(0, 4096),
-      instructions: "Speak in a clear and natural tone.",
     });
 
     const buffer = Buffer.from(await mp3.arrayBuffer());
@@ -692,12 +689,12 @@ export const speechToText = action({
     const audioFile = new File([audioBlob], "audio.webm", { type: "audio/webm" });
 
     const openai = new OpenAI({
-      apiKey: process.env.HERCULES_API_KEY,
+      apiKey: process.env.OPENAI_API_KEY,
     });
 
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
-      model: "gpt-4o-transcribe",
+      model: "whisper-1",
     });
 
     return { text: transcription.text };
