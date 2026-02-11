@@ -67,28 +67,51 @@ type Personality = "professional" | "friendly" | "casual" | "formal";
 type SourceType = "manual" | "api" | "document" | "website";
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
-// ─── Main Page (Admin-Only) ─────────────────────────────────────────────────
+// ─── Main Page (Admin + Client) ────────────────────────────────────────────
 
 function AIAssistantsInner() {
   const currentUser = useQuery(api.users.getCurrentUser, {});
   const clients = useQuery(api.clients.listClients, currentUser?.role === "admin" ? {} : "skip");
   const [selectedClientId, setSelectedClientId] = useState<Id<"clients"> | null>(null);
-  const assistants = useQuery(
+
+  // Admin uses listAll with optional filter; client uses listMyAssistants
+  const adminAssistants = useQuery(
     api.aiAssistants.listAll,
     currentUser?.role === "admin"
       ? { clientId: selectedClientId ?? undefined }
       : "skip"
   );
+  const clientAssistants = useQuery(
+    api.aiAssistants.listMyAssistants,
+    currentUser?.role === "client" ? {} : "skip"
+  );
+
+  const isAdmin = currentUser?.role === "admin";
+  const assistants = isAdmin ? adminAssistants : clientAssistants;
+
   const [selectedAssistant, setSelectedAssistant] = useState<Id<"aiAssistants"> | null>(null);
 
-  // Non-admin: show access denied
-  if (currentUser && currentUser.role !== "admin") {
+  // Viewers have no access
+  if (currentUser && currentUser.role === "viewer") {
     return (
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon"><ShieldAlert /></EmptyMedia>
-          <EmptyTitle>Admin access required</EmptyTitle>
-          <EmptyDescription>Only superadmins can manage AI Assistants.</EmptyDescription>
+          <EmptyTitle>Access denied</EmptyTitle>
+          <EmptyDescription>You do not have permission to view AI Assistants.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  // Client without clientId linked
+  if (currentUser && currentUser.role === "client" && !currentUser.clientId) {
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon"><Bot /></EmptyMedia>
+          <EmptyTitle>No AI assistants</EmptyTitle>
+          <EmptyDescription>Your account is not yet linked to a company. Contact your administrator.</EmptyDescription>
         </EmptyHeader>
       </Empty>
     );
@@ -109,11 +132,12 @@ function AIAssistantsInner() {
       <AssistantDetail
         assistantId={selectedAssistant}
         onBack={() => setSelectedAssistant(null)}
+        isAdmin={isAdmin ?? false}
       />
     );
   }
 
-  // Find client name for display
+  // Find client name for display (admin view)
   const selectedClient = clients?.find((c) => c._id === selectedClientId);
 
   return (
@@ -122,46 +146,50 @@ function AIAssistantsInner() {
         <div>
           <h1 className="text-3xl font-bold">AI Assistants</h1>
           <p className="text-muted-foreground mt-1">
-            Create and manage AI chatbots for your clients
+            {isAdmin
+              ? "Create and manage AI chatbots for your clients"
+              : "View and manage your AI chatbots"}
           </p>
         </div>
-        {selectedClientId && (
+        {isAdmin && selectedClientId && (
           <CreateAssistantDialog clientId={selectedClientId} clientName={selectedClient?.companyName ?? "Client"} />
         )}
       </div>
 
-      {/* Client Selector */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <div className="flex-1 max-w-sm space-y-2">
-              <Label>Select Client</Label>
-              <Select
-                value={selectedClientId ?? "all"}
-                onValueChange={(val) => {
-                  setSelectedClientId(val === "all" ? null : val as Id<"clients">);
-                  setSelectedAssistant(null);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All clients" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Clients</SelectItem>
-                  {clients?.map((client) => (
-                    <SelectItem key={client._id} value={client._id}>
-                      {client.companyName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {/* Client Selector (Admin only) */}
+      {isAdmin && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 max-w-sm space-y-2">
+                <Label>Select Client</Label>
+                <Select
+                  value={selectedClientId ?? "all"}
+                  onValueChange={(val) => {
+                    setSelectedClientId(val === "all" ? null : val as Id<"clients">);
+                    setSelectedAssistant(null);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All clients" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Clients</SelectItem>
+                    {clients?.map((client) => (
+                      <SelectItem key={client._id} value={client._id}>
+                        {client.companyName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-sm text-muted-foreground pt-6">
+                {assistants.length} assistant{assistants.length !== 1 ? "s" : ""} found
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground pt-6">
-              {assistants.length} assistant{assistants.length !== 1 ? "s" : ""} found
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {assistants.length === 0 ? (
         <Empty>
@@ -169,12 +197,14 @@ function AIAssistantsInner() {
             <EmptyMedia variant="icon"><Bot /></EmptyMedia>
             <EmptyTitle>No AI assistants yet</EmptyTitle>
             <EmptyDescription>
-              {selectedClientId
-                ? "Create an AI assistant for this client."
-                : "Select a client to create an assistant, or view all assistants."}
+              {isAdmin
+                ? selectedClientId
+                  ? "Create an AI assistant for this client."
+                  : "Select a client to create an assistant, or view all assistants."
+                : "No AI assistants have been set up for your company yet. Contact your administrator."}
             </EmptyDescription>
           </EmptyHeader>
-          {selectedClientId && (
+          {isAdmin && selectedClientId && (
             <EmptyContent>
               <CreateAssistantDialog clientId={selectedClientId} clientName={selectedClient?.companyName ?? "Client"} />
             </EmptyContent>
@@ -371,9 +401,11 @@ function CreateAssistantDialog({ clientId, clientName }: { clientId: Id<"clients
 function AssistantDetail({
   assistantId,
   onBack,
+  isAdmin,
 }: {
   assistantId: Id<"aiAssistants">;
   onBack: () => void;
+  isAdmin: boolean;
 }) {
   const assistant = useQuery(api.aiAssistants.getById, { assistantId });
   const knowledgeBase = useQuery(api.aiAssistants.getKnowledgeBase, { assistantId });
@@ -382,7 +414,7 @@ function AssistantDetail({
   const executionLogs = useQuery(api.aiAssistants.getTaskExecutionLogs, { assistantId });
   const updateAssistant = useMutation(api.aiAssistants.update);
   const deleteAssistant = useMutation(api.aiAssistants.remove);
-  const clients = useQuery(api.clients.listClients, {});
+  const clients = useQuery(api.clients.listClients, isAdmin ? {} : "skip");
 
   if (assistant === undefined) return <Skeleton className="h-96 w-full" />;
   if (!assistant) {
@@ -394,7 +426,7 @@ function AssistantDetail({
     );
   }
 
-  const clientName = clients?.find((c) => c._id === assistant.clientId)?.companyName ?? "Unknown";
+  const clientName = clients?.find((c) => c._id === assistant.clientId)?.companyName ?? assistant.companyName;
 
   return (
     <div className="space-y-6">
@@ -410,7 +442,7 @@ function AssistantDetail({
             </div>
             <div>
               <h1 className="text-2xl font-bold">{assistant.name}</h1>
-              <p className="text-sm text-muted-foreground">Client: {clientName}</p>
+              {isAdmin && <p className="text-sm text-muted-foreground">Client: {clientName}</p>}
             </div>
             <Badge variant={assistant.isActive ? "default" : "secondary"}>{assistant.isActive ? "Active" : "Inactive"}</Badge>
           </div>
@@ -421,14 +453,16 @@ function AssistantDetail({
         }}>
           {assistant.isActive ? <><PowerOff className="h-4 w-4 mr-1" />Deactivate</> : <><Power className="h-4 w-4 mr-1" />Activate</>}
         </Button>
-        <Button variant="destructive" size="sm" onClick={async () => {
-          if (!confirm("Delete this assistant and all its data?")) return;
-          await deleteAssistant({ assistantId });
-          toast.success("Deleted");
-          onBack();
-        }}>
-          <Trash2 className="h-4 w-4 mr-1" />Delete
-        </Button>
+        {isAdmin && (
+          <Button variant="destructive" size="sm" onClick={async () => {
+            if (!confirm("Delete this assistant and all its data?")) return;
+            await deleteAssistant({ assistantId });
+            toast.success("Deleted");
+            onBack();
+          }}>
+            <Trash2 className="h-4 w-4 mr-1" />Delete
+          </Button>
+        )}
       </div>
 
       {/* Stats */}

@@ -39,7 +39,40 @@ const taskParamValidator = v.object({
   required: v.boolean(),
 });
 
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+// (access checks are inlined in each handler for type safety)
+
 // ─── Assistant Queries ──────────────────────────────────────────────────────
+
+// Query for the current user's assistants (works for both admin and client)
+export const listMyAssistants = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user) {
+      throw new ConvexError({ message: "User not found", code: "NOT_FOUND" });
+    }
+    // Admins can see all, clients see only their own
+    if (user.role === "admin") {
+      return await ctx.db.query("aiAssistants").collect();
+    }
+    if (user.role === "client" && user.clientId) {
+      return await ctx.db
+        .query("aiAssistants")
+        .withIndex("by_client", (q) => q.eq("clientId", user.clientId!))
+        .collect();
+    }
+    return [];
+  },
+});
 
 export const listByClient = query({
   args: { clientId: v.id("clients") },
@@ -350,8 +383,18 @@ export const update = mutation({
       .query("users")
       .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
-    if (!user || user.role !== "admin") {
-      throw new ConvexError({ message: "Admin access required", code: "FORBIDDEN" });
+    if (!user) {
+      throw new ConvexError({ message: "User not found", code: "NOT_FOUND" });
+    }
+    // Check access: admin can update any, client can update own
+    const assistant = await ctx.db.get(args.assistantId);
+    if (!assistant) {
+      throw new ConvexError({ message: "Assistant not found", code: "NOT_FOUND" });
+    }
+    const isAdmin = user.role === "admin";
+    const isOwnerClient = user.role === "client" && user.clientId === assistant.clientId;
+    if (!isAdmin && !isOwnerClient) {
+      throw new ConvexError({ message: "Access denied", code: "FORBIDDEN" });
     }
     const { assistantId, ...updates } = args;
     const cleanUpdates: Record<string, unknown> = {};
@@ -443,8 +486,13 @@ export const addKnowledge = mutation({
       .query("users")
       .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
-    if (!user || user.role !== "admin") {
-      throw new ConvexError({ message: "Admin access required", code: "FORBIDDEN" });
+    if (!user) {
+      throw new ConvexError({ message: "User not found", code: "NOT_FOUND" });
+    }
+    const isAdmin = user.role === "admin";
+    const isOwnerClient = user.role === "client" && user.clientId === args.clientId;
+    if (!isAdmin && !isOwnerClient) {
+      throw new ConvexError({ message: "Access denied", code: "FORBIDDEN" });
     }
     return await ctx.db.insert("aiKnowledgeBase", {
       ...args,
@@ -515,8 +563,13 @@ export const createTask = mutation({
       .query("users")
       .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
-    if (!user || user.role !== "admin") {
-      throw new ConvexError({ message: "Admin access required", code: "FORBIDDEN" });
+    if (!user) {
+      throw new ConvexError({ message: "User not found", code: "NOT_FOUND" });
+    }
+    const isAdmin = user.role === "admin";
+    const isOwnerClient = user.role === "client" && user.clientId === args.clientId;
+    if (!isAdmin && !isOwnerClient) {
+      throw new ConvexError({ message: "Access denied", code: "FORBIDDEN" });
     }
     return await ctx.db.insert("aiAssistantTasks", {
       ...args,
