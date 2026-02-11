@@ -189,7 +189,8 @@ async function generateConversationSummary(
 ): Promise<string> {
   try {
     const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      baseURL: "http://ai-gateway.hercules.app/v1",
+      apiKey: process.env.HERCULES_API_KEY,
     });
 
     const conversationText = messages
@@ -198,7 +199,7 @@ async function generateConversationSummary(
       .join("\n");
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "openai/gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -211,7 +212,6 @@ Keep it under 300 words. Use bullet points.`,
         },
         { role: "user", content: conversationText || "No messages in conversation." },
       ],
-      temperature: 0.3,
     });
 
     return response.choices[0]?.message?.content ?? "Unable to generate summary.";
