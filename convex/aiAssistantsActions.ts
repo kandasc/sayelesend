@@ -638,3 +638,68 @@ export const fetchSourceContent = action({
     }
   },
 });
+
+// ─── Text-to-Speech (TTS) ──────────────────────────────────────────────────
+
+export const textToSpeech = action({
+  args: {
+    text: v.string(),
+    voice: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<{ storageId: string }> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const openai = new OpenAI({
+      apiKey: process.env.HERCULES_API_KEY,
+    });
+
+    const mp3 = await openai.audio.speech.create({
+      model: "gpt-4o-mini-tts",
+      voice: (args.voice ?? "coral") as "coral",
+      input: args.text.slice(0, 4096),
+      instructions: "Speak in a clear and natural tone.",
+    });
+
+    const buffer = Buffer.from(await mp3.arrayBuffer());
+    const storageId = await ctx.storage.store(
+      new Blob([buffer], { type: "audio/mpeg" })
+    );
+
+    return { storageId: storageId as string };
+  },
+});
+
+// ─── Speech-to-Text (STT) ──────────────────────────────────────────────────
+
+export const speechToText = action({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args): Promise<{ text: string }> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const audioBlob = await ctx.storage.get(args.storageId);
+    if (!audioBlob) {
+      throw new Error("Audio file not found");
+    }
+
+    const audioFile = new File([audioBlob], "audio.webm", { type: "audio/webm" });
+
+    const openai = new OpenAI({
+      apiKey: process.env.HERCULES_API_KEY,
+    });
+
+    const transcription = await openai.audio.transcriptions.create({
+      file: audioFile,
+      model: "gpt-4o-transcribe",
+    });
+
+    return { text: transcription.text };
+  },
+});

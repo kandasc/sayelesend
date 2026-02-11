@@ -41,6 +41,7 @@ import type * as reports from "../reports.js";
 import type * as sms_queries from "../sms/queries.js";
 import type * as sms_send from "../sms/send.js";
 import type * as sms_webhooks from "../sms/webhooks.js";
+import type * as storage from "../storage.js";
 import type * as templates from "../templates.js";
 import type * as testMode from "../testMode.js";
 import type * as users from "../users.js";
@@ -95,6 +96,7 @@ declare const fullApi: ApiFromModules<{
   "sms/queries": typeof sms_queries;
   "sms/send": typeof sms_send;
   "sms/webhooks": typeof sms_webhooks;
+  storage: typeof storage;
   templates: typeof templates;
   testMode: typeof testMode;
   users: typeof users;

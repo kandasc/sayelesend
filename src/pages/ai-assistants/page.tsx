@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import type { Id, Doc } from "@/convex/_generated/dataModel.d.ts";
@@ -61,6 +61,10 @@ import {
   Code,
   Copy,
   ShieldAlert,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 
 type Personality = "professional" | "friendly" | "casual" | "formal";
@@ -1304,16 +1308,31 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
   const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const testChat = useAction(api.aiAssistantsActions.testChat);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-    const userMessage = input.trim();
+  const testChat = useAction(api.aiAssistantsActions.testChat);
+  const speechToText = useAction(api.aiAssistantsActions.speechToText);
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
+
+  const handleSend = async (text?: string) => {
+    const messageText = text ?? input.trim();
+    if (!messageText || isLoading) return;
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+    setMessages((prev) => [...prev, { role: "user", content: messageText }]);
     setIsLoading(true);
     try {
-      const result = await testChat({ assistantId, message: userMessage });
+      const result = await testChat({ assistantId, message: messageText });
       setMessages((prev) => [...prev, { role: "assistant", content: result.response }]);
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "Something went wrong." }]);
@@ -1322,25 +1341,132 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
     }
   };
 
+  // ── Voice Input (record + transcribe via OpenAI) ──────────────────────
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true },
+      });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        if (audioBlob.size < 100) {
+          toast.error("Recording too short");
+          return;
+        }
+        setIsTranscribing(true);
+        try {
+          // Upload audio to storage
+          const uploadUrl = await generateUploadUrl();
+          const uploadRes = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": "audio/webm" },
+            body: audioBlob,
+          });
+          const { storageId } = (await uploadRes.json()) as { storageId: Id<"_storage"> };
+
+          // Transcribe
+          const result = await speechToText({ storageId });
+          if (result.text.trim()) {
+            // Send the transcribed text directly as a message
+            await handleSend(result.text.trim());
+          } else {
+            toast.error("Could not understand the audio");
+          }
+        } catch {
+          toast.error("Transcription failed");
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+    } catch {
+      toast.error("Microphone access denied. Please allow microphone access.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  };
+
+  // ── Voice Output (browser SpeechSynthesis) ─────────────────────────────
+  const playResponse = (text: string, index: number) => {
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setPlayingIndex(null);
+      setIsSpeaking(false);
+      return;
+    }
+
+    setPlayingIndex(index);
+    setIsSpeaking(true);
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.onend = () => {
+      setPlayingIndex(null);
+      setIsSpeaking(false);
+    };
+    utterance.onerror = () => {
+      setPlayingIndex(null);
+      setIsSpeaking(false);
+    };
+    window.speechSynthesis.speak(utterance);
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Test Chat</CardTitle>
-        <CardDescription>Test your assistant with knowledge base and tasks</CardDescription>
+        <CardTitle className="text-base flex items-center gap-2">
+          <MessageSquare className="h-4 w-4" /> Test Chat
+        </CardTitle>
+        <CardDescription>Test your assistant with voice and text. Click the mic to speak.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="border rounded-lg flex flex-col h-96">
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 && (
-              <div className="text-center text-muted-foreground text-sm py-8">Send a message to test</div>
+              <div className="text-center text-muted-foreground text-sm py-8 space-y-2">
+                <Mic className="h-8 w-8 mx-auto opacity-50" />
+                <p>Send a message or tap the mic to speak</p>
+              </div>
             )}
             {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} gap-1`}>
                 <div className={`max-w-[80%] rounded-lg px-4 py-2 text-sm whitespace-pre-wrap ${
                   msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
                 }`}>
                   {msg.content}
                 </div>
+                {msg.role === "assistant" && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 self-end"
+                    onClick={() => playResponse(msg.content, i)}
+                    title={playingIndex === i ? "Stop" : "Listen"}
+                  >
+                    {playingIndex === i ? (
+                      <VolumeX className="h-3.5 w-3.5" />
+                    ) : (
+                      <Volume2 className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                )}
               </div>
             ))}
             {isLoading && (
@@ -1348,12 +1474,30 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
                 <div className="bg-muted rounded-lg px-4 py-2"><Spinner /></div>
               </div>
             )}
+            {isTranscribing && (
+              <div className="flex justify-end">
+                <div className="bg-primary/10 text-primary rounded-lg px-4 py-2 text-sm flex items-center gap-2">
+                  <Spinner /> Transcribing...
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
           <div className="border-t p-3 flex gap-2">
-            <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type a test message..."
+            <Button
+              size="icon"
+              variant={isRecording ? "destructive" : "secondary"}
+              className="shrink-0"
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isLoading || isTranscribing}
+              title={isRecording ? "Stop recording" : "Start voice input"}
+            >
+              {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
+            <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type or speak a message..."
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              disabled={isLoading} />
-            <Button size="sm" onClick={handleSend} disabled={isLoading || !input.trim()}>
+              disabled={isLoading || isRecording || isTranscribing} />
+            <Button size="sm" onClick={() => handleSend()} disabled={isLoading || !input.trim() || isRecording}>
               <Send className="h-4 w-4" />
             </Button>
           </div>
