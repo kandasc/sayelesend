@@ -256,12 +256,15 @@ export const chat = action({
     // 6. Build tools from active tasks
     const tools = activeTasks.length > 0 ? tasksToOpenAITools(activeTasks) : undefined;
 
-    // 7. Call OpenAI
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    // 7. Call AI via Hercules AI Gateway
+    const openai = new OpenAI({
+      baseURL: "http://ai-gateway.hercules.app/v1",
+      apiKey: process.env.HERCULES_API_KEY,
+    });
 
     try {
       const completionArgs: OpenAI.ChatCompletionCreateParamsNonStreaming = {
-        model: "gpt-5-mini",
+        model: "openai/gpt-5-mini",
         messages: openaiMessages,
       };
       if (tools && tools.length > 0) {
@@ -321,7 +324,7 @@ export const chat = action({
 
         // Get next response after tool execution
         response = await openai.chat.completions.create({
-          model: "gpt-5-mini",
+          model: "openai/gpt-5-mini",
           messages: openaiMessages,
           tools,
         });
@@ -435,12 +438,15 @@ export const publicChat = internalAction({
     // 6. Build tools from active tasks
     const tools = activeTasks.length > 0 ? tasksToOpenAITools(activeTasks) : undefined;
 
-    // 7. Call OpenAI
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    // 7. Call AI via Hercules AI Gateway
+    const openai = new OpenAI({
+      baseURL: "http://ai-gateway.hercules.app/v1",
+      apiKey: process.env.HERCULES_API_KEY,
+    });
 
     try {
       const completionArgs: OpenAI.ChatCompletionCreateParamsNonStreaming = {
-        model: "gpt-5-mini",
+        model: "openai/gpt-5-mini",
         messages: openaiMessages,
       };
       if (tools && tools.length > 0) {
@@ -491,7 +497,7 @@ export const publicChat = internalAction({
         }
 
         response = await openai.chat.completions.create({
-          model: "gpt-5-mini",
+          model: "openai/gpt-5-mini",
           messages: openaiMessages,
           tools,
         });

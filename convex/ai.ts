@@ -23,7 +23,10 @@ export const generateMessage = action({
     )),
   },
   handler: async (ctx, { prompt, channel = "sms", tone = "professional" }) => {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({
+      baseURL: "http://ai-gateway.hercules.app/v1",
+      apiKey: process.env.HERCULES_API_KEY,
+    });
 
     // Channel-specific instructions
     const channelInstructions: Record<string, string> = {
@@ -48,7 +51,7 @@ ${toneInstructions[tone]}
 Important: Return ONLY the message text, no quotes, no explanations, no extra formatting.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "openai/gpt-5-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
@@ -75,7 +78,10 @@ export const improveMessage = action({
     ),
   },
   handler: async (ctx, { message, improvement }) => {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({
+      baseURL: "http://ai-gateway.hercules.app/v1",
+      apiKey: process.env.HERCULES_API_KEY,
+    });
 
     const improvementInstructions: Record<string, string> = {
       shorten: "Make this message shorter and more concise while keeping the key points.",
@@ -90,7 +96,7 @@ export const improveMessage = action({
 Return ONLY the improved message text, no quotes, no explanations.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "openai/gpt-5-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: message },
@@ -117,7 +123,10 @@ export const generateBulkMessages = action({
     personalize: v.optional(v.boolean()),
   },
   handler: async (ctx, { prompt, count, channel = "sms", personalize = false }) => {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({
+      baseURL: "http://ai-gateway.hercules.app/v1",
+      apiKey: process.env.HERCULES_API_KEY,
+    });
 
     const channelInstructions: Record<string, string> = {
       sms: "Each message should be concise (max 160 characters).",
@@ -138,7 +147,7 @@ Return ONLY a JSON array of messages, like: ["message 1", "message 2", ...]
 No explanations, no extra text.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "openai/gpt-5-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
@@ -172,7 +181,10 @@ export const chatAssistant = action({
     context: v.optional(v.string()),
   },
   handler: async (ctx, { message, context }) => {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({
+      baseURL: "http://ai-gateway.hercules.app/v1",
+      apiKey: process.env.HERCULES_API_KEY,
+    });
 
     const systemPrompt = `You are a helpful messaging platform assistant for SAYELE Message.
 You help users with:
@@ -186,7 +198,7 @@ Be helpful, concise, and actionable.
 ${context ? `\n\nContext: ${context}` : ""}`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "openai/gpt-5-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: message },
@@ -206,7 +218,10 @@ export const generateTemplateVariations = action({
     count: v.number(),
   },
   handler: async (ctx, { template, count }) => {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({
+      baseURL: "http://ai-gateway.hercules.app/v1",
+      apiKey: process.env.HERCULES_API_KEY,
+    });
 
     const systemPrompt = `You are a template variation generator. Given a message template, create ${count} variations that:
 - Maintain the same meaning and variables (keep {{variable}} format exactly as is)
@@ -217,7 +232,7 @@ export const generateTemplateVariations = action({
 Return ONLY a JSON array of variations, like: ["variation 1", "variation 2", ...]`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "openai/gpt-5-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: template },
@@ -246,7 +261,10 @@ export const suggestImprovements = action({
     channel: v.optional(v.string()),
   },
   handler: async (ctx, { message, channel = "sms" }) => {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({
+      baseURL: "http://ai-gateway.hercules.app/v1",
+      apiKey: process.env.HERCULES_API_KEY,
+    });
 
     const systemPrompt = `You are a message optimization expert. Analyze the message and provide 3-5 specific suggestions to improve it for ${channel}.
 Consider:
@@ -259,7 +277,7 @@ Consider:
 Return ONLY a JSON array of suggestions, like: ["suggestion 1", "suggestion 2", ...]`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "openai/gpt-5-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: message },
