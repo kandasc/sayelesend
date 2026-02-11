@@ -356,6 +356,175 @@ export const chat = action({
   },
 });
 
+// ─── Public Chat Action (no auth, for HTTP API / widget) ───────────────────
+
+export const publicChat = internalAction({
+  args: {
+    assistantId: v.id("aiAssistants"),
+    sessionId: v.string(),
+    message: v.string(),
+    channel: v.union(
+      v.literal("web"),
+      v.literal("sms"),
+      v.literal("whatsapp"),
+      v.literal("api")
+    ),
+    visitorName: v.optional(v.string()),
+    visitorEmail: v.optional(v.string()),
+    visitorPhone: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<{ response: string; sessionId: string }> => {
+    // 1. Get assistant (internal - no auth)
+    const assistant = await ctx.runQuery(internal.aiAssistants.getByIdInternal, {
+      assistantId: args.assistantId,
+    });
+    if (!assistant || !assistant.isActive) {
+      return { response: "This assistant is currently unavailable.", sessionId: args.sessionId };
+    }
+
+    // 2. Get or create session
+    const session = await ctx.runQuery(internal.aiAssistants.getSessionByPublicIdInternal, {
+      sessionId: args.sessionId,
+    });
+
+    let internalSessionId: Id<"aiChatSessions">;
+
+    if (!session) {
+      internalSessionId = await ctx.runMutation(internal.aiAssistants.createChatSessionInternal, {
+        assistantId: args.assistantId,
+        sessionId: args.sessionId,
+        channel: args.channel,
+        visitorName: args.visitorName,
+        visitorEmail: args.visitorEmail,
+        visitorPhone: args.visitorPhone,
+      });
+      await ctx.runMutation(internal.aiAssistants.incrementConversationCount, {
+        assistantId: args.assistantId,
+      });
+    } else {
+      internalSessionId = session._id;
+    }
+
+    // 3. Save user message
+    await ctx.runMutation(internal.aiAssistants.addChatMessage, {
+      sessionId: internalSessionId,
+      role: "user",
+      content: args.message,
+    });
+
+    // 4. Get context data (internal - no auth)
+    const [history, knowledgeBase, activeTasks] = await Promise.all([
+      ctx.runQuery(internal.aiAssistants.getChatMessagesInternal, { sessionId: internalSessionId }),
+      ctx.runQuery(internal.aiAssistants.getKnowledgeBaseInternal, { assistantId: args.assistantId }),
+      ctx.runQuery(internal.aiAssistants.getActiveTasksInternalQuery, { assistantId: args.assistantId }),
+    ]);
+
+    // 5. Build OpenAI messages
+    const systemPrompt = buildSystemPrompt(assistant, knowledgeBase, activeTasks.length > 0);
+    const openaiMessages: OpenAI.ChatCompletionMessageParam[] = [
+      { role: "system", content: systemPrompt },
+    ];
+
+    const recentHistory = history.slice(-20);
+    for (const msg of recentHistory) {
+      if (msg.role === "user" || msg.role === "assistant") {
+        openaiMessages.push({ role: msg.role, content: msg.content });
+      }
+    }
+
+    // 6. Build tools from active tasks
+    const tools = activeTasks.length > 0 ? tasksToOpenAITools(activeTasks) : undefined;
+
+    // 7. Call OpenAI
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    try {
+      const completionArgs: OpenAI.ChatCompletionCreateParamsNonStreaming = {
+        model: "gpt-5-mini",
+        messages: openaiMessages,
+      };
+      if (tools && tools.length > 0) {
+        completionArgs.tools = tools;
+      }
+
+      let response = await openai.chat.completions.create(completionArgs);
+      let choice = response.choices[0];
+
+      let iterations = 0;
+      while (choice?.finish_reason === "tool_calls" && choice.message.tool_calls && iterations < 3) {
+        iterations++;
+        openaiMessages.push(choice.message);
+
+        for (const toolCall of choice.message.tool_calls) {
+          if (toolCall.type !== "function") continue;
+          const funcCall = toolCall as { type: "function"; id: string; function: { name: string; arguments: string } };
+          const taskId = funcCall.function.name.replace("task_", "") as Id<"aiAssistantTasks">;
+          const task = activeTasks.find((t) => t._id === taskId);
+
+          let toolResult: string;
+
+          if (task) {
+            const params = JSON.parse(funcCall.function.arguments) as Record<string, unknown>;
+            const result = await executeTask(task, params);
+
+            await ctx.runMutation(internal.aiAssistants.logTaskExecution, {
+              taskId: task._id,
+              sessionId: internalSessionId,
+              assistantId: args.assistantId,
+              parameters: JSON.stringify(params),
+              responseStatus: result.status,
+              responseBody: result.body,
+              success: result.success,
+              errorMessage: result.success ? undefined : result.body,
+            });
+
+            toolResult = result.success ? result.body : `Task failed: ${result.body}`;
+          } else {
+            toolResult = "Task not found or unavailable.";
+          }
+
+          openaiMessages.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            content: toolResult,
+          });
+        }
+
+        response = await openai.chat.completions.create({
+          model: "gpt-5-mini",
+          messages: openaiMessages,
+          tools,
+        });
+        choice = response.choices[0];
+      }
+
+      const aiResponse =
+        choice?.message?.content ??
+        "I apologize, but I'm unable to respond right now. Please try again.";
+
+      await ctx.runMutation(internal.aiAssistants.addChatMessage, {
+        sessionId: internalSessionId,
+        role: "assistant",
+        content: aiResponse,
+      });
+
+      return { response: aiResponse, sessionId: args.sessionId };
+    } catch (error) {
+      console.error("AI chat error:", error);
+      const errorMsg =
+        "I'm experiencing technical difficulties. Please try again later or contact support.";
+
+      await ctx.runMutation(internal.aiAssistants.addChatMessage, {
+        sessionId: internalSessionId,
+        role: "assistant",
+        content: errorMsg,
+      });
+
+      return { response: errorMsg, sessionId: args.sessionId };
+    }
+  },
+});
+
 // ─── Test Chat (authenticated) ──────────────────────────────────────────────
 
 export const testChat = action({

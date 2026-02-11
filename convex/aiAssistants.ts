@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { ConvexError } from "convex/values";
 
 // ─── Validators ─────────────────────────────────────────────────────────────
@@ -138,6 +138,100 @@ export const getChatMessages = query({
   },
 });
 
+// ─── Admin Queries ─────────────────────────────────────────────────────────
+
+export const listAll = query({
+  args: { clientId: v.optional(v.id("clients")) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({ message: "Admin access required", code: "FORBIDDEN" });
+    }
+    if (args.clientId) {
+      return await ctx.db
+        .query("aiAssistants")
+        .withIndex("by_client", (q) => q.eq("clientId", args.clientId!))
+        .collect();
+    }
+    return await ctx.db.query("aiAssistants").collect();
+  },
+});
+
+// ─── Internal Queries (no auth, for HTTP API / internal use) ───────────────
+
+export const getByIdInternal = internalQuery({
+  args: { assistantId: v.id("aiAssistants") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.assistantId);
+  },
+});
+
+export const getKnowledgeBaseInternal = internalQuery({
+  args: { assistantId: v.id("aiAssistants") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("aiKnowledgeBase")
+      .withIndex("by_assistant", (q) => q.eq("assistantId", args.assistantId))
+      .collect();
+  },
+});
+
+export const getChatMessagesInternal = internalQuery({
+  args: { sessionId: v.id("aiChatSessions") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("aiChatMessages")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+  },
+});
+
+export const getActiveTasksInternalQuery = internalQuery({
+  args: { assistantId: v.id("aiAssistants") },
+  handler: async (ctx, args) => {
+    const tasks = await ctx.db
+      .query("aiAssistantTasks")
+      .withIndex("by_assistant", (q) => q.eq("assistantId", args.assistantId))
+      .collect();
+    return tasks.filter((t) => t.isActive);
+  },
+});
+
+export const getSessionByPublicIdInternal = internalQuery({
+  args: { sessionId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("aiChatSessions")
+      .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
+      .unique();
+  },
+});
+
+export const createChatSessionInternal = internalMutation({
+  args: {
+    assistantId: v.id("aiAssistants"),
+    sessionId: v.string(),
+    channel: channelValidator,
+    visitorName: v.optional(v.string()),
+    visitorEmail: v.optional(v.string()),
+    visitorPhone: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("aiChatSessions", {
+      ...args,
+      status: "active",
+      messageCount: 0,
+    });
+  },
+});
+
 // ─── Public Queries (no auth, for widget/API) ───────────────────────────────
 
 export const getPublicAssistant = query({
@@ -215,6 +309,14 @@ export const create = mutation({
     if (!identity) {
       throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
     }
+    // Admin only
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({ message: "Admin access required", code: "FORBIDDEN" });
+    }
     return await ctx.db.insert("aiAssistants", {
       ...args,
       isActive: true,
@@ -244,6 +346,13 @@ export const update = mutation({
     if (!identity) {
       throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
     }
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({ message: "Admin access required", code: "FORBIDDEN" });
+    }
     const { assistantId, ...updates } = args;
     const cleanUpdates: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(updates)) {
@@ -261,6 +370,13 @@ export const remove = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({ message: "Admin access required", code: "FORBIDDEN" });
     }
     // Delete knowledge base entries
     const entries = await ctx.db
@@ -322,6 +438,13 @@ export const addKnowledge = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({ message: "Admin access required", code: "FORBIDDEN" });
     }
     return await ctx.db.insert("aiKnowledgeBase", {
       ...args,
@@ -387,6 +510,13 @@ export const createTask = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({ message: "Admin access required", code: "FORBIDDEN" });
     }
     return await ctx.db.insert("aiAssistantTasks", {
       ...args,

@@ -356,4 +356,127 @@ http.route({
   }),
 });
 
+// ─── AI Chat API ───────────────────────────────────────────────────────────
+
+// OPTIONS for AI Chat
+http.route({
+  path: "/api/v1/ai/chat",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, request) => {
+    const origin = request.headers.get("Origin");
+    return new Response(null, { status: 204, headers: getCorsHeaders(origin) });
+  }),
+});
+
+// POST /api/v1/ai/chat - Send a message to an AI assistant (public, no auth)
+http.route({
+  path: "/api/v1/ai/chat",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const origin = request.headers.get("Origin");
+    const headers = getCorsHeaders(origin);
+
+    try {
+      const body = await request.json();
+
+      if (!body.assistantId || !body.message) {
+        return new Response(
+          JSON.stringify({ error: "Missing required fields: assistantId, message" }),
+          { status: 400, headers }
+        );
+      }
+
+      // Generate a session ID if not provided
+      const sessionId = body.sessionId || `api_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      const channel = body.channel || "api";
+
+      // Validate channel
+      const validChannels = ["web", "sms", "whatsapp", "api"];
+      if (!validChannels.includes(channel)) {
+        return new Response(
+          JSON.stringify({ error: "Invalid channel. Must be: web, sms, whatsapp, or api" }),
+          { status: 400, headers }
+        );
+      }
+
+      const result = await ctx.runAction(internal.aiAssistantsActions.publicChat, {
+        assistantId: body.assistantId as Id<"aiAssistants">,
+        sessionId,
+        message: body.message,
+        channel: channel as "web" | "sms" | "whatsapp" | "api",
+        visitorName: body.visitorName,
+        visitorEmail: body.visitorEmail,
+        visitorPhone: body.visitorPhone,
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          response: result.response,
+          sessionId: result.sessionId,
+        }),
+        { status: 200, headers }
+      );
+    } catch (error) {
+      console.error("AI Chat API error:", error);
+      return new Response(
+        JSON.stringify({ error: "An error occurred processing your request" }),
+        { status: 500, headers }
+      );
+    }
+  }),
+});
+
+// OPTIONS for AI Assistant info
+http.route({
+  path: "/api/v1/ai/assistants/:assistantId",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, request) => {
+    const origin = request.headers.get("Origin");
+    return new Response(null, { status: 204, headers: getCorsHeaders(origin) });
+  }),
+});
+
+// GET /api/v1/ai/assistants/:assistantId - Get public assistant info
+http.route({
+  path: "/api/v1/ai/assistants/:assistantId",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const origin = request.headers.get("Origin");
+    const headers = getCorsHeaders(origin);
+
+    try {
+      const url = new URL(request.url);
+      const pathParts = url.pathname.split("/");
+      const assistantId = pathParts[pathParts.length - 1];
+
+      if (!assistantId) {
+        return new Response(
+          JSON.stringify({ error: "Assistant ID required" }),
+          { status: 400, headers }
+        );
+      }
+
+      const assistant = await ctx.runQuery(api.aiAssistants.getPublicAssistant, {
+        assistantId: assistantId as Id<"aiAssistants">,
+      });
+
+      if (!assistant) {
+        return new Response(
+          JSON.stringify({ error: "Assistant not found or inactive" }),
+          { status: 404, headers }
+        );
+      }
+
+      return new Response(JSON.stringify(assistant), { status: 200, headers });
+    } catch (error) {
+      console.error("AI Assistant info error:", error);
+      return new Response(
+        JSON.stringify({ error: "An error occurred" }),
+        { status: 500, headers }
+      );
+    }
+  }),
+});
+
 export default http;

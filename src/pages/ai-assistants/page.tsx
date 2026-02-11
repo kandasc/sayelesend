@@ -58,33 +58,43 @@ import {
   Zap,
   Activity,
   X,
+  Code,
+  Copy,
+  ShieldAlert,
 } from "lucide-react";
 
 type Personality = "professional" | "friendly" | "casual" | "formal";
 type SourceType = "manual" | "api" | "document" | "website";
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
-// ─── Main Page ──────────────────────────────────────────────────────────────
+// ─── Main Page (Admin-Only) ─────────────────────────────────────────────────
 
 function AIAssistantsInner() {
-  const effectiveUser = useQuery(api.testMode.getEffectiveUser, {});
-  const clientId = effectiveUser?.clientId;
-  const assistants = useQuery(api.aiAssistants.listByClient, clientId ? { clientId } : "skip");
+  const currentUser = useQuery(api.users.getCurrentUser, {});
+  const clients = useQuery(api.clients.listClients, currentUser?.role === "admin" ? {} : "skip");
+  const [selectedClientId, setSelectedClientId] = useState<Id<"clients"> | null>(null);
+  const assistants = useQuery(
+    api.aiAssistants.listAll,
+    currentUser?.role === "admin"
+      ? { clientId: selectedClientId ?? undefined }
+      : "skip"
+  );
   const [selectedAssistant, setSelectedAssistant] = useState<Id<"aiAssistants"> | null>(null);
 
-  if (!clientId) {
+  // Non-admin: show access denied
+  if (currentUser && currentUser.role !== "admin") {
     return (
       <Empty>
         <EmptyHeader>
-          <EmptyMedia variant="icon"><Bot /></EmptyMedia>
-          <EmptyTitle>No client account</EmptyTitle>
-          <EmptyDescription>You need a client account to use AI Assistants.</EmptyDescription>
+          <EmptyMedia variant="icon"><ShieldAlert /></EmptyMedia>
+          <EmptyTitle>Admin access required</EmptyTitle>
+          <EmptyDescription>Only superadmins can manage AI Assistants.</EmptyDescription>
         </EmptyHeader>
       </Empty>
     );
   }
 
-  if (assistants === undefined) {
+  if (!currentUser || assistants === undefined) {
     return (
       <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
@@ -98,11 +108,13 @@ function AIAssistantsInner() {
     return (
       <AssistantDetail
         assistantId={selectedAssistant}
-        clientId={clientId}
         onBack={() => setSelectedAssistant(null)}
       />
     );
   }
+
+  // Find client name for display
+  const selectedClient = clients?.find((c) => c._id === selectedClientId);
 
   return (
     <div className="space-y-6">
@@ -110,11 +122,46 @@ function AIAssistantsInner() {
         <div>
           <h1 className="text-3xl font-bold">AI Assistants</h1>
           <p className="text-muted-foreground mt-1">
-            Create intelligent chatbots powered by your company data
+            Create and manage AI chatbots for your clients
           </p>
         </div>
-        <CreateAssistantDialog clientId={clientId} />
+        {selectedClientId && (
+          <CreateAssistantDialog clientId={selectedClientId} clientName={selectedClient?.companyName ?? "Client"} />
+        )}
       </div>
+
+      {/* Client Selector */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
+            <div className="flex-1 max-w-sm space-y-2">
+              <Label>Select Client</Label>
+              <Select
+                value={selectedClientId ?? "all"}
+                onValueChange={(val) => {
+                  setSelectedClientId(val === "all" ? null : val as Id<"clients">);
+                  setSelectedAssistant(null);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All clients" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Clients</SelectItem>
+                  {clients?.map((client) => (
+                    <SelectItem key={client._id} value={client._id}>
+                      {client.companyName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-sm text-muted-foreground pt-6">
+              {assistants.length} assistant{assistants.length !== 1 ? "s" : ""} found
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {assistants.length === 0 ? (
         <Empty>
@@ -122,57 +169,26 @@ function AIAssistantsInner() {
             <EmptyMedia variant="icon"><Bot /></EmptyMedia>
             <EmptyTitle>No AI assistants yet</EmptyTitle>
             <EmptyDescription>
-              Create your first AI assistant to help respond to customers automatically.
+              {selectedClientId
+                ? "Create an AI assistant for this client."
+                : "Select a client to create an assistant, or view all assistants."}
             </EmptyDescription>
           </EmptyHeader>
-          <EmptyContent>
-            <CreateAssistantDialog clientId={clientId} />
-          </EmptyContent>
+          {selectedClientId && (
+            <EmptyContent>
+              <CreateAssistantDialog clientId={selectedClientId} clientName={selectedClient?.companyName ?? "Client"} />
+            </EmptyContent>
+          )}
         </Empty>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {assistants.map((assistant) => (
-            <Card
+            <AssistantCard
               key={assistant._id}
-              className="cursor-pointer hover:shadow-md transition-shadow"
+              assistant={assistant}
+              clients={clients}
               onClick={() => setSelectedAssistant(assistant._id)}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-10 w-10 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: `${assistant.primaryColor ?? "#3B82F6"}20` }}
-                    >
-                      <Bot className="h-5 w-5" style={{ color: assistant.primaryColor ?? "#3B82F6" }} />
-                    </div>
-                    <div>
-                      <CardTitle className="text-base">{assistant.name}</CardTitle>
-                      <CardDescription className="text-xs">{assistant.companyName}</CardDescription>
-                    </div>
-                  </div>
-                  <Badge variant={assistant.isActive ? "default" : "secondary"}>
-                    {assistant.isActive ? "Active" : "Inactive"}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {assistant.description && (
-                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{assistant.description}</p>
-                )}
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <MessageSquare className="h-3 w-3" />
-                    {assistant.totalConversations} chats
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <BarChart3 className="h-3 w-3" />
-                    {assistant.totalMessages} msgs
-                  </span>
-                  <Badge variant="outline" className="text-xs capitalize">{assistant.personality}</Badge>
-                </div>
-              </CardContent>
-            </Card>
+            />
           ))}
         </div>
       )}
@@ -180,13 +196,67 @@ function AIAssistantsInner() {
   );
 }
 
+// ─── Assistant Card ────────────────────────────────────────────────────────
+
+function AssistantCard({
+  assistant,
+  clients,
+  onClick,
+}: {
+  assistant: Doc<"aiAssistants">;
+  clients: Doc<"clients">[] | undefined;
+  onClick: () => void;
+}) {
+  const clientName = clients?.find((c) => c._id === assistant.clientId)?.companyName ?? "Unknown";
+
+  return (
+    <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div
+              className="h-10 w-10 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: `${assistant.primaryColor ?? "#3B82F6"}20` }}
+            >
+              <Bot className="h-5 w-5" style={{ color: assistant.primaryColor ?? "#3B82F6" }} />
+            </div>
+            <div>
+              <CardTitle className="text-base">{assistant.name}</CardTitle>
+              <CardDescription className="text-xs">{clientName}</CardDescription>
+            </div>
+          </div>
+          <Badge variant={assistant.isActive ? "default" : "secondary"}>
+            {assistant.isActive ? "Active" : "Inactive"}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {assistant.description && (
+          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{assistant.description}</p>
+        )}
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <MessageSquare className="h-3 w-3" />
+            {assistant.totalConversations} chats
+          </span>
+          <span className="flex items-center gap-1">
+            <BarChart3 className="h-3 w-3" />
+            {assistant.totalMessages} msgs
+          </span>
+          <Badge variant="outline" className="text-xs capitalize">{assistant.personality}</Badge>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Create Dialog ──────────────────────────────────────────────────────────
 
-function CreateAssistantDialog({ clientId }: { clientId: Id<"clients"> }) {
+function CreateAssistantDialog({ clientId, clientName }: { clientId: Id<"clients">; clientName: string }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [companyName, setCompanyName] = useState("");
+  const [companyName, setCompanyName] = useState(clientName);
   const [companyDescription, setCompanyDescription] = useState("");
   const [industry, setIndustry] = useState("");
   const [welcomeMessage, setWelcomeMessage] = useState("");
@@ -215,20 +285,24 @@ function CreateAssistantDialog({ clientId }: { clientId: Id<"clients"> }) {
       });
       toast.success("AI Assistant created!");
       setOpen(false);
+      setName(""); setDescription(""); setCompanyDescription("");
+      setIndustry(""); setWelcomeMessage(""); setCustomInstructions("");
     } catch {
       toast.error("Failed to create assistant");
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (v) setCompanyName(clientName); }}>
       <DialogTrigger asChild>
         <Button><Plus className="h-4 w-4 mr-2" />Create Assistant</Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create AI Assistant</DialogTitle>
-          <DialogDescription>Set up a new AI chatbot powered by your company data</DialogDescription>
+          <DialogDescription>
+            Set up a new AI chatbot for <strong>{clientName}</strong>
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -238,7 +312,7 @@ function CreateAssistantDialog({ clientId }: { clientId: Id<"clients"> }) {
             </div>
             <div className="space-y-2">
               <Label>Company Name *</Label>
-              <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Your company" />
+              <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
             </div>
           </div>
           <div className="space-y-2">
@@ -295,10 +369,10 @@ function CreateAssistantDialog({ clientId }: { clientId: Id<"clients"> }) {
 // ─── Assistant Detail ───────────────────────────────────────────────────────
 
 function AssistantDetail({
-  assistantId, clientId, onBack,
+  assistantId,
+  onBack,
 }: {
   assistantId: Id<"aiAssistants">;
-  clientId: Id<"clients">;
   onBack: () => void;
 }) {
   const assistant = useQuery(api.aiAssistants.getById, { assistantId });
@@ -308,6 +382,7 @@ function AssistantDetail({
   const executionLogs = useQuery(api.aiAssistants.getTaskExecutionLogs, { assistantId });
   const updateAssistant = useMutation(api.aiAssistants.update);
   const deleteAssistant = useMutation(api.aiAssistants.remove);
+  const clients = useQuery(api.clients.listClients, {});
 
   if (assistant === undefined) return <Skeleton className="h-96 w-full" />;
   if (!assistant) {
@@ -318,6 +393,8 @@ function AssistantDetail({
       </div>
     );
   }
+
+  const clientName = clients?.find((c) => c._id === assistant.clientId)?.companyName ?? "Unknown";
 
   return (
     <div className="space-y-6">
@@ -333,7 +410,7 @@ function AssistantDetail({
             </div>
             <div>
               <h1 className="text-2xl font-bold">{assistant.name}</h1>
-              <p className="text-sm text-muted-foreground">{assistant.companyName}</p>
+              <p className="text-sm text-muted-foreground">Client: {clientName}</p>
             </div>
             <Badge variant={assistant.isActive ? "default" : "secondary"}>{assistant.isActive ? "Active" : "Inactive"}</Badge>
           </div>
@@ -374,20 +451,21 @@ function AssistantDetail({
 
       {/* Tabs */}
       <Tabs defaultValue="knowledge">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="knowledge"><Brain className="h-4 w-4 mr-1" />Knowledge</TabsTrigger>
           <TabsTrigger value="tasks"><Zap className="h-4 w-4 mr-1" />Tasks</TabsTrigger>
           <TabsTrigger value="test"><MessageSquare className="h-4 w-4 mr-1" />Test Chat</TabsTrigger>
           <TabsTrigger value="conversations"><Eye className="h-4 w-4 mr-1" />Conversations</TabsTrigger>
           <TabsTrigger value="logs"><Activity className="h-4 w-4 mr-1" />Execution Logs</TabsTrigger>
+          <TabsTrigger value="api"><Code className="h-4 w-4 mr-1" />API / Integration</TabsTrigger>
           <TabsTrigger value="settings"><Pencil className="h-4 w-4 mr-1" />Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="knowledge" className="mt-4">
-          <KnowledgeBaseTab assistantId={assistantId} clientId={clientId} entries={knowledgeBase ?? []} />
+          <KnowledgeBaseTab assistantId={assistantId} clientId={assistant.clientId} entries={knowledgeBase ?? []} />
         </TabsContent>
         <TabsContent value="tasks" className="mt-4">
-          <TasksTab assistantId={assistantId} clientId={clientId} tasks={tasks ?? []} />
+          <TasksTab assistantId={assistantId} clientId={assistant.clientId} tasks={tasks ?? []} />
         </TabsContent>
         <TabsContent value="test" className="mt-4">
           <TestChatTab assistantId={assistantId} />
@@ -398,10 +476,316 @@ function AssistantDetail({
         <TabsContent value="logs" className="mt-4">
           <ExecutionLogsTab logs={executionLogs ?? []} tasks={tasks ?? []} />
         </TabsContent>
+        <TabsContent value="api" className="mt-4">
+          <ApiIntegrationTab assistantId={assistantId} assistant={assistant} />
+        </TabsContent>
         <TabsContent value="settings" className="mt-4">
           <SettingsTab assistant={assistant} />
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// ─── API / Integration Tab ─────────────────────────────────────────────────
+
+function ApiIntegrationTab({
+  assistantId,
+  assistant,
+}: {
+  assistantId: Id<"aiAssistants">;
+  assistant: Doc<"aiAssistants">;
+}) {
+  const API_BASE = "https://api.sayele.co";
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
+  };
+
+  const curlExample = `curl -X POST ${API_BASE}/api/v1/ai/chat \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "assistantId": "${assistantId}",
+    "message": "Hello, what services do you offer?",
+    "sessionId": "unique-session-123",
+    "channel": "api",
+    "visitorName": "John Doe",
+    "visitorEmail": "john@example.com"
+  }'`;
+
+  const jsExample = `// JavaScript / Fetch API
+const response = await fetch("${API_BASE}/api/v1/ai/chat", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    assistantId: "${assistantId}",
+    message: userMessage,
+    sessionId: sessionId, // Reuse for conversation continuity
+    channel: "web",
+    visitorName: "Visitor Name",
+    visitorEmail: "visitor@example.com"
+  })
+});
+
+const data = await response.json();
+console.log(data.response); // AI assistant response
+console.log(data.sessionId); // Session ID for follow-up messages`;
+
+  const phpExample = `<?php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, "${API_BASE}/api/v1/ai/chat");
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    "Content-Type: application/json"
+]);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+    "assistantId" => "${assistantId}",
+    "message" => "Hello, I need help",
+    "sessionId" => "unique-session-123",
+    "channel" => "api"
+]));
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+curl_close($ch);
+
+$data = json_decode($response, true);
+echo $data["response"];
+?>`;
+
+  const pythonExample = `import requests
+
+response = requests.post(
+    "${API_BASE}/api/v1/ai/chat",
+    json={
+        "assistantId": "${assistantId}",
+        "message": "What are your business hours?",
+        "sessionId": "unique-session-123",
+        "channel": "api",
+        "visitorName": "Jane Doe"
+    }
+)
+
+data = response.json()
+print(data["response"])`;
+
+  const widgetExample = `<!-- Embed Chat Widget -->
+<script>
+(function() {
+  const ASSISTANT_ID = "${assistantId}";
+  const API_URL = "${API_BASE}/api/v1/ai/chat";
+  let sessionId = "widget_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+
+  // Create chat widget UI
+  const widget = document.createElement("div");
+  widget.id = "sayele-chat-widget";
+  widget.innerHTML = \`
+    <div style="position:fixed;bottom:20px;right:20px;z-index:9999;">
+      <div id="chat-popup" style="display:none;width:380px;height:500px;
+        border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.15);
+        background:#fff;flex-direction:column;overflow:hidden;">
+        <div style="background:${assistant.primaryColor ?? "#3B82F6"};color:white;
+          padding:16px;font-weight:bold;display:flex;justify-content:space-between;">
+          <span>${assistant.name}</span>
+          <button onclick="document.getElementById('chat-popup').style.display='none'"
+            style="background:none;border:none;color:white;cursor:pointer;font-size:18px;">&#10005;</button>
+        </div>
+        <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;"></div>
+        <div style="padding:12px;border-top:1px solid #eee;display:flex;gap:8px;">
+          <input id="chat-input" type="text" placeholder="Type a message..."
+            style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:8px;outline:none;" />
+          <button id="chat-send" style="background:${assistant.primaryColor ?? "#3B82F6"};
+            color:white;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;">Send</button>
+        </div>
+      </div>
+      <button id="chat-toggle" onclick="
+        var p=document.getElementById('chat-popup');
+        p.style.display=p.style.display==='none'?'flex':'none';"
+        style="width:60px;height:60px;border-radius:50%;
+        background:${assistant.primaryColor ?? "#3B82F6"};color:white;
+        border:none;cursor:pointer;font-size:24px;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+        &#128172;
+      </button>
+    </div>\`;
+  document.body.appendChild(widget);
+
+  // Chat logic
+  document.getElementById("chat-send").addEventListener("click", sendMessage);
+  document.getElementById("chat-input").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") sendMessage();
+  });
+
+  async function sendMessage() {
+    const input = document.getElementById("chat-input");
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = "";
+    addMessage(msg, "user");
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assistantId: ASSISTANT_ID,
+          message: msg,
+          sessionId: sessionId,
+          channel: "web"
+        })
+      });
+      const data = await res.json();
+      addMessage(data.response || "Sorry, something went wrong.", "bot");
+      sessionId = data.sessionId || sessionId;
+    } catch (err) {
+      addMessage("Connection error. Please try again.", "bot");
+    }
+  }
+
+  function addMessage(text, sender) {
+    const container = document.getElementById("chat-messages");
+    const div = document.createElement("div");
+    div.style.cssText = "margin-bottom:12px;display:flex;" +
+      (sender === "user" ? "justify-content:flex-end;" : "justify-content:flex-start;");
+    div.innerHTML = '<div style="max-width:80%;padding:10px 14px;border-radius:12px;font-size:14px;' +
+      (sender === "user"
+        ? 'background:${assistant.primaryColor ?? "#3B82F6"};color:white;'
+        : 'background:#f0f0f0;color:#333;') +
+      '">' + text.replace(/</g,"&lt;") + '</div>';
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+})();
+</script>`;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold">API & Integration</h3>
+        <p className="text-sm text-muted-foreground">
+          Use the API to integrate this AI assistant into your website, app, or any platform.
+        </p>
+      </div>
+
+      {/* Assistant ID */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Assistant ID</CardTitle>
+          <CardDescription>Use this ID in all API requests</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 bg-muted px-4 py-2 rounded text-sm font-mono break-all">
+              {assistantId}
+            </code>
+            <Button variant="ghost" size="sm" onClick={() => copyToClipboard(assistantId)}>
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Endpoints */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">API Endpoints</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge className="font-mono text-xs">POST</Badge>
+              <code className="text-sm font-mono">{API_BASE}/api/v1/ai/chat</code>
+            </div>
+            <p className="text-sm text-muted-foreground">Send a message and get an AI response. No authentication required.</p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="font-mono text-xs">GET</Badge>
+              <code className="text-sm font-mono">{API_BASE}/api/v1/ai/assistants/{assistantId}</code>
+            </div>
+            <p className="text-sm text-muted-foreground">Get assistant public info (name, welcome message, color).</p>
+          </div>
+
+          {/* Request/Response docs */}
+          <div className="border rounded-lg p-4 space-y-3">
+            <h4 className="font-medium text-sm">Chat Request Body</h4>
+            <div className="text-xs space-y-1">
+              <div className="grid grid-cols-3 gap-2 font-mono">
+                <span className="font-semibold">Field</span>
+                <span className="font-semibold">Type</span>
+                <span className="font-semibold">Description</span>
+              </div>
+              {[
+                ["assistantId", "string *", "The assistant ID"],
+                ["message", "string *", "User's message"],
+                ["sessionId", "string", "Session ID for conversation continuity"],
+                ["channel", "string", "web, sms, whatsapp, or api (default: api)"],
+                ["visitorName", "string", "Visitor's name"],
+                ["visitorEmail", "string", "Visitor's email"],
+                ["visitorPhone", "string", "Visitor's phone"],
+              ].map(([field, type, desc]) => (
+                <div key={field} className="grid grid-cols-3 gap-2 text-muted-foreground">
+                  <code>{field}</code>
+                  <span>{type}</span>
+                  <span>{desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border rounded-lg p-4 space-y-3">
+            <h4 className="font-medium text-sm">Chat Response</h4>
+            <pre className="bg-muted rounded p-3 text-xs font-mono overflow-x-auto">{`{
+  "success": true,
+  "response": "Hello! How can I help you today?",
+  "sessionId": "api_1707000000_abc123"
+}`}</pre>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Code Examples */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Code Examples</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="curl">
+            <TabsList>
+              <TabsTrigger value="curl">cURL</TabsTrigger>
+              <TabsTrigger value="javascript">JavaScript</TabsTrigger>
+              <TabsTrigger value="php">PHP</TabsTrigger>
+              <TabsTrigger value="python">Python</TabsTrigger>
+              <TabsTrigger value="widget">Chat Widget</TabsTrigger>
+            </TabsList>
+
+            {[
+              { value: "curl", code: curlExample },
+              { value: "javascript", code: jsExample },
+              { value: "php", code: phpExample },
+              { value: "python", code: pythonExample },
+              { value: "widget", code: widgetExample },
+            ].map(({ value, code }) => (
+              <TabsContent key={value} value={value} className="mt-3">
+                <div className="relative">
+                  <pre className="bg-muted rounded-lg p-4 text-xs font-mono overflow-x-auto max-h-96 overflow-y-auto whitespace-pre-wrap break-words">
+                    {code}
+                  </pre>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={() => copyToClipboard(code)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }
