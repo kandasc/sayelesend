@@ -55,6 +55,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isAdmin = effectiveUser?.role === "admin";
   const isRealAdmin = realUser?.role === "admin";
   const isTestMode = effectiveUser?.isTestMode ?? false;
+  // Superadmin = admin without clientId; client admin = admin with clientId or client role
+  const isSuperAdmin = isAdmin && !effectiveUser?.clientId;
   
   // Check if user is pending activation (client role but no clientId)
   const isPendingActivation = 
@@ -90,7 +92,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { path: `/${lang}/reports`, label: "Reports", icon: <BarChart3 className="h-5 w-5" /> },
     { path: `/${lang}/api-keys`, label: "API Keys", icon: <Key className="h-5 w-5" /> },
     { path: `/${lang}/api-docs`, label: "API Docs", icon: <BookOpen className="h-5 w-5" /> },
-    { path: `/${lang}/ai-assistants`, label: "AI Assistants", icon: <Bot className="h-5 w-5" /> },
+    // AI Assistants shown here only for client admins (non-superadmin)
+    ...(!isSuperAdmin ? [{ path: `/${lang}/ai-assistants`, label: "AI Assistants", icon: <Bot className="h-5 w-5" /> }] : []),
     { path: `/${lang}/payments`, label: "Buy Credits", icon: <CreditCard className="h-5 w-5" /> },
     { path: `/${lang}/settings`, label: "Settings", icon: <Settings className="h-5 w-5" /> },
   ];
@@ -102,6 +105,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { path: `/${lang}/admin/providers`, label: "Providers", icon: <Server className="h-5 w-5" /> },
     { path: `/${lang}/admin/credits`, label: "Credits", icon: <Coins className="h-5 w-5" /> },
     { path: `/${lang}/admin/submissions`, label: "Submissions", icon: <FileText className="h-5 w-5" /> },
+    { path: `/${lang}/ai-assistants`, label: "AI Assistants", icon: <Bot className="h-5 w-5" /> },
     { path: `/${lang}/admin/ai-assistant`, label: "AI Assistant", icon: <Sparkles className="h-5 w-5" /> },
   ];
 
