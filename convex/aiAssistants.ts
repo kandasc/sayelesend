@@ -60,11 +60,11 @@ export const listMyAssistants = query({
     if (!user) {
       throw new ConvexError({ message: "User not found", code: "NOT_FOUND" });
     }
-    // Admins can see all, clients see only their own
-    if (user.role === "admin") {
+    // Superadmins (admin without clientId) see all; client admins and clients see only their own
+    if (user.role === "admin" && !user.clientId) {
       return await ctx.db.query("aiAssistants").collect();
     }
-    if (user.role === "client" && user.clientId) {
+    if (user.clientId) {
       return await ctx.db
         .query("aiAssistants")
         .withIndex("by_client", (q) => q.eq("clientId", user.clientId!))

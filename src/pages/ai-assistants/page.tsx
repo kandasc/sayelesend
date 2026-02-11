@@ -71,23 +71,25 @@ type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 function AIAssistantsInner() {
   const currentUser = useQuery(api.users.getCurrentUser, {});
-  const clients = useQuery(api.clients.listClients, currentUser?.role === "admin" ? {} : "skip");
+  const clients = useQuery(api.clients.listClients, currentUser?.role === "admin" && !currentUser?.clientId ? {} : "skip");
   const [selectedClientId, setSelectedClientId] = useState<Id<"clients"> | null>(null);
 
-  // Admin uses listAll with optional filter; client uses listMyAssistants
+  // Superadmin uses listAll with optional filter; client admin and client users use listMyAssistants
   const adminAssistants = useQuery(
     api.aiAssistants.listAll,
-    currentUser?.role === "admin"
+    currentUser?.role === "admin" && !currentUser?.clientId
       ? { clientId: selectedClientId ?? undefined }
       : "skip"
   );
   const clientAssistants = useQuery(
     api.aiAssistants.listMyAssistants,
-    currentUser?.role === "client" ? {} : "skip"
+    (currentUser?.role === "client" || (currentUser?.role === "admin" && currentUser?.clientId)) ? {} : "skip"
   );
 
   const isAdmin = currentUser?.role === "admin";
-  const assistants = isAdmin ? adminAssistants : clientAssistants;
+  // Superadmin: admin without clientId; client admin: admin with clientId
+  const isSuperAdmin = isAdmin && !currentUser?.clientId;
+  const assistants = isSuperAdmin ? adminAssistants : clientAssistants;
 
   const [selectedAssistant, setSelectedAssistant] = useState<Id<"aiAssistants"> | null>(null);
 
@@ -133,6 +135,7 @@ function AIAssistantsInner() {
         assistantId={selectedAssistant}
         onBack={() => setSelectedAssistant(null)}
         isAdmin={isAdmin ?? false}
+        isSuperAdmin={isSuperAdmin ?? false}
       />
     );
   }
@@ -146,18 +149,18 @@ function AIAssistantsInner() {
         <div>
           <h1 className="text-3xl font-bold">AI Assistants</h1>
           <p className="text-muted-foreground mt-1">
-            {isAdmin
+            {isSuperAdmin
               ? "Create and manage AI chatbots for your clients"
               : "View and manage your AI chatbots"}
           </p>
         </div>
-        {isAdmin && selectedClientId && (
+        {isSuperAdmin && selectedClientId && (
           <CreateAssistantDialog clientId={selectedClientId} clientName={selectedClient?.companyName ?? "Client"} />
         )}
       </div>
 
-      {/* Client Selector (Admin only) */}
-      {isAdmin && (
+      {/* Client Selector (Superadmin only) */}
+      {isSuperAdmin && (
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -197,14 +200,14 @@ function AIAssistantsInner() {
             <EmptyMedia variant="icon"><Bot /></EmptyMedia>
             <EmptyTitle>No AI assistants yet</EmptyTitle>
             <EmptyDescription>
-              {isAdmin
+              {isSuperAdmin
                 ? selectedClientId
                   ? "Create an AI assistant for this client."
                   : "Select a client to create an assistant, or view all assistants."
                 : "No AI assistants have been set up for your company yet. Contact your administrator."}
             </EmptyDescription>
           </EmptyHeader>
-          {isAdmin && selectedClientId && (
+          {isSuperAdmin && selectedClientId && (
             <EmptyContent>
               <CreateAssistantDialog clientId={selectedClientId} clientName={selectedClient?.companyName ?? "Client"} />
             </EmptyContent>
@@ -217,6 +220,7 @@ function AIAssistantsInner() {
               key={assistant._id}
               assistant={assistant}
               clients={clients}
+              showClientName={isSuperAdmin ?? false}
               onClick={() => setSelectedAssistant(assistant._id)}
             />
           ))}
@@ -231,10 +235,12 @@ function AIAssistantsInner() {
 function AssistantCard({
   assistant,
   clients,
+  showClientName,
   onClick,
 }: {
   assistant: Doc<"aiAssistants">;
   clients: Doc<"clients">[] | undefined;
+  showClientName: boolean;
   onClick: () => void;
 }) {
   const clientName = clients?.find((c) => c._id === assistant.clientId)?.companyName ?? "Unknown";
@@ -252,7 +258,7 @@ function AssistantCard({
             </div>
             <div>
               <CardTitle className="text-base">{assistant.name}</CardTitle>
-              <CardDescription className="text-xs">{clientName}</CardDescription>
+              {showClientName && <CardDescription className="text-xs">{clientName}</CardDescription>}
             </div>
           </div>
           <Badge variant={assistant.isActive ? "default" : "secondary"}>
@@ -402,10 +408,12 @@ function AssistantDetail({
   assistantId,
   onBack,
   isAdmin,
+  isSuperAdmin,
 }: {
   assistantId: Id<"aiAssistants">;
   onBack: () => void;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
 }) {
   const assistant = useQuery(api.aiAssistants.getById, { assistantId });
   const knowledgeBase = useQuery(api.aiAssistants.getKnowledgeBase, { assistantId });
@@ -414,7 +422,7 @@ function AssistantDetail({
   const executionLogs = useQuery(api.aiAssistants.getTaskExecutionLogs, { assistantId });
   const updateAssistant = useMutation(api.aiAssistants.update);
   const deleteAssistant = useMutation(api.aiAssistants.remove);
-  const clients = useQuery(api.clients.listClients, isAdmin ? {} : "skip");
+  const clients = useQuery(api.clients.listClients, isSuperAdmin ? {} : "skip");
 
   if (assistant === undefined) return <Skeleton className="h-96 w-full" />;
   if (!assistant) {
@@ -442,7 +450,7 @@ function AssistantDetail({
             </div>
             <div>
               <h1 className="text-2xl font-bold">{assistant.name}</h1>
-              {isAdmin && <p className="text-sm text-muted-foreground">Client: {clientName}</p>}
+              {isSuperAdmin && <p className="text-sm text-muted-foreground">Client: {clientName}</p>}
             </div>
             <Badge variant={assistant.isActive ? "default" : "secondary"}>{assistant.isActive ? "Active" : "Inactive"}</Badge>
           </div>
@@ -453,7 +461,7 @@ function AssistantDetail({
         }}>
           {assistant.isActive ? <><PowerOff className="h-4 w-4 mr-1" />Deactivate</> : <><Power className="h-4 w-4 mr-1" />Activate</>}
         </Button>
-        {isAdmin && (
+        {isSuperAdmin && (
           <Button variant="destructive" size="sm" onClick={async () => {
             if (!confirm("Delete this assistant and all its data?")) return;
             await deleteAssistant({ assistantId });
