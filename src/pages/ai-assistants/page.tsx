@@ -75,6 +75,9 @@ import {
   Ban,
   BookA,
   Languages,
+  Phone,
+  Building2,
+  Tag,
 } from "lucide-react";
 
 type Personality = "professional" | "friendly" | "casual" | "formal";
@@ -1734,12 +1737,47 @@ function HandoversTab({
   sessions: Doc<"aiChatSessions">[];
 }) {
   const resolveHandover = useMutation(api.aiAssistants.resolveHandover);
+  const takeOverChat = useMutation(api.aiAssistants.takeOverChat);
+  const sendAgentMessage = useMutation(api.aiAssistants.sendAgentMessage);
   const [selectedSession, setSelectedSession] = useState<Id<"aiChatSessions"> | null>(null);
+  const [agentReply, setAgentReply] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
   const chatMessages = useQuery(api.aiAssistants.getChatMessages, selectedSession ? { sessionId: selectedSession } : "skip");
+  const agentMessagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-scroll when new messages arrive
+  useEffect(() => {
+    agentMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  const handleTakeOver = async (handoverId: Id<"aiHandoverRequests">) => {
+    try {
+      await takeOverChat({ handoverId });
+      toast.success("You have taken over this conversation");
+    } catch {
+      toast.error("Failed to take over");
+    }
+  };
+
+  const handleSendAgentReply = async () => {
+    if (!selectedSession || !agentReply.trim() || sendingReply) return;
+    setSendingReply(true);
+    try {
+      await sendAgentMessage({ sessionId: selectedSession, content: agentReply.trim() });
+      setAgentReply("");
+    } catch {
+      toast.error("Failed to send message");
+    } finally {
+      setSendingReply(false);
+    }
+  };
 
   if (selectedSession && chatMessages) {
     const request = requests.find((r) => r.sessionId === selectedSession);
     const session = sessions.find((s) => s._id === selectedSession);
+    const isInProgress = request?.status === "in_progress";
+    const isPendingOrEmailSent = request?.status === "pending" || request?.status === "email_sent";
+
     return (
       <div className="space-y-4">
         <Button variant="ghost" size="sm" onClick={() => setSelectedSession(null)}>
@@ -1750,10 +1788,24 @@ function HandoversTab({
         {request && (
           <Card>
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">AI Summary</CardTitle>
-                <Badge variant={request.status === "resolved" ? "default" : request.status === "email_sent" ? "secondary" : "destructive"}>
-                  {request.status === "resolved" ? "Resolved" : request.status === "email_sent" ? "Email Sent" : "Pending"}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base">AI Summary</CardTitle>
+                  {request.department && (
+                    <Badge variant="secondary" className="text-xs">{request.department}</Badge>
+                  )}
+                  {request.handoverType && (
+                    <Badge variant="outline" className="text-xs capitalize">{request.handoverType}</Badge>
+                  )}
+                </div>
+                <Badge variant={
+                  request.status === "resolved" ? "default" :
+                  request.status === "in_progress" ? "secondary" :
+                  request.status === "email_sent" ? "secondary" : "destructive"
+                }>
+                  {request.status === "resolved" ? "Resolved" :
+                   request.status === "in_progress" ? "Agent Active" :
+                   request.status === "email_sent" ? "Email Sent" : "Pending"}
                 </Badge>
               </div>
             </CardHeader>
@@ -1772,37 +1824,69 @@ function HandoversTab({
                   <Mail className="h-3 w-3" /> Email sent to {request.emailSentTo} at {new Date(request.emailSentAt ?? "").toLocaleString()}
                 </div>
               )}
-              {request.status !== "resolved" && (
-                <Button size="sm" className="mt-4" onClick={async () => {
-                  await resolveHandover({ handoverId: request._id });
-                  toast.success("Marked as resolved");
-                }}>
-                  <CheckCircle className="h-4 w-4 mr-1" />Mark Resolved
-                </Button>
-              )}
+              <div className="flex items-center gap-2 mt-4">
+                {isPendingOrEmailSent && (
+                  <Button size="sm" onClick={() => handleTakeOver(request._id)}>
+                    <UserCheck className="h-4 w-4 mr-1" />Take Over Chat
+                  </Button>
+                )}
+                {request.status !== "resolved" && (
+                  <Button size="sm" variant="secondary" onClick={async () => {
+                    await resolveHandover({ handoverId: request._id });
+                    toast.success("Marked as resolved");
+                  }}>
+                    <CheckCircle className="h-4 w-4 mr-1" />Mark Resolved
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Conversation */}
+        {/* Live conversation with agent reply */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">{session?.visitorName || "Anonymous"} - Full Conversation</CardTitle>
-            <CardDescription>{chatMessages.length} messages</CardDescription>
+            <CardTitle className="text-base">{session?.visitorName || "Anonymous"} - Live Conversation</CardTitle>
+            <CardDescription>{chatMessages.length} messages {isInProgress && " - You are actively responding"}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {chatMessages.map((msg) => (
-                <div key={msg._id} className={`flex ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"}`}>
-                  <div className={`max-w-[80%] rounded-lg px-4 py-2 text-sm whitespace-pre-wrap ${
-                    msg.role === "user" ? "bg-primary text-primary-foreground" :
-                    msg.role === "system" ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 text-center italic" :
-                    "bg-muted"
-                  }`}>
-                    {msg.content}
+            <div className="border rounded-lg flex flex-col" style={{ height: isInProgress ? "28rem" : "24rem" }}>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {chatMessages.map((msg) => (
+                  <div key={msg._id} className={`flex ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"}`}>
+                    <div className={`max-w-[80%] rounded-lg px-4 py-2 text-sm whitespace-pre-wrap ${
+                      msg.role === "user" ? "bg-primary text-primary-foreground" :
+                      msg.role === "system" ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 text-center italic text-xs" :
+                      msg.content.startsWith("[Agent:") ? "bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100" :
+                      "bg-muted"
+                    }`}>
+                      {msg.content}
+                    </div>
                   </div>
+                ))}
+                <div ref={agentMessagesEndRef} />
+              </div>
+
+              {/* Agent reply input - only visible when taken over */}
+              {isInProgress && (
+                <div className="border-t p-3 flex gap-2">
+                  <Input
+                    value={agentReply}
+                    onChange={(e) => setAgentReply(e.target.value)}
+                    placeholder="Type your reply to the visitor..."
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendAgentReply();
+                      }
+                    }}
+                    disabled={sendingReply}
+                  />
+                  <Button size="sm" onClick={handleSendAgentReply} disabled={!agentReply.trim() || sendingReply}>
+                    {sendingReply ? <Spinner /> : <Send className="h-4 w-4" />}
+                  </Button>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -1838,11 +1922,25 @@ function HandoversTab({
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <p className="font-medium text-sm">{request.visitorName || "Anonymous"}</p>
                   <Badge
-                    variant={request.status === "resolved" ? "default" : request.status === "email_sent" ? "secondary" : "destructive"}
+                    variant={
+                      request.status === "resolved" ? "default" :
+                      request.status === "in_progress" ? "secondary" :
+                      request.status === "email_sent" ? "secondary" : "destructive"
+                    }
                     className="text-xs"
                   >
-                    {request.status === "resolved" ? "Resolved" : request.status === "email_sent" ? "Email Sent" : "Pending"}
+                    {request.status === "resolved" ? "Resolved" :
+                     request.status === "in_progress" ? "Agent Active" :
+                     request.status === "email_sent" ? "Email Sent" : "Pending"}
                   </Badge>
+                  {request.department && (
+                    <Badge variant="outline" className="text-xs">{request.department}</Badge>
+                  )}
+                  {request.handoverType === "call" && (
+                    <Badge variant="outline" className="text-xs flex items-center gap-1">
+                      <Phone className="h-3 w-3" /> Call
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{request.summary.slice(0, 150)}...</p>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -1853,7 +1951,22 @@ function HandoversTab({
                   </span>
                 </div>
               </div>
-              <div className="ml-4">
+              <div className="ml-4 flex items-center gap-1">
+                {(request.status === "pending" || request.status === "email_sent") && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await takeOverChat({ handoverId: request._id });
+                      toast.success("Taken over");
+                      setSelectedSession(request.sessionId);
+                    }}
+                    title="Take over this conversation"
+                  >
+                    <UserCheck className="h-4 w-4" />
+                  </Button>
+                )}
                 {request.status !== "resolved" && (
                   <Button
                     size="sm"
@@ -2215,6 +2328,9 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
 
 // ─── Settings Tab ───────────────────────────────────────────────────────────
 
+type Department = { name: string; description: string; email?: string; phoneNumber?: string };
+type HandoverSubject = { topic: string; department?: string; message?: string };
+
 function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
   const [name, setName] = useState(assistant.name);
   const [description, setDescription] = useState(assistant.description ?? "");
@@ -2226,6 +2342,25 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
   const [primaryColor, setPrimaryColor] = useState(assistant.primaryColor ?? "#3B82F6");
   const [customInstructions, setCustomInstructions] = useState(assistant.customInstructions ?? "");
   const [handoverEmail, setHandoverEmail] = useState(assistant.handoverEmail ?? "");
+  const [handoverPhoneNumber, setHandoverPhoneNumber] = useState(assistant.handoverPhoneNumber ?? "");
+
+  // Departments
+  const [departments, setDepartments] = useState<Department[]>(
+    assistant.handoverDepartments ?? []
+  );
+  const [newDeptName, setNewDeptName] = useState("");
+  const [newDeptDesc, setNewDeptDesc] = useState("");
+  const [newDeptEmail, setNewDeptEmail] = useState("");
+  const [newDeptPhone, setNewDeptPhone] = useState("");
+
+  // Handover subjects
+  const [subjects, setSubjects] = useState<HandoverSubject[]>(
+    assistant.handoverSubjects ?? []
+  );
+  const [newSubjectTopic, setNewSubjectTopic] = useState("");
+  const [newSubjectDept, setNewSubjectDept] = useState("");
+  const [newSubjectMsg, setNewSubjectMsg] = useState("");
+
   const updateAssistant = useMutation(api.aiAssistants.update);
 
   const handleSave = async () => {
@@ -2236,6 +2371,9 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
         industry: industry.trim() || undefined, welcomeMessage: welcomeMessage.trim() || undefined,
         personality, primaryColor, customInstructions: customInstructions.trim() || undefined,
         handoverEmail: handoverEmail.trim() || undefined,
+        handoverPhoneNumber: handoverPhoneNumber.trim() || undefined,
+        handoverDepartments: departments.length > 0 ? departments : undefined,
+        handoverSubjects: subjects.length > 0 ? subjects : undefined,
       });
       toast.success("Settings updated");
     } catch {
@@ -2243,65 +2381,226 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
     }
   };
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Assistant Settings</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2"><Label>Assistant Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-          <div className="space-y-2"><Label>Company Name</Label><Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} /></div>
-        </div>
-        <div className="space-y-2"><Label>Description</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} /></div>
-        <div className="space-y-2"><Label>Company Description</Label><Textarea value={companyDescription} onChange={(e) => setCompanyDescription(e.target.value)} rows={3} /></div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2"><Label>Industry</Label><Input value={industry} onChange={(e) => setIndustry(e.target.value)} /></div>
-          <div className="space-y-2">
-            <Label>Personality</Label>
-            <Select value={personality} onValueChange={(v) => setPersonality(v as Personality)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="professional">Professional</SelectItem>
-                <SelectItem value="friendly">Friendly</SelectItem>
-                <SelectItem value="casual">Casual</SelectItem>
-                <SelectItem value="formal">Formal</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <div className="space-y-2"><Label>Welcome Message</Label><Textarea value={welcomeMessage} onChange={(e) => setWelcomeMessage(e.target.value)} rows={2} /></div>
-        <div className="space-y-2">
-          <Label>Brand Color</Label>
-          <div className="flex items-center gap-2">
-            <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="h-10 w-12 cursor-pointer rounded border" />
-            <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="flex-1" />
-          </div>
-        </div>
-        <div className="space-y-2"><Label>Custom Instructions</Label><Textarea value={customInstructions} onChange={(e) => setCustomInstructions(e.target.value)} rows={3} /></div>
-        
-        {/* Human Handover Settings */}
-        <div className="border-t pt-4 mt-4">
-          <h4 className="font-medium mb-3 flex items-center gap-2">
-            <UserCheck className="h-4 w-4" /> Human Handover Settings
-          </h4>
-          <div className="space-y-2">
-            <Label>Handover Email</Label>
-            <Input
-              type="email"
-              value={handoverEmail}
-              onChange={(e) => setHandoverEmail(e.target.value)}
-              placeholder="support@yourcompany.com"
-            />
-            <p className="text-xs text-muted-foreground">
-              When a visitor requests to speak with a human, an email with the conversation summary will be sent to this address.
-            </p>
-          </div>
-        </div>
+  const addDepartment = () => {
+    if (!newDeptName.trim() || !newDeptDesc.trim()) {
+      toast.error("Department name and description are required");
+      return;
+    }
+    setDepartments([...departments, {
+      name: newDeptName.trim(),
+      description: newDeptDesc.trim(),
+      email: newDeptEmail.trim() || undefined,
+      phoneNumber: newDeptPhone.trim() || undefined,
+    }]);
+    setNewDeptName(""); setNewDeptDesc(""); setNewDeptEmail(""); setNewDeptPhone("");
+  };
 
-        <Button onClick={handleSave}>Save Changes</Button>
-      </CardContent>
-    </Card>
+  const addSubject = () => {
+    if (!newSubjectTopic.trim()) {
+      toast.error("Topic is required");
+      return;
+    }
+    setSubjects([...subjects, {
+      topic: newSubjectTopic.trim(),
+      department: newSubjectDept.trim() || undefined,
+      message: newSubjectMsg.trim() || undefined,
+    }]);
+    setNewSubjectTopic(""); setNewSubjectDept(""); setNewSubjectMsg("");
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* General Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">General Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2"><Label>Assistant Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div className="space-y-2"><Label>Company Name</Label><Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} /></div>
+          </div>
+          <div className="space-y-2"><Label>Description</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+          <div className="space-y-2"><Label>Company Description</Label><Textarea value={companyDescription} onChange={(e) => setCompanyDescription(e.target.value)} rows={3} /></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2"><Label>Industry</Label><Input value={industry} onChange={(e) => setIndustry(e.target.value)} /></div>
+            <div className="space-y-2">
+              <Label>Personality</Label>
+              <Select value={personality} onValueChange={(v) => setPersonality(v as Personality)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="professional">Professional</SelectItem>
+                  <SelectItem value="friendly">Friendly</SelectItem>
+                  <SelectItem value="casual">Casual</SelectItem>
+                  <SelectItem value="formal">Formal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-2"><Label>Welcome Message</Label><Textarea value={welcomeMessage} onChange={(e) => setWelcomeMessage(e.target.value)} rows={2} /></div>
+          <div className="space-y-2">
+            <Label>Brand Color</Label>
+            <div className="flex items-center gap-2">
+              <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="h-10 w-12 cursor-pointer rounded border" />
+              <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="flex-1" />
+            </div>
+          </div>
+          <div className="space-y-2"><Label>Custom Instructions</Label><Textarea value={customInstructions} onChange={(e) => setCustomInstructions(e.target.value)} rows={3} /></div>
+        </CardContent>
+      </Card>
+
+      {/* Human Handover Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <UserCheck className="h-4 w-4" /> Handover Settings
+          </CardTitle>
+          <CardDescription>Configure how conversations are transferred to human agents</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Handover Email</Label>
+              <Input
+                type="email"
+                value={handoverEmail}
+                onChange={(e) => setHandoverEmail(e.target.value)}
+                placeholder="support@yourcompany.com"
+              />
+              <p className="text-xs text-muted-foreground">
+                Email to receive handover notifications with conversation summaries
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Phone Number (for call option)</Label>
+              <Input
+                type="tel"
+                value={handoverPhoneNumber}
+                onChange={(e) => setHandoverPhoneNumber(e.target.value)}
+                placeholder="+225 01 23 45 67 89"
+              />
+              <p className="text-xs text-muted-foreground">
+                Customers can choose to call instead of chatting with an agent
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Specialist Departments */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Building2 className="h-4 w-4" /> Specialist Departments
+          </CardTitle>
+          <CardDescription>
+            Define departments so the AI can route customers to the right specialist
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {departments.map((dept, index) => (
+            <div key={index} className="border rounded-lg p-3 space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  <span className="font-medium text-sm">{dept.name}</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setDepartments(departments.filter((_, i) => i !== index))}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">{dept.description}</p>
+              <div className="flex gap-3 text-xs text-muted-foreground">
+                {dept.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{dept.email}</span>}
+                {dept.phoneNumber && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{dept.phoneNumber}</span>}
+              </div>
+            </div>
+          ))}
+          <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Department Name *</Label>
+                <Input value={newDeptName} onChange={(e) => setNewDeptName(e.target.value)} placeholder="e.g. Sales, Technical Support" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Description *</Label>
+                <Input value={newDeptDesc} onChange={(e) => setNewDeptDesc(e.target.value)} placeholder="e.g. Handles pricing and quotes" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Email (optional)</Label>
+                <Input value={newDeptEmail} onChange={(e) => setNewDeptEmail(e.target.value)} placeholder="sales@company.com" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Phone (optional)</Label>
+                <Input value={newDeptPhone} onChange={(e) => setNewDeptPhone(e.target.value)} placeholder="+225 01 23 45 67 89" />
+              </div>
+            </div>
+            <Button size="sm" onClick={addDepartment}><Plus className="h-3 w-3 mr-1" />Add Department</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Handover Subjects */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Tag className="h-4 w-4" /> Proactive Handover Subjects
+          </CardTitle>
+          <CardDescription>
+            Topics where the AI should proactively offer to connect the customer with a human specialist
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {subjects.map((subject, index) => (
+            <div key={index} className="border rounded-lg p-3 space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-primary" />
+                  <span className="font-medium text-sm">{subject.topic}</span>
+                  {subject.department && <Badge variant="secondary" className="text-xs">{subject.department}</Badge>}
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setSubjects(subjects.filter((_, i) => i !== index))}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+              {subject.message && <p className="text-xs text-muted-foreground">AI will say: {subject.message}</p>}
+            </div>
+          ))}
+          <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Topic *</Label>
+                <Input value={newSubjectTopic} onChange={(e) => setNewSubjectTopic(e.target.value)}
+                  placeholder="e.g. Complaints, Pricing, Account cancellation" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Route to Department</Label>
+                <Select value={newSubjectDept || "none"} onValueChange={(v) => setNewSubjectDept(v === "none" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No specific department</SelectItem>
+                    {departments.map((d) => (
+                      <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Custom AI Message (optional)</Label>
+              <Input value={newSubjectMsg} onChange={(e) => setNewSubjectMsg(e.target.value)}
+                placeholder="e.g. I'd recommend speaking with our sales team for detailed pricing." />
+            </div>
+            <Button size="sm" onClick={addSubject}><Plus className="h-3 w-3 mr-1" />Add Subject</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <Button onClick={handleSave} size="lg">Save All Settings</Button>
+      </div>
+    </div>
   );
 }
 

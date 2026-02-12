@@ -14,8 +14,10 @@ export const requestHandover = action({
     sessionId: v.id("aiChatSessions"),
     assistantId: v.id("aiAssistants"),
     reason: v.optional(v.string()),
+    department: v.optional(v.string()),
+    handoverType: v.optional(v.union(v.literal("chat"), v.literal("call"), v.literal("email"))),
   },
-  handler: async (ctx, args): Promise<{ success: boolean; error?: string }> => {
+  handler: async (ctx, args): Promise<{ success: boolean; error?: string; phoneNumber?: string }> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       return { success: false, error: "Not authenticated" };
@@ -61,17 +63,30 @@ export const requestHandover = action({
       visitorName: currentSession?.visitorName,
       visitorEmail: currentSession?.visitorEmail,
       visitorPhone: currentSession?.visitorPhone,
+      department: args.department,
+      handoverType: args.handoverType ?? "chat",
     });
 
-    // Send email if handover email is configured
-    if (assistant.handoverEmail) {
+    // Determine target email - use department email if available
+    let targetEmail = assistant.handoverEmail;
+    if (args.department && assistant.handoverDepartments) {
+      const dept = assistant.handoverDepartments.find(
+        (d) => d.name.toLowerCase() === args.department?.toLowerCase()
+      );
+      if (dept?.email) targetEmail = dept.email;
+    }
+
+    // Send email if email is configured
+    if (targetEmail) {
       try {
         await sendHandoverEmailInternal({
-          to: assistant.handoverEmail,
+          to: targetEmail,
           assistantName: assistant.name,
           companyName: assistant.companyName,
           summary,
           reason: args.reason,
+          department: args.department,
+          handoverType: args.handoverType,
           visitorName: currentSession?.visitorName,
           visitorEmail: currentSession?.visitorEmail,
           visitorPhone: currentSession?.visitorPhone,
@@ -80,22 +95,39 @@ export const requestHandover = action({
 
         await ctx.runMutation(internal.aiAssistants.markHandoverEmailSent, {
           handoverId: handoverId as Id<"aiHandoverRequests">,
-          emailSentTo: assistant.handoverEmail,
+          emailSentTo: targetEmail,
         });
       } catch (error) {
         console.error("Failed to send handover email:", error);
-        // Still return success since the handover request was created
       }
+    }
+
+    // Build system message based on handover type
+    let systemMessage = "This conversation has been transferred to a human agent.";
+    if (args.department) {
+      systemMessage += ` You've been routed to the ${args.department} department.`;
+    }
+    if (args.handoverType === "call" && assistant.handoverPhoneNumber) {
+      let callNumber = assistant.handoverPhoneNumber;
+      if (args.department && assistant.handoverDepartments) {
+        const dept = assistant.handoverDepartments.find(
+          (d) => d.name.toLowerCase() === args.department?.toLowerCase()
+        );
+        if (dept?.phoneNumber) callNumber = dept.phoneNumber;
+      }
+      systemMessage += ` You can also call us at: ${callNumber}`;
+    } else {
+      systemMessage += " Someone will review your conversation and get back to you soon.";
     }
 
     // Add system message to the chat
     await ctx.runMutation(internal.aiAssistants.addChatMessage, {
       sessionId: args.sessionId,
       role: "system",
-      content: "This conversation has been transferred to a human agent. Someone will review your conversation and get back to you soon.",
+      content: systemMessage,
     });
 
-    return { success: true };
+    return { success: true, phoneNumber: args.handoverType === "call" ? (assistant.handoverPhoneNumber ?? undefined) : undefined };
   },
 });
 
@@ -106,8 +138,10 @@ export const requestPublicHandover = internalAction({
     assistantId: v.id("aiAssistants"),
     sessionId: v.string(),
     reason: v.optional(v.string()),
+    department: v.optional(v.string()),
+    handoverType: v.optional(v.union(v.literal("chat"), v.literal("call"), v.literal("email"))),
   },
-  handler: async (ctx, args): Promise<{ success: boolean; error?: string }> => {
+  handler: async (ctx, args): Promise<{ success: boolean; error?: string; phoneNumber?: string }> => {
     // Get assistant
     const assistant = await ctx.runQuery(internal.aiAssistants.getByIdInternal, {
       assistantId: args.assistantId,
@@ -145,17 +179,30 @@ export const requestPublicHandover = internalAction({
       visitorName: session.visitorName,
       visitorEmail: session.visitorEmail,
       visitorPhone: session.visitorPhone,
+      department: args.department,
+      handoverType: args.handoverType ?? "chat",
     });
 
+    // Determine target email - use department email if available
+    let targetEmail = assistant.handoverEmail;
+    if (args.department && assistant.handoverDepartments) {
+      const dept = assistant.handoverDepartments.find(
+        (d) => d.name.toLowerCase() === args.department?.toLowerCase()
+      );
+      if (dept?.email) targetEmail = dept.email;
+    }
+
     // Send email
-    if (assistant.handoverEmail) {
+    if (targetEmail) {
       try {
         await sendHandoverEmailInternal({
-          to: assistant.handoverEmail,
+          to: targetEmail,
           assistantName: assistant.name,
           companyName: assistant.companyName,
           summary,
           reason: args.reason,
+          department: args.department,
+          handoverType: args.handoverType,
           visitorName: session.visitorName,
           visitorEmail: session.visitorEmail,
           visitorPhone: session.visitorPhone,
@@ -164,21 +211,32 @@ export const requestPublicHandover = internalAction({
 
         await ctx.runMutation(internal.aiAssistants.markHandoverEmailSent, {
           handoverId: handoverId as Id<"aiHandoverRequests">,
-          emailSentTo: assistant.handoverEmail,
+          emailSentTo: targetEmail,
         });
       } catch (error) {
         console.error("Failed to send handover email:", error);
       }
     }
 
+    // Build system message
+    let systemMessage = "This conversation has been transferred to a human agent.";
+    if (args.department) {
+      systemMessage += ` You've been routed to the ${args.department} department.`;
+    }
+    if (args.handoverType === "call" && assistant.handoverPhoneNumber) {
+      systemMessage += ` You can call us at: ${assistant.handoverPhoneNumber}`;
+    } else {
+      systemMessage += " Someone will review your conversation and get back to you soon.";
+    }
+
     // Add system message
     await ctx.runMutation(internal.aiAssistants.addChatMessage, {
       sessionId: session._id,
       role: "system",
-      content: "This conversation has been transferred to a human agent. Someone will review your conversation and get back to you soon.",
+      content: systemMessage,
     });
 
-    return { success: true };
+    return { success: true, phoneNumber: args.handoverType === "call" ? (assistant.handoverPhoneNumber ?? undefined) : undefined };
   },
 });
 
@@ -232,6 +290,8 @@ async function sendHandoverEmailInternal(params: {
   companyName: string;
   summary: string;
   reason?: string;
+  department?: string;
+  handoverType?: string;
   visitorName?: string;
   visitorEmail?: string;
   visitorPhone?: string;
@@ -292,6 +352,13 @@ async function sendHandoverEmailInternal(params: {
           <div style="background:#fffbeb;padding:16px;border-radius:8px;margin-bottom:20px;">
             <h3 style="margin:0 0 8px;color:#d97706;font-size:15px;">Handover Reason</h3>
             <p style="margin:0;font-size:14px;color:#333;">${escapeHtml(params.reason)}</p>
+          </div>` : ""}
+
+          ${params.department ? `
+          <div style="background:#ede9fe;padding:16px;border-radius:8px;margin-bottom:20px;">
+            <h3 style="margin:0 0 8px;color:#7c3aed;font-size:15px;">Department</h3>
+            <p style="margin:0;font-size:14px;color:#333;font-weight:600;">${escapeHtml(params.department)}</p>
+            ${params.handoverType ? `<p style="margin:4px 0 0;font-size:13px;color:#666;">Type: ${escapeHtml(params.handoverType)}</p>` : ""}
           </div>` : ""}
 
           <!-- AI Summary -->

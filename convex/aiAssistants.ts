@@ -373,6 +373,18 @@ export const update = mutation({
     logoUrl: v.optional(v.string()),
     customInstructions: v.optional(v.string()),
     handoverEmail: v.optional(v.string()),
+    handoverPhoneNumber: v.optional(v.string()),
+    handoverDepartments: v.optional(v.array(v.object({
+      name: v.string(),
+      description: v.string(),
+      email: v.optional(v.string()),
+      phoneNumber: v.optional(v.string()),
+    }))),
+    handoverSubjects: v.optional(v.array(v.object({
+      topic: v.string(),
+      department: v.optional(v.string()),
+      message: v.optional(v.string()),
+    }))),
     toneDescription: v.optional(v.string()),
     sampleQA: v.optional(v.array(v.object({ question: v.string(), answer: v.string() }))),
     responseGuidelines: v.optional(v.array(v.string())),
@@ -763,6 +775,8 @@ export const createHandoverRequest = internalMutation({
     visitorName: v.optional(v.string()),
     visitorEmail: v.optional(v.string()),
     visitorPhone: v.optional(v.string()),
+    department: v.optional(v.string()),
+    handoverType: v.optional(v.union(v.literal("chat"), v.literal("call"), v.literal("email"))),
   },
   handler: async (ctx, args) => {
     // Mark session as handed over
@@ -804,10 +818,94 @@ export const resolveHandover = mutation({
     if (!user) {
       throw new ConvexError({ message: "User not found", code: "NOT_FOUND" });
     }
+    const handover = await ctx.db.get(args.handoverId);
+    if (!handover) {
+      throw new ConvexError({ message: "Handover not found", code: "NOT_FOUND" });
+    }
     await ctx.db.patch(args.handoverId, {
       status: "resolved",
       resolvedAt: new Date().toISOString(),
       resolvedBy: user._id,
     });
+    // Also close the session
+    await ctx.db.patch(handover.sessionId, { status: "closed" });
+  },
+});
+
+// ─── Agent Takes Over Chat ──────────────────────────────────────────────────
+
+export const takeOverChat = mutation({
+  args: { handoverId: v.id("aiHandoverRequests") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user) {
+      throw new ConvexError({ message: "User not found", code: "NOT_FOUND" });
+    }
+    const handover = await ctx.db.get(args.handoverId);
+    if (!handover) {
+      throw new ConvexError({ message: "Handover not found", code: "NOT_FOUND" });
+    }
+    await ctx.db.patch(args.handoverId, {
+      status: "in_progress",
+      takenOverBy: user._id,
+      takenOverAt: new Date().toISOString(),
+    });
+    // Add system message to let the visitor know
+    await ctx.db.insert("aiChatMessages", {
+      sessionId: handover.sessionId,
+      role: "system",
+      content: `A human agent (${user.name ?? "Agent"}) has joined the conversation.`,
+    });
+    // Update session message count
+    const session = await ctx.db.get(handover.sessionId);
+    if (session) {
+      await ctx.db.patch(handover.sessionId, {
+        messageCount: session.messageCount + 1,
+        lastMessageAt: new Date().toISOString(),
+      });
+    }
+  },
+});
+
+// ─── Agent Sends Message in Chat ─────────────────────────────────────────────
+
+export const sendAgentMessage = mutation({
+  args: {
+    sessionId: v.id("aiChatSessions"),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user) {
+      throw new ConvexError({ message: "User not found", code: "NOT_FOUND" });
+    }
+    // Insert as "assistant" role with agent prefix so it appears in the chat
+    await ctx.db.insert("aiChatMessages", {
+      sessionId: args.sessionId,
+      role: "assistant",
+      content: `[Agent: ${user.name ?? "Agent"}] ${args.content}`,
+    });
+    // Update session
+    const session = await ctx.db.get(args.sessionId);
+    if (session) {
+      await ctx.db.patch(args.sessionId, {
+        messageCount: session.messageCount + 1,
+        lastMessageAt: new Date().toISOString(),
+      });
+    }
   },
 });

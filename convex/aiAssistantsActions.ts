@@ -125,8 +125,36 @@ function buildSystemPrompt(
 - If a task requires parameters that the user hasn't provided, ask them for the missing information before executing.`;
   }
 
+  // Handover subjects - proactive suggestions
+  if (assistant.handoverSubjects && assistant.handoverSubjects.length > 0) {
+    prompt += `\n\n--- HANDOVER SUBJECTS ---`;
+    prompt += `\nFor the following topics, you MUST proactively suggest speaking with a human specialist:`;
+    for (const subject of assistant.handoverSubjects) {
+      prompt += `\n- Topic: "${subject.topic}"`;
+      if (subject.department) prompt += ` → Route to: ${subject.department} department`;
+      if (subject.message) prompt += ` → Say: "${subject.message}"`;
+    }
+    prompt += `\nWhen a conversation touches on any of these topics, offer the customer the option to speak with a specialist. Use the format: "[HANDOVER_SUGGEST: department_name]" followed by your suggestion message.`;
+    prompt += `\n--- END HANDOVER SUBJECTS ---`;
+  }
+
+  // Department routing
+  if (assistant.handoverDepartments && assistant.handoverDepartments.length > 0) {
+    prompt += `\n\nAvailable specialist departments:`;
+    for (const dept of assistant.handoverDepartments) {
+      prompt += `\n- ${dept.name}: ${dept.description}`;
+    }
+    prompt += `\nWhen suggesting a handover, recommend the most relevant department based on the conversation topic.`;
+  }
+
+  // Call option
+  if (assistant.handoverPhoneNumber) {
+    prompt += `\n\nThe customer can also request a phone call. If they prefer a call, include "[CALL_OPTION]" in your response and mention they can call or be called back.`;
+  }
+
   prompt += `\n- If the user asks to speak with a human, a real person, or an agent, respond with exactly: "[HANDOVER_REQUEST]" followed by a brief explanation of why they need human assistance.
-- If you cannot answer a question after 2 attempts, suggest that the user can request to speak with a human agent for further help.`;
+- If you cannot answer a question after 2 attempts, suggest that the user can request to speak with a human agent for further help.
+- When the user confirms they want a handover, include the department in your response like: "[HANDOVER_REQUEST: department_name]" if a relevant department exists.`;
 
   return prompt;
 }

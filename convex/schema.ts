@@ -439,6 +439,20 @@ export default defineSchema({
     isActive: v.boolean(),
     customInstructions: v.optional(v.string()),
     handoverEmail: v.optional(v.string()),
+    handoverPhoneNumber: v.optional(v.string()), // Phone number for call option
+    // Departments for specialist routing
+    handoverDepartments: v.optional(v.array(v.object({
+      name: v.string(),
+      description: v.string(),
+      email: v.optional(v.string()),
+      phoneNumber: v.optional(v.string()),
+    }))),
+    // Subjects that should proactively trigger handover suggestion
+    handoverSubjects: v.optional(v.array(v.object({
+      topic: v.string(),
+      department: v.optional(v.string()), // maps to a department name
+      message: v.optional(v.string()), // custom AI message when suggesting handover
+    }))),
     // Training & tone configuration
     toneDescription: v.optional(v.string()),
     sampleQA: v.optional(v.array(v.object({ question: v.string(), answer: v.string() }))),
@@ -551,11 +565,20 @@ export default defineSchema({
     visitorPhone: v.optional(v.string()),
     emailSentTo: v.optional(v.string()),
     emailSentAt: v.optional(v.string()),
+    department: v.optional(v.string()), // specialist department
+    handoverType: v.optional(v.union(
+      v.literal("chat"),
+      v.literal("call"),
+      v.literal("email")
+    )),
     status: v.union(
       v.literal("pending"),
       v.literal("email_sent"),
+      v.literal("in_progress"), // agent has taken over
       v.literal("resolved")
     ),
+    takenOverBy: v.optional(v.id("users")), // agent who took over
+    takenOverAt: v.optional(v.string()),
     resolvedAt: v.optional(v.string()),
     resolvedBy: v.optional(v.id("users")),
   })
