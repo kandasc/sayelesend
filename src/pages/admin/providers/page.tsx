@@ -23,10 +23,79 @@ import {
   SelectValue,
 } from "@/components/ui/select.tsx";
 import { Switch } from "@/components/ui/switch.tsx";
-import { Plus, Edit } from "lucide-react";
+import { Plus, Edit, Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
+
+const CONVEX_SITE_URL = import.meta.env.VITE_CONVEX_SITE_URL as string;
+
+function MTargetWebhookInfo() {
+  const [copied, setCopied] = useState(false);
+  const singleDlrUrl = `${CONVEX_SITE_URL}/webhooks/sms/delivery/mtarget`;
+  const bulkDlrUrl = `${CONVEX_SITE_URL}/webhooks/bulk/delivery/mtarget`;
+
+  const copyUrl = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    toast.success("URL copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+      <CardContent className="pt-4 space-y-3">
+        <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+          Configure DLR Webhooks in MTarget
+        </p>
+        
+        <div>
+          <p className="text-xs text-blue-800 dark:text-blue-200 mb-1 font-medium">
+            Single SMS DLR Webhook:
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="text-xs bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded flex-1 break-all">
+              {singleDlrUrl}
+            </code>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 shrink-0"
+              onClick={() => copyUrl(singleDlrUrl)}
+            >
+              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            </Button>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-xs text-blue-800 dark:text-blue-200 mb-1 font-medium">
+            Bulk SMS DLR Webhook:
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="text-xs bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded flex-1 break-all">
+              {bulkDlrUrl}
+            </code>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 shrink-0"
+              onClick={() => copyUrl(bulkDlrUrl)}
+            >
+              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            </Button>
+          </div>
+        </div>
+
+        <p className="text-xs text-blue-800 dark:text-blue-200">
+          Status codes: 3=delivered, 4=refused, 6=not delivered
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function AdminProviders() {
   return (
@@ -123,7 +192,7 @@ function ProvidersContent() {
 
       {editOpen && selectedProvider && (
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Provider</DialogTitle>
             </DialogHeader>
@@ -397,22 +466,7 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
             <Label htmlFor="uniqueId">Unique ID</Label>
             <Input id="uniqueId" name="uniqueId" defaultValue="doocisms05" required />
           </div>
-          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
-            <CardContent className="pt-4">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
-                Configure DLR Webhook in MTarget
-              </p>
-              <p className="text-xs text-blue-800 dark:text-blue-200 mb-2">
-                To receive delivery receipts, configure this URL in your MTarget account:
-              </p>
-              <code className="text-xs bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded block mb-2">
-                {window.location.origin.replace("https://", "https://your-deployment.").replace(":3000", "")}/webhooks/sms/delivery/mtarget
-              </code>
-              <p className="text-xs text-blue-800 dark:text-blue-200">
-                MTarget will send DLR callbacks with Status codes: 3=delivered, 4=refused, 6=not delivered
-              </p>
-            </CardContent>
-          </Card>
+          <MTargetWebhookInfo />
         </>
       )}
 
@@ -756,22 +810,7 @@ function EditProviderForm({
             <Label htmlFor="uniqueId">Unique ID</Label>
             <Input id="uniqueId" name="uniqueId" defaultValue={provider.config.uniqueId} required />
           </div>
-          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
-            <CardContent className="pt-4">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
-                Configure DLR Webhook in MTarget
-              </p>
-              <p className="text-xs text-blue-800 dark:text-blue-200 mb-2">
-                To receive delivery receipts, configure this URL in your MTarget account:
-              </p>
-              <code className="text-xs bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded block mb-2">
-                {window.location.origin.replace("https://", "https://your-deployment.").replace(":3000", "")}/webhooks/sms/delivery/mtarget
-              </code>
-              <p className="text-xs text-blue-800 dark:text-blue-200">
-                MTarget will send DLR callbacks with Status codes: 3=delivered, 4=refused, 6=not delivered
-              </p>
-            </CardContent>
-          </Card>
+          <MTargetWebhookInfo />
         </>
       )}
 

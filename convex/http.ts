@@ -314,6 +314,84 @@ http.route({
   }),
 });
 
+// Dedicated bulk DLR webhook endpoint for MTarget bulk campaigns
+http.route({
+  path: "/webhooks/bulk/delivery/mtarget",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const body = await request.text();
+
+      // Parse body (JSON or form-encoded)
+      let data: Record<string, unknown> = {};
+      try {
+        data = JSON.parse(body);
+      } catch {
+        const params = new URLSearchParams(body);
+        data = Object.fromEntries(params.entries());
+        // Convert Status to number if it came as string from form data
+        if (typeof data.Status === "string") {
+          data.Status = parseInt(data.Status as string, 10);
+        }
+      }
+
+      await ctx.runMutation(internal.sms.webhooks.handleBulkDeliveryUpdate, {
+        data: JSON.stringify(data),
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...securityHeaders, "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      await ctx.runMutation(internal.httpHelpers.logWebhookFailure, {
+        action: "Bulk DLR webhook processing failed",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
+      return new Response(JSON.stringify({ error: "Webhook processing failed" }), {
+        status: 500,
+        headers: { ...securityHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }),
+});
+
+// Also handle GET for MTarget DLR (some providers send GET requests)
+http.route({
+  path: "/webhooks/bulk/delivery/mtarget",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const url = new URL(request.url);
+      const data: Record<string, unknown> = Object.fromEntries(url.searchParams.entries());
+      // Convert Status to number
+      if (typeof data.Status === "string") {
+        data.Status = parseInt(data.Status as string, 10);
+      }
+
+      await ctx.runMutation(internal.sms.webhooks.handleBulkDeliveryUpdate, {
+        data: JSON.stringify(data),
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...securityHeaders, "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      await ctx.runMutation(internal.httpHelpers.logWebhookFailure, {
+        action: "Bulk DLR webhook (GET) processing failed",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
+      return new Response(JSON.stringify({ error: "Webhook processing failed" }), {
+        status: 500,
+        headers: { ...securityHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }),
+});
+
 http.route({
   path: "/webhooks/sms/incoming/:provider",
   method: "POST",

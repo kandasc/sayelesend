@@ -189,6 +189,7 @@ export default defineSchema({
     bulkMessageId: v.id("bulkMessages"),
     phoneNumber: v.string(),
     messageId: v.optional(v.id("messages")),
+    providerMessageId: v.optional(v.string()),
     status: v.union(
       v.literal("pending"),
       v.literal("sending"),
@@ -196,9 +197,12 @@ export default defineSchema({
       v.literal("delivered"),
       v.literal("failed")
     ),
+    deliveredAt: v.optional(v.number()),
+    failureReason: v.optional(v.string()),
   })
     .index("by_bulk", ["bulkMessageId"])
-    .index("by_bulk_and_status", ["bulkMessageId", "status"]),
+    .index("by_bulk_and_status", ["bulkMessageId", "status"])
+    .index("by_provider_msg", ["providerMessageId"]),
 
   templates: defineTable({
     clientId: v.id("clients"),
