@@ -29,7 +29,8 @@ import {
 } from "@/components/ui/table.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { FileText, CheckCircle, XCircle, Eye } from "lucide-react";
+import { FileText, CheckCircle, XCircle, Eye, UserPlus } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function AdminSubmissionsPage() {
@@ -37,11 +38,26 @@ export default function AdminSubmissionsPage() {
   const [selectedSubmission, setSelectedSubmission] = useState<Id<"contactFormSubmissions"> | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
 
+  const navigate = useNavigate();
+  const { lng } = useParams();
+  const lang = lng || "en";
+
   const submissions = useQuery(
     api.contactForm.listContactFormSubmissions,
     statusFilter ? { status: statusFilter } : {}
   );
   const updateStatus = useMutation(api.contactForm.updateContactFormStatus);
+
+  const handleCreateClient = (submission: NonNullable<typeof submissions>[number]) => {
+    const params = new URLSearchParams({
+      prefill: "1",
+      companyName: submission.companyName,
+      contactName: submission.contactName,
+      email: submission.email,
+      phone: submission.phone,
+    });
+    navigate(`/${lang}/admin/clients?${params.toString()}`);
+  };
 
   const handleUpdateStatus = async (
     submissionId: Id<"contactFormSubmissions">,
@@ -216,6 +232,14 @@ export default function AdminSubmissionsPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Create Client"
+                          onClick={() => handleCreateClient(submission)}
+                        >
+                          <UserPlus className="h-4 w-4" />
+                        </Button>
                         {submission.status !== "approved" && (
                           <Button
                             variant="default"
@@ -327,8 +351,19 @@ export default function AdminSubmissionsPage() {
             </div>
           )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+          <DialogFooter className="flex gap-2 sm:justify-between">
+            {selectedSubmissionData && (
+              <Button
+                onClick={() => {
+                  setViewDialogOpen(false);
+                  handleCreateClient(selectedSubmissionData);
+                }}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Create Client
+              </Button>
+            )}
+            <Button variant="secondary" onClick={() => setViewDialogOpen(false)}>
               Close
             </Button>
           </DialogFooter>

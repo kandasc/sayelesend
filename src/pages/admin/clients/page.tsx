@@ -23,7 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select.tsx";
 import { Plus, Edit, DollarSign, Users as UsersIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
@@ -36,12 +37,35 @@ export default function AdminClients() {
   );
 }
 
+type PrefillData = {
+  companyName?: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+};
+
 function ClientsContent() {
   const clients = useQuery(api.clients.listClients, {});
   const providers = useQuery(api.providers.listProviders, {});
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Id<"clients"> | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [prefillData, setPrefillData] = useState<PrefillData | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get("prefill") === "1") {
+      setPrefillData({
+        companyName: searchParams.get("companyName") || undefined,
+        contactName: searchParams.get("contactName") || undefined,
+        email: searchParams.get("email") || undefined,
+        phone: searchParams.get("phone") || undefined,
+      });
+      setCreateOpen(true);
+      // Clear URL params without navigating
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   if (!clients || !providers) {
     return <ClientsSkeleton />;
@@ -54,7 +78,10 @@ function ClientsContent() {
           <h1 className="text-3xl font-bold">Client Management</h1>
           <p className="text-muted-foreground">Manage client accounts and access</p>
         </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <Dialog open={createOpen} onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open) setPrefillData(null);
+        }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -67,7 +94,11 @@ function ClientsContent() {
             </DialogHeader>
             <CreateClientForm
               providers={providers}
-              onSuccess={() => setCreateOpen(false)}
+              prefill={prefillData}
+              onSuccess={() => {
+                setCreateOpen(false);
+                setPrefillData(null);
+              }}
             />
           </DialogContent>
         </Dialog>
@@ -196,9 +227,11 @@ function ClientsContent() {
 
 function CreateClientForm({
   providers,
+  prefill,
   onSuccess,
 }: {
   providers: Array<{ _id: Id<"smsProviders">; name: string; channel?: "sms" | "whatsapp" | "telegram" | "facebook_messenger" }>;
+  prefill?: PrefillData | null;
   onSuccess: () => void;
 }) {
   const createClient = useMutation(api.admin.createClientWithAdmin);
@@ -244,22 +277,22 @@ function CreateClientForm({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="companyName">Company Name</Label>
-          <Input id="companyName" name="companyName" required />
+          <Input id="companyName" name="companyName" defaultValue={prefill?.companyName} required />
         </div>
         <div className="space-y-2">
           <Label htmlFor="contactName">Contact Name</Label>
-          <Input id="contactName" name="contactName" required />
+          <Input id="contactName" name="contactName" defaultValue={prefill?.contactName} required />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="email">Company Email</Label>
-          <Input id="email" name="email" type="email" required />
+          <Input id="email" name="email" type="email" defaultValue={prefill?.email} required />
         </div>
         <div className="space-y-2">
           <Label htmlFor="phone">Phone</Label>
-          <Input id="phone" name="phone" type="tel" required />
+          <Input id="phone" name="phone" type="tel" defaultValue={prefill?.phone} required />
         </div>
       </div>
 
@@ -364,11 +397,11 @@ function CreateClientForm({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="adminName">Admin Name</Label>
-            <Input id="adminName" name="adminName" required />
+            <Input id="adminName" name="adminName" defaultValue={prefill?.contactName} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="adminEmail">Admin Email</Label>
-            <Input id="adminEmail" name="adminEmail" type="email" required />
+            <Input id="adminEmail" name="adminEmail" type="email" defaultValue={prefill?.email} required />
             <p className="text-xs text-muted-foreground">
               User must sign in with this email to be assigned
             </p>
