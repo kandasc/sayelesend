@@ -61,7 +61,7 @@ function ClientsContent() {
               Create Client
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Client</DialogTitle>
             </DialogHeader>
@@ -178,7 +178,7 @@ function ClientsContent() {
 
       {editOpen && selectedClient && (
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Client</DialogTitle>
             </DialogHeader>
@@ -439,8 +439,7 @@ function EditClientForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col max-h-[70vh]">
-      <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+    <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="companyName">Company Name</Label>
@@ -607,15 +606,12 @@ function EditClientForm({
             </p>
           </div>
         </div>
-      </div>
 
-      <div className="flex-shrink-0 pt-4 mt-4 border-t">
-        <DialogFooter>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Updating..." : "Update Client"}
-          </Button>
-        </DialogFooter>
-      </div>
+      <DialogFooter>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Updating..." : "Update Client"}
+        </Button>
+      </DialogFooter>
     </form>
   );
 }
