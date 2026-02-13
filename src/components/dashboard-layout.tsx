@@ -27,6 +27,11 @@ import {
   Zap,
   CreditCard,
   Bot,
+  ChevronDown,
+  ChevronRight,
+  Mail,
+  Code,
+  Shield,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
@@ -40,9 +45,71 @@ import {
 import { Badge } from "@/components/ui/badge.tsx";
 import PendingActivation from "@/components/pending-activation.tsx";
 import ContactFormOnboarding from "@/components/contact-form-onboarding.tsx";
+import { useState } from "react";
+
+type NavItem = {
+  path: string;
+  label: string;
+  icon: React.ReactNode;
+};
+
+type NavGroup = {
+  label: string;
+  icon: React.ReactNode;
+  items: NavItem[];
+  defaultOpen?: boolean;
+};
+
+function NavGroupSection({
+  group,
+  pathname,
+}: {
+  group: NavGroup;
+  pathname: string;
+}) {
+  const isAnyActive = group.items.some((item) => pathname === item.path);
+  const [open, setOpen] = useState(group.defaultOpen || isAnyActive);
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+      >
+        <span className="flex items-center gap-3">
+          {group.icon}
+          {group.label}
+        </span>
+        {open ? (
+          <ChevronDown className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
+        )}
+      </button>
+      {open && (
+        <div className="ml-4 mt-0.5 space-y-0.5 border-l border-border pl-2">
+          {group.items.map((item) => (
+            <Link key={item.path} to={item.path}>
+              <button
+                className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                  pathname === item.path
+                    ? "bg-primary text-primary-foreground font-medium"
+                    : "hover:bg-accent text-foreground"
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, signoutRedirect } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
   const { lng } = useParams();
   const lang = lng || "en";
@@ -55,59 +122,90 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isAdmin = effectiveUser?.role === "admin";
   const isRealAdmin = realUser?.role === "admin";
   const isTestMode = effectiveUser?.isTestMode ?? false;
-  // Superadmin = admin without clientId; client admin = admin with clientId or client role
   const isSuperAdmin = isAdmin && !effectiveUser?.clientId;
   
-  // Check if user is pending activation (client role but no clientId)
   const isPendingActivation = 
     effectiveUser?.role === "client" && 
     !effectiveUser?.clientId && 
     !isTestMode;
 
-  // Check if user needs to fill contact form
   const needsContactForm = 
     isPendingActivation && 
     !effectiveUser?.hasSubmittedContactForm;
 
-  // If needs contact form, show it first
   if (needsContactForm) {
     return <ContactFormOnboarding />;
   }
 
-  // If pending activation (after submitting form), show pending page
   if (isPendingActivation) {
     return <PendingActivation />;
   }
 
-  const navItems = [
+  // Top-level standalone items
+  const topItems: NavItem[] = [
     { path: `/${lang}/dashboard`, label: "Dashboard", icon: <Home className="h-5 w-5" /> },
-    { path: `/${lang}/messages`, label: "Outgoing", icon: <SendHorizontal className="h-5 w-5" /> },
-    { path: `/${lang}/incoming`, label: "Incoming", icon: <Inbox className="h-5 w-5" /> },
-    { path: `/${lang}/bulk`, label: "Bulk SMS", icon: <Send className="h-5 w-5" /> },
-    { path: `/${lang}/automation`, label: "Automation", icon: <Zap className="h-5 w-5" /> },
-    { path: `/${lang}/contacts`, label: "Contacts", icon: <UserPlus className="h-5 w-5" /> },
-    { path: `/${lang}/groups`, label: "Groups", icon: <Folders className="h-5 w-5" /> },
-    { path: `/${lang}/templates`, label: "Templates", icon: <FileText className="h-5 w-5" /> },
-    { path: `/${lang}/webhooks`, label: "Webhooks", icon: <Webhook className="h-5 w-5" /> },
+  ];
+
+  // Messaging group
+  const messagingGroup: NavGroup = {
+    label: "Messaging",
+    icon: <Mail className="h-5 w-5" />,
+    defaultOpen: true,
+    items: [
+      { path: `/${lang}/messages`, label: "Outgoing", icon: <SendHorizontal className="h-4 w-4" /> },
+      { path: `/${lang}/incoming`, label: "Incoming", icon: <Inbox className="h-4 w-4" /> },
+      { path: `/${lang}/bulk`, label: "Bulk SMS", icon: <Send className="h-4 w-4" /> },
+      { path: `/${lang}/templates`, label: "Templates", icon: <FileText className="h-4 w-4" /> },
+    ],
+  };
+
+  // Contacts & Automation group
+  const contactsGroup: NavGroup = {
+    label: "Contacts & Automation",
+    icon: <UserPlus className="h-5 w-5" />,
+    items: [
+      { path: `/${lang}/contacts`, label: "Contacts", icon: <UserPlus className="h-4 w-4" /> },
+      { path: `/${lang}/groups`, label: "Groups", icon: <Folders className="h-4 w-4" /> },
+      { path: `/${lang}/automation`, label: "Automation", icon: <Zap className="h-4 w-4" /> },
+    ],
+  };
+
+  // Developer group
+  const developerGroup: NavGroup = {
+    label: "Developer",
+    icon: <Code className="h-5 w-5" />,
+    items: [
+      { path: `/${lang}/webhooks`, label: "Webhooks", icon: <Webhook className="h-4 w-4" /> },
+      { path: `/${lang}/api-keys`, label: "API Keys", icon: <Key className="h-4 w-4" /> },
+      { path: `/${lang}/api-docs`, label: "API Docs", icon: <BookOpen className="h-4 w-4" /> },
+    ],
+  };
+
+  // Bottom standalone items
+  const bottomItems: NavItem[] = [
     { path: `/${lang}/reports`, label: "Reports", icon: <BarChart3 className="h-5 w-5" /> },
-    { path: `/${lang}/api-keys`, label: "API Keys", icon: <Key className="h-5 w-5" /> },
-    { path: `/${lang}/api-docs`, label: "API Docs", icon: <BookOpen className="h-5 w-5" /> },
-    // AI Assistants shown here only for client admins (non-superadmin)
     ...(!isSuperAdmin ? [{ path: `/${lang}/ai-assistants`, label: "AI Assistants", icon: <Bot className="h-5 w-5" /> }] : []),
     { path: `/${lang}/payments`, label: "Buy Credits", icon: <CreditCard className="h-5 w-5" /> },
     { path: `/${lang}/settings`, label: "Settings", icon: <Settings className="h-5 w-5" /> },
   ];
 
-  const adminNavItems = [
-    { path: `/${lang}/admin/analytics`, label: "Analytics", icon: <BarChart3 className="h-5 w-5" /> },
-    { path: `/${lang}/admin/clients`, label: "Clients", icon: <Users className="h-5 w-5" /> },
-    { path: `/${lang}/admin/users`, label: "Users", icon: <Users className="h-5 w-5" /> },
-    { path: `/${lang}/admin/providers`, label: "Providers", icon: <Server className="h-5 w-5" /> },
-    { path: `/${lang}/admin/credits`, label: "Credits", icon: <Coins className="h-5 w-5" /> },
-    { path: `/${lang}/admin/submissions`, label: "Submissions", icon: <FileText className="h-5 w-5" /> },
-    { path: `/${lang}/ai-assistants`, label: "AI Assistants", icon: <Bot className="h-5 w-5" /> },
-    { path: `/${lang}/admin/ai-assistant`, label: "AI Assistant", icon: <Sparkles className="h-5 w-5" /> },
-  ];
+  // Admin group
+  const adminGroup: NavGroup = {
+    label: "Administration",
+    icon: <Shield className="h-5 w-5" />,
+    items: [
+      { path: `/${lang}/admin/analytics`, label: "Analytics", icon: <BarChart3 className="h-4 w-4" /> },
+      { path: `/${lang}/admin/clients`, label: "Clients", icon: <Users className="h-4 w-4" /> },
+      { path: `/${lang}/admin/users`, label: "Users", icon: <Users className="h-4 w-4" /> },
+      { path: `/${lang}/admin/providers`, label: "Providers", icon: <Server className="h-4 w-4" /> },
+      { path: `/${lang}/admin/credits`, label: "Credits", icon: <Coins className="h-4 w-4" /> },
+      { path: `/${lang}/admin/submissions`, label: "Submissions", icon: <FileText className="h-4 w-4" /> },
+      { path: `/${lang}/ai-assistants`, label: "AI Assistants", icon: <Bot className="h-4 w-4" /> },
+      { path: `/${lang}/admin/ai-assistant`, label: "AI Assistant", icon: <Sparkles className="h-4 w-4" /> },
+    ],
+  };
+
+  const navGroups = [messagingGroup, contactsGroup, developerGroup];
 
   return (
     <div className="flex h-screen bg-background">
@@ -130,7 +228,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   Viewing as client admin
                 </p>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   className="w-full"
                   onClick={() => setTestMode({ clientId: null })}
@@ -165,8 +263,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        <nav className="flex-1 p-4 space-y-1">
-          {navItems.map((item) => (
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          {/* Top standalone items */}
+          {topItems.map((item) => (
             <Link key={item.path} to={item.path}>
               <button
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -181,28 +280,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Link>
           ))}
 
+          {/* Collapsible groups */}
+          {navGroups.map((group) => (
+            <NavGroupSection
+              key={group.label}
+              group={group}
+              pathname={location.pathname}
+            />
+          ))}
+
+          {/* Bottom standalone items */}
+          {bottomItems.map((item) => (
+            <Link key={item.path} to={item.path}>
+              <button
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === item.path
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-accent text-foreground"
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            </Link>
+          ))}
+
+          {/* Admin section */}
           {isAdmin && (
-            <>
-              <div className="pt-4 pb-2">
-                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase">
-                  Admin
-                </p>
-              </div>
-              {adminNavItems.map((item) => (
-                <Link key={item.path} to={item.path}>
-                  <button
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      location.pathname === item.path
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-accent text-foreground"
-                    }`}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </button>
-                </Link>
-              ))}
-            </>
+            <div className="pt-3 mt-2 border-t">
+              <NavGroupSection group={adminGroup} pathname={location.pathname} />
+            </div>
           )}
         </nav>
 
@@ -226,17 +333,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className="w-full justify-start"
             onClick={() => {
               try {
-                // Clear ALL storage
                 sessionStorage.clear();
                 localStorage.clear();
                 
-                // Reset language preference
                 const stored = localStorage.getItem("preferredLanguage");
-                const lang = stored && ["en", "fr"].includes(stored) ? stored : "en";
-                localStorage.setItem("preferredLanguage", lang);
+                const langPref = stored && ["en", "fr"].includes(stored) ? stored : "en";
+                localStorage.setItem("preferredLanguage", langPref);
                 
-                // Direct redirect without OIDC signout (to avoid "no end session endpoint" error)
-                window.location.href = `/${lang}`;
+                window.location.href = `/${langPref}`;
               } catch (error) {
                 console.error("Sign out error:", error);
                 window.location.href = "/";
