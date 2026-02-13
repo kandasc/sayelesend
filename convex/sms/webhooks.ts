@@ -342,6 +342,37 @@ export const handleBulkDeliveryUpdate = internalMutation({
   },
 });
 
+// Internal mutation to update a single bulk recipient's DLR status (called by checkBulkDlr action)
+export const updateBulkRecipientDlr = internalMutation({
+  args: {
+    recipientId: v.id("bulkMessageRecipients"),
+    bulkMessageId: v.id("bulkMessages"),
+    status: v.union(v.literal("delivered"), v.literal("failed")),
+    deliveredAt: v.optional(v.number()),
+    failureReason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const updates: Record<string, unknown> = { status: args.status };
+    if (args.status === "delivered") {
+      updates.deliveredAt = args.deliveredAt || Date.now();
+    }
+    if (args.status === "failed" && args.failureReason) {
+      updates.failureReason = args.failureReason;
+    }
+    await ctx.db.patch(args.recipientId, updates);
+
+    // Refresh campaign-level stats
+    const allRecipients = await ctx.db
+      .query("bulkMessageRecipients")
+      .withIndex("by_bulk", (q) => q.eq("bulkMessageId", args.bulkMessageId))
+      .collect();
+    const deliveredCount = allRecipients.filter((r) => r.status === "delivered").length;
+    const failedCount = allRecipients.filter((r) => r.status === "failed").length;
+    const sentCount = allRecipients.filter((r) => r.status === "sent" || r.status === "delivered").length;
+    await ctx.db.patch(args.bulkMessageId, { deliveredCount, failedCount, sentCount });
+  },
+});
+
 export const handleIncomingSms = internalMutation({
   args: {
     provider: v.union(

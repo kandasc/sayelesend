@@ -71,11 +71,13 @@ export default function AdminUsersPage() {
       await assignUserToClient({
         userEmail,
         clientId: selectedClientId as Id<"clients">,
+        role: selectedRole,
       });
       toast.success("User assigned to client successfully");
       setAssignDialogOpen(false);
       setUserEmail("");
       setSelectedClientId(undefined);
+      setSelectedRole("client");
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -441,6 +443,23 @@ export default function AdminUsersPage() {
               <p className="text-xs text-muted-foreground">
                 The user must have signed in at least once
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="assignRole">Role</Label>
+              <Select
+                value={selectedRole}
+                onValueChange={(value) => setSelectedRole(value as "admin" | "client" | "viewer")}
+              >
+                <SelectTrigger id="assignRole">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin - Full System Access</SelectItem>
+                  <SelectItem value="client">Client - Can Manage Account</SelectItem>
+                  <SelectItem value="viewer">Viewer - Read-Only Access</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

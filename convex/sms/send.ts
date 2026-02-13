@@ -4,6 +4,110 @@ import { action, internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 
+// Check DLR (Delivery Reports) for a bulk campaign via MTarget API
+export const checkBulkDlr = action({
+  args: { bulkMessageId: v.id("bulkMessages") },
+  handler: async (ctx, args): Promise<{ checked: number; delivered: number; failed: number; unchanged: number; error?: string }> => {
+    const campaignData = await ctx.runQuery(internal.sms.queries.getBulkCampaignForDlr, {
+      bulkMessageId: args.bulkMessageId,
+    });
+
+    if (!campaignData) {
+      return { checked: 0, delivered: 0, failed: 0, unchanged: 0, error: "Campaign not found" };
+    }
+
+    const { provider, pendingRecipients, client } = campaignData;
+
+    if (!provider || provider.type !== "mtarget") {
+      return { checked: 0, delivered: 0, failed: 0, unchanged: 0, error: "DLR check is only supported for MTarget provider" };
+    }
+
+    if (pendingRecipients.length === 0) {
+      return { checked: 0, delivered: 0, failed: 0, unchanged: 0, error: "No pending recipients to check" };
+    }
+
+    const username = provider.config.username;
+    const password = provider.config.password;
+
+    if (!username || !password) {
+      return { checked: 0, delivered: 0, failed: 0, unchanged: 0, error: "Missing MTarget credentials" };
+    }
+
+    let delivered = 0;
+    let failed = 0;
+    let unchanged = 0;
+
+    // Check DLR for each pending recipient by phone number
+    // MTarget DLR API: GET https://api-public-2.mtarget.fr/messages?username=X&password=X&msisdn=X
+    const batchSize = 50;
+    for (let i = 0; i < pendingRecipients.length; i += batchSize) {
+      const batch = pendingRecipients.slice(i, i + batchSize);
+
+      for (const recipient of batch) {
+        try {
+          const cleanPhone = recipient.phoneNumber.replace(/[^\d+]/g, "");
+          const url = new URL("https://api-public-2.mtarget.fr/messages");
+          url.searchParams.append("username", username);
+          url.searchParams.append("password", password);
+          url.searchParams.append("msisdn", cleanPhone);
+
+          const response = await fetch(url.toString());
+
+          if (response.ok) {
+            const text = await response.text();
+            // Try to parse XML or JSON response
+            let dlrStatus: "delivered" | "failed" | null = null;
+            let deliveryTime: number | undefined;
+            let failureReason: string | undefined;
+
+            // MTarget typically returns status codes: 3=delivered, 4=refused, 6=not delivered
+            if (text.includes("Status>3<") || text.includes("\"Status\":3") || text.includes("status\":3")) {
+              dlrStatus = "delivered";
+              deliveryTime = Date.now();
+            } else if (text.includes("Status>4<") || text.includes("Status>6<") || 
+                       text.includes("\"Status\":4") || text.includes("\"Status\":6") ||
+                       text.includes("status\":4") || text.includes("status\":6")) {
+              dlrStatus = "failed";
+              failureReason = "Delivery failed (DLR check)";
+            }
+
+            if (dlrStatus) {
+              await ctx.runMutation(internal.sms.webhooks.updateBulkRecipientDlr, {
+                recipientId: recipient._id,
+                bulkMessageId: args.bulkMessageId,
+                status: dlrStatus,
+                deliveredAt: deliveryTime,
+                failureReason,
+              });
+
+              if (dlrStatus === "delivered") delivered++;
+              else failed++;
+            } else {
+              unchanged++;
+            }
+          } else {
+            unchanged++;
+          }
+        } catch {
+          unchanged++;
+        }
+      }
+
+      // Small delay between batches
+      if (i + batchSize < pendingRecipients.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    return {
+      checked: pendingRecipients.length,
+      delivered,
+      failed,
+      unchanged,
+    };
+  },
+});
+
 // Internal action to send bulk campaign via MTarget
 export const sendBulkCampaignMTarget = internalAction({
   args: {

@@ -1,5 +1,5 @@
 import { Authenticated } from "convex/react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
-import { Plus, Send, Users, CheckCircle, XCircle, Clock, Calendar as CalendarIcon, Upload, FileText, RefreshCw } from "lucide-react";
+import { Plus, Send, Users, CheckCircle, XCircle, Clock, Calendar as CalendarIcon, Upload, FileText, RefreshCw, Activity } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import Papa from "papaparse";
@@ -689,7 +689,9 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
 function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> }) {
   const details = useQuery(api.bulk.getBulkMessageDetails, { bulkMessageId });
   const resendCampaign = useMutation(api.bulk.resendBulkMessage);
+  const checkDlr = useAction(api.sms.send.checkBulkDlr);
   const [isResending, setIsResending] = useState(false);
+  const [isCheckingDlr, setIsCheckingDlr] = useState(false);
 
   if (!details) {
     return <div className="space-y-4">
@@ -712,7 +714,28 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
     }
   };
 
+  const handleCheckDlr = async () => {
+    setIsCheckingDlr(true);
+    try {
+      const result = await checkDlr({ bulkMessageId });
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(
+          `DLR check complete: ${result.checked} checked, ${result.delivered} delivered, ${result.failed} failed, ${result.unchanged} unchanged`
+        );
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to check DLR");
+    } finally {
+      setIsCheckingDlr(false);
+    }
+  };
+
   const canResend = bulkMessage.status === "completed" || bulkMessage.status === "failed";
+  const hasPendingRecipients = recipients.some(
+    (r) => r.status === "sending" || r.status === "sent"
+  );
 
   return (
     <div className="space-y-6">
@@ -721,16 +744,28 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
           <h3 className="text-xl font-semibold mb-2">{bulkMessage.name}</h3>
           <p className="text-sm text-muted-foreground">{bulkMessage.message}</p>
         </div>
-        {canResend && (
-          <Button 
-            onClick={handleResend} 
-            disabled={isResending}
-            variant="outline"
-          >
-            <RefreshCw className={cn("h-4 w-4 mr-2", isResending && "animate-spin")} />
-            {isResending ? "Resending..." : "Resend Campaign"}
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {hasPendingRecipients && (
+            <Button 
+              onClick={handleCheckDlr} 
+              disabled={isCheckingDlr}
+              variant="secondary"
+            >
+              <Activity className={cn("h-4 w-4 mr-2", isCheckingDlr && "animate-pulse")} />
+              {isCheckingDlr ? "Checking..." : "Check DLR"}
+            </Button>
+          )}
+          {canResend && (
+            <Button 
+              onClick={handleResend} 
+              disabled={isResending}
+              variant="secondary"
+            >
+              <RefreshCw className={cn("h-4 w-4 mr-2", isResending && "animate-spin")} />
+              {isResending ? "Resending..." : "Resend Campaign"}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-4">

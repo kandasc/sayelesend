@@ -91,6 +91,7 @@ export const assignUserToClient = mutation({
   args: {
     userEmail: v.string(),
     clientId: v.id("clients"),
+    role: v.optional(v.union(v.literal("admin"), v.literal("client"), v.literal("viewer"))),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -126,9 +127,9 @@ export const assignUserToClient = mutation({
       });
     }
 
-    // Update user
+    // Update user with chosen role (defaults to "client")
     await ctx.db.patch(targetUser._id, {
-      role: "client",
+      role: args.role || "client",
       clientId: args.clientId,
     });
 
