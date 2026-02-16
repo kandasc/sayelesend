@@ -309,12 +309,63 @@ const deliveryWebhookHandler = (providerName: "twilio" | "vonage" | "africastalk
     }
   });
 
-// Explicit routes for each provider (path params like :provider can be unreliable)
+// MTarget sends ALL DLR reports (both single and bulk) to the same webhook URL
+// So this handler must try both individual message and bulk recipient matching
 http.route({
   path: "/webhooks/sms/delivery/mtarget",
   method: "POST",
-  handler: deliveryWebhookHandler("mtarget"),
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const body = await request.text();
+      console.log("[DLR HTTP] mtarget received webhook (unified), body length:", body.length);
+
+      // Parse body (JSON or form-encoded)
+      let data: Record<string, unknown> = {};
+      try {
+        data = JSON.parse(body);
+      } catch {
+        const params = new URLSearchParams(body);
+        data = Object.fromEntries(params.entries());
+        if (typeof data.Status === "string") {
+          data.Status = parseInt(data.Status as string, 10);
+        }
+      }
+      console.log("[DLR HTTP] mtarget parsed data:", JSON.stringify(data));
+
+      const dataStr = JSON.stringify(data);
+
+      // Try individual message handler first, then bulk handler
+      // Both are called because MTarget uses the same callback URL for all DLRs
+      await ctx.runMutation(internal.sms.webhooks.handleDeliveryUpdate, {
+        provider: "mtarget",
+        data: dataStr,
+      });
+
+      // Also try the dedicated bulk handler in case the individual handler didn't match
+      await ctx.runMutation(internal.sms.webhooks.handleBulkDeliveryUpdate, {
+        data: dataStr,
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...securityHeaders, "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      console.error("[DLR HTTP] mtarget unified error:", error);
+      await ctx.runMutation(internal.httpHelpers.logWebhookFailure, {
+        action: "Delivery webhook processing failed (mtarget unified)",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
+      return new Response(JSON.stringify({ error: "Webhook processing failed" }), {
+        status: 500,
+        headers: { ...securityHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }),
 });
+
+// Explicit routes for each provider (path params like :provider can be unreliable)
 
 http.route({
   path: "/webhooks/sms/delivery/twilio",
@@ -334,7 +385,7 @@ http.route({
   handler: deliveryWebhookHandler("africastalking"),
 });
 
-// Also handle GET for MTarget DLR (some callbacks use GET)
+// Also handle GET for MTarget DLR (some callbacks use GET) - unified for both single and bulk
 http.route({
   path: "/webhooks/sms/delivery/mtarget",
   method: "GET",
@@ -345,11 +396,18 @@ http.route({
       if (typeof data.Status === "string") {
         data.Status = parseInt(data.Status as string, 10);
       }
-      console.log("[DLR HTTP GET] mtarget data:", JSON.stringify(data));
+      console.log("[DLR HTTP GET] mtarget unified data:", JSON.stringify(data));
 
+      const dataStr = JSON.stringify(data);
+
+      // Try both individual and bulk handlers
       await ctx.runMutation(internal.sms.webhooks.handleDeliveryUpdate, {
         provider: "mtarget",
-        data: JSON.stringify(data),
+        data: dataStr,
+      });
+
+      await ctx.runMutation(internal.sms.webhooks.handleBulkDeliveryUpdate, {
+        data: dataStr,
       });
 
       return new Response(JSON.stringify({ success: true }), {
@@ -357,7 +415,7 @@ http.route({
         headers: { ...securityHeaders, "Content-Type": "application/json" },
       });
     } catch (error) {
-      console.error("[DLR HTTP GET] mtarget error:", error);
+      console.error("[DLR HTTP GET] mtarget unified error:", error);
       return new Response(JSON.stringify({ error: "Webhook processing failed" }), {
         status: 500,
         headers: { ...securityHeaders, "Content-Type": "application/json" },
