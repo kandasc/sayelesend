@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { ConvexError } from "convex/values";
+import type { Id } from "./_generated/dataModel.d.ts";
 import { validatePhoneNumber, validateMessage, sanitizeMessage } from "./lib/validation";
 
 // Send a single SMS
@@ -558,6 +559,70 @@ export const triggerBulkMarkDelivered = mutation({
     }
 
     await ctx.scheduler.runAfter(0, internal.messages.bulkMarkDelivered, {});
+    return { started: true };
+  },
+});
+
+// One-time cleanup: mark old "sent" bulk recipients as "delivered" (runs in batches, self-scheduling)
+export const bulkRecipientsMarkDelivered = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const sentRecipients = await ctx.db
+      .query("bulkMessageRecipients")
+      .withIndex("by_status", (q) => q.eq("status", "sent"))
+      .take(200);
+
+    let updated = 0;
+    const campaignIds = new Set<string>();
+
+    for (const recipient of sentRecipients) {
+      await ctx.db.patch(recipient._id, {
+        status: "delivered",
+        deliveredAt: recipient._creationTime,
+      });
+      campaignIds.add(recipient.bulkMessageId);
+      updated++;
+    }
+
+    // Refresh campaign stats for affected campaigns
+    for (const campaignId of campaignIds) {
+      const allRecipients = await ctx.db
+        .query("bulkMessageRecipients")
+        .withIndex("by_bulk", (q) => q.eq("bulkMessageId", campaignId as Id<"bulkMessages">))
+        .collect();
+      const deliveredCount = allRecipients.filter((r) => r.status === "delivered").length;
+      const failedCount = allRecipients.filter((r) => r.status === "failed").length;
+      const sentCount = allRecipients.filter((r) => r.status === "sent" || r.status === "delivered").length;
+      await ctx.db.patch(campaignId as Id<"bulkMessages">, { deliveredCount, failedCount, sentCount });
+    }
+
+    // If there are more, schedule the next batch
+    if (sentRecipients.length === 200) {
+      await ctx.scheduler.runAfter(500, internal.messages.bulkRecipientsMarkDelivered, {});
+    }
+
+    console.log(`[Cleanup] Marked ${updated} bulk recipients as delivered. Campaigns updated: ${campaignIds.size}. More remaining: ${sentRecipients.length === 200}`);
+    return { updated, remaining: sentRecipients.length === 200 };
+  },
+});
+
+// Trigger the bulk recipients cleanup (admin-only)
+export const triggerBulkRecipientsMarkDelivered = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({ message: "Admin access required", code: "FORBIDDEN" });
+    }
+
+    await ctx.scheduler.runAfter(0, internal.messages.bulkRecipientsMarkDelivered, {});
     return { started: true };
   },
 });

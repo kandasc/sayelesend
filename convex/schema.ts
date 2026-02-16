@@ -202,6 +202,7 @@ export default defineSchema({
   })
     .index("by_bulk", ["bulkMessageId"])
     .index("by_bulk_and_status", ["bulkMessageId", "status"])
+    .index("by_status", ["status"])
     .index("by_provider_msg", ["providerMessageId"]),
 
   templates: defineTable({

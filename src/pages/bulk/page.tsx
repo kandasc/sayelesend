@@ -61,9 +61,12 @@ function BulkSMSContent() {
   if (currentUser.role === "admin") {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Bulk Messaging</h1>
-          <p className="text-muted-foreground">Send messages to multiple recipients across SMS, WhatsApp, Telegram, and Facebook Messenger</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Bulk Messaging</h1>
+            <p className="text-muted-foreground">Send messages to multiple recipients across SMS, WhatsApp, Telegram, and Facebook Messenger</p>
+          </div>
+          <UpdateBulkStatusButton />
         </div>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
@@ -867,4 +870,33 @@ function getStatusVariant(
     default:
       return "outline";
   }
+}
+
+function UpdateBulkStatusButton() {
+  const triggerUpdate = useMutation(api.messages.triggerBulkRecipientsMarkDelivered);
+  const [loading, setLoading] = useState(false);
+
+  const handleClick = async () => {
+    setLoading(true);
+    try {
+      await triggerUpdate();
+      toast.success("Bulk status update started. Recipients will be updated in batches.");
+    } catch {
+      toast.error("Failed to start bulk status update");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button
+      size="sm"
+      variant="secondary"
+      onClick={handleClick}
+      disabled={loading}
+    >
+      {loading ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Activity className="h-4 w-4 mr-2" />}
+      Update Bulk Status
+    </Button>
+  );
 }
