@@ -190,14 +190,24 @@ export const handleDeliveryUpdate = internalMutation({
       for (const campaign of campaigns) {
         if (campaign.status !== "processing" && campaign.status !== "completed") continue;
 
-        const recipients = await ctx.db
+        // Check both "sent" and "sending" recipients (bug fix: was only checking "sending")
+        const sentRecipients = await ctx.db
+          .query("bulkMessageRecipients")
+          .withIndex("by_bulk_and_status", (q) =>
+            q.eq("bulkMessageId", campaign._id).eq("status", "sent")
+          )
+          .take(500);
+
+        const sendingRecipients = await ctx.db
           .query("bulkMessageRecipients")
           .withIndex("by_bulk_and_status", (q) =>
             q.eq("bulkMessageId", campaign._id).eq("status", "sending")
           )
           .take(500);
 
-        const match = recipients.find((r) => {
+        const allPending = [...sentRecipients, ...sendingRecipients];
+
+        const match = allPending.find((r) => {
           const recipientClean = r.phoneNumber.replace(/[^\d]/g, "");
           return recipientClean === cleanPhone || recipientClean.endsWith(cleanPhone) || cleanPhone.endsWith(recipientClean);
         });
@@ -308,14 +318,24 @@ export const handleBulkDeliveryUpdate = internalMutation({
       for (const campaign of campaigns) {
         if (campaign.status !== "processing" && campaign.status !== "completed") continue;
 
-        const recipients = await ctx.db
+        // Check both "sent" and "sending" recipients (bug fix: was only checking "sending")
+        const sentRecipients = await ctx.db
+          .query("bulkMessageRecipients")
+          .withIndex("by_bulk_and_status", (q) =>
+            q.eq("bulkMessageId", campaign._id).eq("status", "sent")
+          )
+          .take(500);
+
+        const sendingRecipients = await ctx.db
           .query("bulkMessageRecipients")
           .withIndex("by_bulk_and_status", (q) =>
             q.eq("bulkMessageId", campaign._id).eq("status", "sending")
           )
           .take(500);
 
-        const match = recipients.find((r) => {
+        const allPending = [...sentRecipients, ...sendingRecipients];
+
+        const match = allPending.find((r) => {
           const recipientClean = r.phoneNumber.replace(/[^\d]/g, "");
           return recipientClean === cleanPhone || recipientClean.endsWith(cleanPhone) || cleanPhone.endsWith(recipientClean);
         });
