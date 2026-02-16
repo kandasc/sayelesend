@@ -18,6 +18,8 @@ import type * as apiKeys from "../apiKeys.js";
 import type * as apiKeysActions from "../apiKeysActions.js";
 import type * as automation from "../automation.js";
 import type * as bulk from "../bulk.js";
+import type * as campaignReports from "../campaignReports.js";
+import type * as campaignReportsQueries from "../campaignReportsQueries.js";
 import type * as clients from "../clients.js";
 import type * as contactForm from "../contactForm.js";
 import type * as contactGroups from "../contactGroups.js";
@@ -74,6 +76,8 @@ declare const fullApi: ApiFromModules<{
   apiKeysActions: typeof apiKeysActions;
   automation: typeof automation;
   bulk: typeof bulk;
+  campaignReports: typeof campaignReports;
+  campaignReportsQueries: typeof campaignReportsQueries;
   clients: typeof clients;
   contactForm: typeof contactForm;
   contactGroups: typeof contactGroups;

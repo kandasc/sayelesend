@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
-import { Plus, Send, Users, CheckCircle, XCircle, Clock, Calendar as CalendarIcon, Upload, FileText, RefreshCw, Activity } from "lucide-react";
+import { Plus, Send, Users, CheckCircle, XCircle, Clock, Calendar as CalendarIcon, Upload, FileText, RefreshCw, Activity, Download, FileSpreadsheet } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import Papa from "papaparse";
@@ -693,8 +693,11 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
   const details = useQuery(api.bulk.getBulkMessageDetails, { bulkMessageId });
   const resendCampaign = useMutation(api.bulk.resendBulkMessage);
   const checkDlr = useAction(api.sms.send.checkBulkDlr);
+  const exportPDF = useAction(api.campaignReports.exportCampaignPDF);
+  const exportExcel = useAction(api.campaignReports.exportCampaignExcel);
   const [isResending, setIsResending] = useState(false);
   const [isCheckingDlr, setIsCheckingDlr] = useState(false);
+  const [isExporting, setIsExporting] = useState<"pdf" | "xls" | null>(null);
 
   if (!details) {
     return <div className="space-y-4">
@@ -740,6 +743,46 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
     (r) => r.status === "sending" || r.status === "sent"
   );
 
+  const handleExport = async (format: "pdf" | "xls") => {
+    setIsExporting(format);
+    try {
+      let result: string;
+      let filename: string;
+      let mimeType: string;
+
+      if (format === "pdf") {
+        result = await exportPDF({ bulkMessageId });
+        filename = `campaign_${bulkMessage.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+        mimeType = "application/pdf";
+      } else {
+        result = await exportExcel({ bulkMessageId });
+        filename = `campaign_${bulkMessage.name.replace(/[^a-zA-Z0-9]/g, "_")}.xlsx`;
+        mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      }
+
+      const binaryString = atob(result);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: mimeType });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast.success(`${format.toUpperCase()} report downloaded`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : `Failed to export ${format.toUpperCase()}`);
+    } finally {
+      setIsExporting(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -747,12 +790,31 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
           <h3 className="text-xl font-semibold mb-2">{bulkMessage.name}</h3>
           <p className="text-sm text-muted-foreground">{bulkMessage.message}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            onClick={() => handleExport("pdf")}
+            disabled={isExporting !== null}
+            variant="secondary"
+            size="sm"
+          >
+            {isExporting === "pdf" ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
+            PDF
+          </Button>
+          <Button
+            onClick={() => handleExport("xls")}
+            disabled={isExporting !== null}
+            variant="secondary"
+            size="sm"
+          >
+            {isExporting === "xls" ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 mr-2" />}
+            XLS
+          </Button>
           {hasPendingRecipients && (
             <Button 
               onClick={handleCheckDlr} 
               disabled={isCheckingDlr}
               variant="secondary"
+              size="sm"
             >
               <Activity className={cn("h-4 w-4 mr-2", isCheckingDlr && "animate-pulse")} />
               {isCheckingDlr ? "Checking..." : "Check DLR"}
@@ -763,6 +825,7 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
               onClick={handleResend} 
               disabled={isResending}
               variant="secondary"
+              size="sm"
             >
               <RefreshCw className={cn("h-4 w-4 mr-2", isResending && "animate-spin")} />
               {isResending ? "Resending..." : "Resend Campaign"}
