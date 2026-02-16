@@ -638,22 +638,31 @@ async function sendViaMTarget(
 
     if (response.ok) {
       // Try to extract MTarget's real message ID from response
-      // MTarget may return just the ID as text, or JSON, or "MsgId=xxx"
+      // MTarget returns: {"results": [{"msisdn":"...","ticket":"UUID","code":"0","reason":"ACCEPTED"}]}
       let realMsgId = uniqueId; // fallback to our local ID
       try {
         const trimmed = data.trim();
-        // Check if response is JSON
         if (trimmed.startsWith("{")) {
           const json = JSON.parse(trimmed);
-          if (json.MsgId) realMsgId = String(json.MsgId);
-          else if (json.msgid) realMsgId = String(json.msgid);
-          else if (json.id) realMsgId = String(json.id);
+          // Handle results array format (most common MTarget response)
+          if (json.results && Array.isArray(json.results) && json.results.length > 0) {
+            const first = json.results[0];
+            if (first.ticket) realMsgId = String(first.ticket);
+            else if (first.MsgId) realMsgId = String(first.MsgId);
+            else if (first.id) realMsgId = String(first.id);
+          } else if (json.MsgId) {
+            realMsgId = String(json.MsgId);
+          } else if (json.msgid) {
+            realMsgId = String(json.msgid);
+          } else if (json.ticket) {
+            realMsgId = String(json.ticket);
+          } else if (json.id) {
+            realMsgId = String(json.id);
+          }
         } else if (trimmed.includes("MsgId=")) {
-          // Parse key=value response
           const match = trimmed.match(/MsgId=([^\s&]+)/);
           if (match) realMsgId = match[1];
         } else if (/^\d+$/.test(trimmed)) {
-          // Plain numeric ID
           realMsgId = trimmed;
         }
       } catch {

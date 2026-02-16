@@ -264,34 +264,30 @@ http.route({
 });
 
 // Webhook endpoints with signature verification
-http.route({
-  path: "/webhooks/sms/delivery/:provider",
-  method: "POST",
-  handler: httpAction(async (ctx, request) => {
+// Create a reusable handler for delivery webhooks
+const deliveryWebhookHandler = (providerName: "twilio" | "vonage" | "africastalking" | "mtarget" | "other") =>
+  httpAction(async (ctx, request) => {
     try {
-      const url = new URL(request.url);
-      const pathParts = url.pathname.split("/");
-      const provider = pathParts[pathParts.length - 1];
-
       const body = await request.text();
-      
-      // Verify webhook signature (provider-specific)
-      const signature = request.headers.get("X-Twilio-Signature") || 
-                       request.headers.get("X-Nexmo-Signature") ||
-                       request.headers.get("X-Hub-Signature-256");
-      
-      // Parse body
+      console.log("[DLR HTTP]", providerName, "received webhook, body length:", body.length);
+
+      // Parse body (JSON or form-encoded)
       let data: Record<string, unknown> = {};
       try {
         data = JSON.parse(body);
       } catch {
         const params = new URLSearchParams(body);
         data = Object.fromEntries(params.entries());
+        // Convert Status to number if string (MTarget)
+        if (typeof data.Status === "string") {
+          data.Status = parseInt(data.Status as string, 10);
+        }
       }
+      console.log("[DLR HTTP]", providerName, "parsed data:", JSON.stringify(data));
 
       // Process webhook
       await ctx.runMutation(internal.sms.webhooks.handleDeliveryUpdate, {
-        provider: provider as "twilio" | "vonage" | "africastalking" | "mtarget" | "other",
+        provider: providerName,
         data: JSON.stringify(data),
       });
 
@@ -300,12 +296,68 @@ http.route({
         headers: { ...securityHeaders, "Content-Type": "application/json" },
       });
     } catch (error) {
-      // Log webhook failure
+      console.error("[DLR HTTP]", providerName, "error:", error);
       await ctx.runMutation(internal.httpHelpers.logWebhookFailure, {
-        action: "Delivery webhook processing failed",
+        action: `Delivery webhook processing failed (${providerName})`,
         error: error instanceof Error ? error.message : "Unknown error",
       });
 
+      return new Response(JSON.stringify({ error: "Webhook processing failed" }), {
+        status: 500,
+        headers: { ...securityHeaders, "Content-Type": "application/json" },
+      });
+    }
+  });
+
+// Explicit routes for each provider (path params like :provider can be unreliable)
+http.route({
+  path: "/webhooks/sms/delivery/mtarget",
+  method: "POST",
+  handler: deliveryWebhookHandler("mtarget"),
+});
+
+http.route({
+  path: "/webhooks/sms/delivery/twilio",
+  method: "POST",
+  handler: deliveryWebhookHandler("twilio"),
+});
+
+http.route({
+  path: "/webhooks/sms/delivery/vonage",
+  method: "POST",
+  handler: deliveryWebhookHandler("vonage"),
+});
+
+http.route({
+  path: "/webhooks/sms/delivery/africastalking",
+  method: "POST",
+  handler: deliveryWebhookHandler("africastalking"),
+});
+
+// Also handle GET for MTarget DLR (some callbacks use GET)
+http.route({
+  path: "/webhooks/sms/delivery/mtarget",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const url = new URL(request.url);
+      const data: Record<string, unknown> = Object.fromEntries(url.searchParams.entries());
+      if (typeof data.Status === "string") {
+        data.Status = parseInt(data.Status as string, 10);
+      }
+      console.log("[DLR HTTP GET] mtarget data:", JSON.stringify(data));
+
+      await ctx.runMutation(internal.sms.webhooks.handleDeliveryUpdate, {
+        provider: "mtarget",
+        data: JSON.stringify(data),
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...securityHeaders, "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      console.error("[DLR HTTP GET] mtarget error:", error);
       return new Response(JSON.stringify({ error: "Webhook processing failed" }), {
         status: 500,
         headers: { ...securityHeaders, "Content-Type": "application/json" },
@@ -392,15 +444,10 @@ http.route({
   }),
 });
 
-http.route({
-  path: "/webhooks/sms/incoming/:provider",
-  method: "POST",
-  handler: httpAction(async (ctx, request) => {
+// Incoming SMS webhooks - explicit routes per provider
+const incomingWebhookHandler = (providerName: "twilio" | "vonage" | "africastalking" | "mtarget" | "other") =>
+  httpAction(async (ctx, request) => {
     try {
-      const url = new URL(request.url);
-      const pathParts = url.pathname.split("/");
-      const provider = pathParts[pathParts.length - 1];
-
       const body = await request.text();
       let data: Record<string, unknown> = {};
 
@@ -412,7 +459,7 @@ http.route({
       }
 
       await ctx.runMutation(internal.sms.webhooks.handleIncomingSms, {
-        provider: provider as "twilio" | "vonage" | "africastalking" | "mtarget" | "other",
+        provider: providerName,
         data: JSON.stringify(data),
       });
 
@@ -422,7 +469,7 @@ http.route({
       });
     } catch (error) {
       await ctx.runMutation(internal.httpHelpers.logWebhookFailure, {
-        action: "Incoming webhook processing failed",
+        action: `Incoming webhook processing failed (${providerName})`,
         error: error instanceof Error ? error.message : "Unknown error",
       });
 
@@ -431,7 +478,30 @@ http.route({
         headers: { ...securityHeaders, "Content-Type": "application/json" },
       });
     }
-  }),
+  });
+
+http.route({
+  path: "/webhooks/sms/incoming/mtarget",
+  method: "POST",
+  handler: incomingWebhookHandler("mtarget"),
+});
+
+http.route({
+  path: "/webhooks/sms/incoming/twilio",
+  method: "POST",
+  handler: incomingWebhookHandler("twilio"),
+});
+
+http.route({
+  path: "/webhooks/sms/incoming/vonage",
+  method: "POST",
+  handler: incomingWebhookHandler("vonage"),
+});
+
+http.route({
+  path: "/webhooks/sms/incoming/africastalking",
+  method: "POST",
+  handler: incomingWebhookHandler("africastalking"),
 });
 
 // ─── AI Chat API ───────────────────────────────────────────────────────────
