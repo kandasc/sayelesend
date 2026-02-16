@@ -634,11 +634,35 @@ async function sendViaMTarget(
     });
 
     const data = await response.text();
+    console.log("[MTarget] Send response:", data);
 
     if (response.ok) {
+      // Try to extract MTarget's real message ID from response
+      // MTarget may return just the ID as text, or JSON, or "MsgId=xxx"
+      let realMsgId = uniqueId; // fallback to our local ID
+      try {
+        const trimmed = data.trim();
+        // Check if response is JSON
+        if (trimmed.startsWith("{")) {
+          const json = JSON.parse(trimmed);
+          if (json.MsgId) realMsgId = String(json.MsgId);
+          else if (json.msgid) realMsgId = String(json.msgid);
+          else if (json.id) realMsgId = String(json.id);
+        } else if (trimmed.includes("MsgId=")) {
+          // Parse key=value response
+          const match = trimmed.match(/MsgId=([^\s&]+)/);
+          if (match) realMsgId = match[1];
+        } else if (/^\d+$/.test(trimmed)) {
+          // Plain numeric ID
+          realMsgId = trimmed;
+        }
+      } catch {
+        // Keep fallback uniqueId
+      }
+      console.log("[MTarget] Using providerMessageId:", realMsgId);
       return {
         success: true,
-        providerMessageId: uniqueId,
+        providerMessageId: realMsgId,
       };
     } else {
       return {

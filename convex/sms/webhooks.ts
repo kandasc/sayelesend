@@ -14,6 +14,7 @@ export const handleDeliveryUpdate = internalMutation({
   },
   handler: async (ctx, args) => {
     const data = JSON.parse(args.data) as Record<string, unknown>;
+    console.log("[DLR Webhook]", args.provider, "data:", JSON.stringify(data));
 
     let providerMessageId: string | undefined;
     let status: "delivered" | "failed" | "sent" | undefined;
@@ -90,12 +91,20 @@ export const handleDeliveryUpdate = internalMutation({
       }
     }
 
-    if (providerMessageId && status) {
-      // Check individual messages table first
-      const messages = await ctx.db.query("messages").collect();
-      const message = messages.find((m) => m.providerMessageId === providerMessageId);
+    if (!status) {
+      console.log("[DLR Webhook] Could not determine status from webhook data");
+      return;
+    }
+
+    if (providerMessageId) {
+      console.log("[DLR Webhook] Looking for providerMessageId:", providerMessageId, "status:", status, "msisdn:", msisdn);
+      
+      // Check individual messages table - search recent messages (last 500)
+      const recentMessages = await ctx.db.query("messages").order("desc").take(500);
+      const message = recentMessages.find((m) => m.providerMessageId === providerMessageId);
 
       if (message) {
+        console.log("[DLR Webhook] Matched individual message:", message._id);
         const updates: {
           status: "delivered" | "failed" | "sent";
           deliveredAt?: number;
@@ -150,6 +159,8 @@ export const handleDeliveryUpdate = internalMutation({
         }
         return;
       }
+      
+      console.log("[DLR Webhook] No match by providerMessageId, trying bulk recipients...");
 
       // If not in messages, check bulkMessageRecipients by providerMessageId
       const bulkRecipient = await ctx.db
@@ -233,6 +244,74 @@ export const handleDeliveryUpdate = internalMutation({
           return;
         }
       }
+    }
+
+    // Final fallback for MTarget: match individual messages by phone number
+    if (args.provider === "mtarget" && msisdn && status && (status === "delivered" || status === "failed")) {
+      const cleanPhone = msisdn.replace(/[^\d]/g, "");
+      console.log("[DLR Webhook] Trying phone fallback for individual messages, phone:", cleanPhone);
+      
+      // Search recent "sent" messages
+      const sentMessages = await ctx.db
+        .query("messages")
+        .withIndex("by_status", (q) => q.eq("status", "sent"))
+        .order("desc")
+        .take(200);
+
+      const phoneMatch = sentMessages.find((m) => {
+        const msgPhone = m.to.replace(/[^\d]/g, "");
+        return msgPhone === cleanPhone || msgPhone.endsWith(cleanPhone) || cleanPhone.endsWith(msgPhone);
+      });
+
+      if (phoneMatch) {
+        console.log("[DLR Webhook] Phone fallback matched message:", phoneMatch._id, "to:", phoneMatch.to);
+        const updates: {
+          status: "delivered" | "failed";
+          deliveredAt?: number;
+          failureReason?: string;
+        } = { status };
+
+        if (status === "delivered") {
+          updates.deliveredAt = deliveryTimestamp || Date.now();
+        } else if (status === "failed") {
+          updates.failureReason = failureReason || "Delivery failed";
+          const client = await ctx.db.get(phoneMatch.clientId);
+          if (client) {
+            await ctx.db.patch(phoneMatch.clientId, {
+              credits: client.credits + phoneMatch.creditsUsed,
+            });
+          }
+        }
+
+        await ctx.db.patch(phoneMatch._id, updates);
+
+        // Create webhook event
+        const client = await ctx.db.get(phoneMatch.clientId);
+        if (client && client.webhookUrl) {
+          const payload = {
+            event: status === "delivered" ? "message.delivered" : "message.failed",
+            messageId: phoneMatch._id,
+            status,
+            to: phoneMatch.to,
+            from: phoneMatch.from,
+            message: phoneMatch.message,
+            sentAt: phoneMatch.sentAt,
+            deliveredAt: updates.deliveredAt,
+            failureReason: updates.failureReason,
+          };
+          await ctx.db.insert("webhookEvents", {
+            clientId: phoneMatch.clientId,
+            eventType: status === "delivered" ? "message.delivered" : "message.failed",
+            messageId: phoneMatch._id,
+            payload: JSON.stringify(payload),
+            status: "pending",
+            attempts: 0,
+            nextRetryAt: Date.now(),
+          });
+        }
+        return;
+      }
+      console.log("[DLR Webhook] No match found for phone:", cleanPhone);
     }
   },
 });
