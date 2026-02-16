@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { Plus, Search, Download, Calendar as CalendarIcon, FileText } from "lucide-react";
+import { Plus, Search, Download, Calendar as CalendarIcon, FileText, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { format, startOfDay, endOfDay } from "date-fns";
@@ -58,6 +58,8 @@ function MessagesContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch] = useDebounce(searchQuery, 300);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const triggerCleanup = useMutation(api.messages.triggerBulkMarkDelivered);
+  const [cleanupRunning, setCleanupRunning] = useState(false);
   
   type MessageType = NonNullable<typeof messages>[number];
   const [selectedMessage, setSelectedMessage] = useState<MessageType | null>(null);
@@ -297,6 +299,27 @@ function MessagesContent() {
           <h1 className="text-3xl font-bold">Outgoing Messages</h1>
           <p className="text-muted-foreground">Send messages via SMS, WhatsApp, Telegram, and Facebook Messenger</p>
         </div>
+        {currentUser?.role === "admin" && (
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={cleanupRunning}
+            onClick={async () => {
+              setCleanupRunning(true);
+              try {
+                await triggerCleanup({});
+                toast.success("Bulk status update started. Old 'sent' messages will be marked as 'delivered' in batches.");
+              } catch {
+                toast.error("Failed to start cleanup");
+              } finally {
+                setCleanupRunning(false);
+              }
+            }}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${cleanupRunning ? "animate-spin" : ""}`} />
+            Update Old Status
+          </Button>
+        )}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>

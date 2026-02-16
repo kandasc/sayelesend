@@ -512,3 +512,52 @@ export const getMessageViaApi = query({
     return message;
   },
 });
+
+// One-time cleanup: mark old "sent" messages as "delivered" (runs in batches, self-scheduling)
+export const bulkMarkDelivered = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const sentMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_status", (q) => q.eq("status", "sent"))
+      .take(200);
+
+    let updated = 0;
+    for (const msg of sentMessages) {
+      await ctx.db.patch(msg._id, {
+        status: "delivered",
+        deliveredAt: msg.sentAt || msg._creationTime,
+      });
+      updated++;
+    }
+
+    // If there are more, schedule the next batch
+    if (sentMessages.length === 200) {
+      await ctx.scheduler.runAfter(500, internal.messages.bulkMarkDelivered, {});
+    }
+
+    console.log(`[Cleanup] Marked ${updated} messages as delivered. More remaining: ${sentMessages.length === 200}`);
+    return { updated, remaining: sentMessages.length === 200 };
+  },
+});
+
+// Trigger the bulk cleanup (admin-only)
+export const triggerBulkMarkDelivered = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user || user.role !== "admin") {
+      throw new ConvexError({ message: "Admin access required", code: "FORBIDDEN" });
+    }
+
+    await ctx.scheduler.runAfter(0, internal.messages.bulkMarkDelivered, {});
+    return { started: true };
+  },
+});
