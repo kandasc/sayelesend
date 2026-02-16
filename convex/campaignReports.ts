@@ -4,8 +4,15 @@ import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
 import { internal } from "./_generated/api";
-import jsPDF from "jspdf";
+import jsPDFModule from "jspdf";
 import * as XLSX from "xlsx";
+
+// Handle CJS/ESM interop for jsPDF in Node runtime
+const jsPDFCtor = (jsPDFModule as unknown as Record<string, unknown>).jsPDF ?? jsPDFModule;
+type JsPDFType = InstanceType<typeof jsPDFModule>;
+function createPDF(): JsPDFType {
+  return new (jsPDFCtor as typeof jsPDFModule)();
+}
 
 type CampaignData = {
   campaign: {
@@ -47,7 +54,7 @@ export const exportCampaignPDF = action({
     });
 
     const { campaign, recipients } = data;
-    const doc = new jsPDF();
+    const doc = createPDF();
     let y = 20;
 
     // Header
