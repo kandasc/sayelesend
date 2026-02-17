@@ -9,7 +9,7 @@ import { toast } from "sonner";
 export default function ApiDocsPage() {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   
-  const apiBaseUrl = "https://api.sayele.co";
+  const apiBaseUrl = (import.meta.env.VITE_CONVEX_SITE_URL as string) || "https://api.sayele.co";
 
   const copyToClipboard = (text: string, section: string) => {
     navigator.clipboard.writeText(text);
