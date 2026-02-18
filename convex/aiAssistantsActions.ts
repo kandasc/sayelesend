@@ -387,6 +387,15 @@ async function runChatCore(
     }
 
     let response = await openai.chat.completions.create(completionArgs);
+    console.log("AI response keys:", JSON.stringify({
+      model: response.model,
+      choicesLen: response.choices?.length,
+      finishReason: response.choices?.[0]?.finish_reason,
+      hasContent: !!response.choices?.[0]?.message?.content,
+      contentLen: response.choices?.[0]?.message?.content?.length,
+      contentPreview: response.choices?.[0]?.message?.content?.substring(0, 100),
+      messageKeys: Object.keys(response.choices?.[0]?.message ?? {}),
+    }));
     let choice = response.choices[0];
 
     // Handle function calls (up to 3 iterations)
