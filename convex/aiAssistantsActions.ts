@@ -452,9 +452,24 @@ async function runChatCore(
 
     return { response: aiResponse, sessionId: args.sessionId };
   } catch (error) {
-    console.error("AI chat error:", error);
-    const errorMsg =
+    const errDetail = error instanceof Error
+      ? `${error.name}: ${error.message}`
+      : String(error);
+    console.error("AI chat error detail:", errDetail);
+    if (error instanceof Error && error.stack) {
+      console.error("AI chat error stack:", error.stack);
+    }
+
+    // Surface more helpful message when possible
+    let errorMsg =
       "I'm experiencing technical difficulties. Please try again later or contact support.";
+    if (errDetail.includes("401") || errDetail.includes("Unauthorized")) {
+      errorMsg = "AI service authentication failed. Please check your API key configuration.";
+    } else if (errDetail.includes("429") || errDetail.includes("rate")) {
+      errorMsg = "AI service rate limit reached. Please wait a moment and try again.";
+    } else if (errDetail.includes("timeout") || errDetail.includes("ETIMEDOUT")) {
+      errorMsg = "AI service timed out. Please try again.";
+    }
 
     await ctx.runMutation(internal.aiAssistants.addChatMessage, {
       sessionId: internalSessionId,
