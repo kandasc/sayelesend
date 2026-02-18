@@ -148,12 +148,41 @@ export default defineSchema({
     deliveredAt: v.optional(v.number()),
     failureReason: v.optional(v.string()),
     bulkMessageId: v.optional(v.id("bulkMessages")),
+    conversationId: v.optional(v.id("conversations")),
   })
     .index("by_client", ["clientId"])
     .index("by_status", ["status"])
     .index("by_client_and_status", ["clientId", "status"])
     .index("by_bulk", ["bulkMessageId"])
-    .index("by_channel", ["channel"]),
+    .index("by_channel", ["channel"])
+    .index("by_conversation", ["conversationId"]),
+
+  conversations: defineTable({
+    clientId: v.id("clients"),
+    contactPhone: v.string(),
+    channel: v.union(
+      v.literal("sms"),
+      v.literal("whatsapp"),
+      v.literal("telegram"),
+      v.literal("facebook_messenger")
+    ),
+    contactId: v.optional(v.id("contacts")),
+    contactName: v.optional(v.string()),
+    lastMessageText: v.string(),
+    lastMessageAt: v.string(),
+    lastMessageDirection: v.union(
+      v.literal("inbound"),
+      v.literal("outbound")
+    ),
+    unreadCount: v.number(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("archived")
+    ),
+  })
+    .index("by_client", ["clientId"])
+    .index("by_client_and_phone", ["clientId", "contactPhone"])
+    .index("by_client_and_status", ["clientId", "status"]),
 
   bulkMessages: defineTable({
     clientId: v.id("clients"),
@@ -241,10 +270,12 @@ export default defineSchema({
     providerMessageId: v.optional(v.string()),
     receivedAt: v.number(),
     processed: v.boolean(),
+    conversationId: v.optional(v.id("conversations")),
   })
     .index("by_client", ["clientId"])
     .index("by_processed", ["processed"])
-    .index("by_client_and_received", ["clientId", "receivedAt"]),
+    .index("by_client_and_received", ["clientId", "receivedAt"])
+    .index("by_conversation", ["conversationId"]),
 
   webhookEvents: defineTable({
     clientId: v.id("clients"),

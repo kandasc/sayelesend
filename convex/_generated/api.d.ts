@@ -24,6 +24,7 @@ import type * as clients from "../clients.js";
 import type * as contactForm from "../contactForm.js";
 import type * as contactGroups from "../contactGroups.js";
 import type * as contacts from "../contacts.js";
+import type * as conversations from "../conversations.js";
 import type * as credits from "../credits.js";
 import type * as http from "../http.js";
 import type * as httpHelpers from "../httpHelpers.js";
@@ -82,6 +83,7 @@ declare const fullApi: ApiFromModules<{
   contactForm: typeof contactForm;
   contactGroups: typeof contactGroups;
   contacts: typeof contacts;
+  conversations: typeof conversations;
   credits: typeof credits;
   http: typeof http;
   httpHelpers: typeof httpHelpers;

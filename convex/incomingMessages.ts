@@ -101,16 +101,27 @@ export const receiveIncomingSms = internalMutation({
     providerMessageId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const channel = args.channel || "sms";
     const messageId = await ctx.db.insert("incomingMessages", {
       clientId: args.clientId,
       from: args.from,
       to: args.to,
-      channel: args.channel || "sms",
+      channel,
       message: args.message,
       providerId: args.providerId,
       providerMessageId: args.providerMessageId,
       receivedAt: Date.now(),
       processed: false,
+    });
+
+    // Update or create conversation thread
+    await ctx.scheduler.runAfter(0, internal.conversations.upsertConversation, {
+      clientId: args.clientId,
+      contactPhone: args.from,
+      channel,
+      messageText: args.message,
+      direction: "inbound",
+      incomingMessageId: messageId,
     });
 
     // Create webhook event for incoming message

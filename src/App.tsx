@@ -29,6 +29,7 @@ import ApiDocs from "./pages/api-docs/page.tsx";
 import PublicApiDocs from "./pages/docs/page.tsx";
 import Payments from "./pages/payments/page.tsx";
 import AIAssistants from "./pages/ai-assistants/page.tsx";
+import UnifiedInbox from "./pages/inbox/page.tsx";
 
 function LanguageWrapper({ children }: { children: React.ReactNode }) {
   const { lng } = useParams();
@@ -68,6 +69,7 @@ export default function App() {
           <Route path="/:lng/dashboard" element={<LanguageWrapper><DashboardLayout><Dashboard /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/messages" element={<LanguageWrapper><DashboardLayout><Messages /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/incoming" element={<LanguageWrapper><DashboardLayout><IncomingMessages /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/inbox" element={<LanguageWrapper><DashboardLayout><UnifiedInbox /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/bulk" element={<LanguageWrapper><DashboardLayout><BulkSMS /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/contacts" element={<LanguageWrapper><DashboardLayout><Contacts /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/groups" element={<LanguageWrapper><DashboardLayout><Groups /></DashboardLayout></LanguageWrapper>} />

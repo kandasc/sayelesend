@@ -138,6 +138,16 @@ export const sendSms = mutation({
       type: args.scheduledAt ? "scheduled" : "single",
     });
 
+    // Update or create conversation thread
+    await ctx.scheduler.runAfter(0, internal.conversations.upsertConversation, {
+      clientId,
+      contactPhone: args.to,
+      channel,
+      messageText: sanitizedMessage,
+      direction: "outbound",
+      messageId,
+    });
+
     if (args.scheduledAt) {
       await ctx.scheduler.runAt(args.scheduledAt, internal.sms.send.sendScheduledMessage, {
         messageId,

@@ -30,6 +30,7 @@ import {
   ChevronDown,
   ChevronRight,
   Mail,
+  MessagesSquare,
   Code,
   Shield,
 } from "lucide-react";
@@ -152,6 +153,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     icon: <Mail className="h-5 w-5" />,
     defaultOpen: true,
     items: [
+      { path: `/${lang}/inbox`, label: "Inbox", icon: <MessagesSquare className="h-4 w-4" /> },
       { path: `/${lang}/messages`, label: "Outgoing", icon: <SendHorizontal className="h-4 w-4" /> },
       { path: `/${lang}/incoming`, label: "Incoming", icon: <Inbox className="h-4 w-4" /> },
       { path: `/${lang}/bulk`, label: "Bulk SMS", icon: <Send className="h-4 w-4" /> },
