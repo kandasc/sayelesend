@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import OpenAI from "openai";
 import { action, internalAction } from "./_generated/server";
+import type { ActionCtx } from "./_generated/server.d.ts";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel.d.ts";
 
@@ -274,6 +275,197 @@ async function executeTask(
 
 // ─── Main Chat Action ───────────────────────────────────────────────────────
 
+// AI model used across all chat actions — fast and cost-effective
+const AI_MODEL = "openai/gpt-5-mini";
+const MAX_HISTORY = 10; // keep context small for speed
+const MAX_TOKENS = 512; // cap response length
+
+/**
+ * Shared core chat logic used by both authenticated and public chat.
+ * Eliminates the nested action overhead by being called directly.
+ */
+async function runChatCore(
+  ctx: Pick<ActionCtx, "runQuery" | "runMutation">,
+  args: {
+    assistantId: Id<"aiAssistants">;
+    sessionId: string;
+    message: string;
+    channel: "web" | "sms" | "whatsapp" | "api";
+    visitorName?: string;
+    visitorEmail?: string;
+    visitorPhone?: string;
+    useInternal: boolean; // true for public/internal, false for auth-gated
+  },
+): Promise<{ response: string; sessionId: string }> {
+  // 1. Get assistant + session in parallel
+  const [assistant, session] = await Promise.all([
+    args.useInternal
+      ? ctx.runQuery(internal.aiAssistants.getByIdInternal, { assistantId: args.assistantId })
+      : ctx.runQuery(api.aiAssistants.getById, { assistantId: args.assistantId }),
+    args.useInternal
+      ? ctx.runQuery(internal.aiAssistants.getSessionByPublicIdInternal, { sessionId: args.sessionId })
+      : ctx.runQuery(api.aiAssistants.getSessionByPublicId, { sessionId: args.sessionId }),
+  ]);
+
+  if (!assistant || !assistant.isActive) {
+    return { response: "This assistant is currently unavailable.", sessionId: args.sessionId };
+  }
+
+  // 2. Create session if needed
+  let internalSessionId: Id<"aiChatSessions">;
+  if (!session) {
+    const createFn = args.useInternal
+      ? internal.aiAssistants.createChatSessionInternal
+      : api.aiAssistants.createChatSession;
+    internalSessionId = await ctx.runMutation(createFn, {
+      assistantId: args.assistantId,
+      sessionId: args.sessionId,
+      channel: args.channel,
+      visitorName: args.visitorName,
+      visitorEmail: args.visitorEmail,
+      visitorPhone: args.visitorPhone,
+    });
+    await ctx.runMutation(internal.aiAssistants.incrementConversationCount, {
+      assistantId: args.assistantId,
+    });
+  } else {
+    internalSessionId = session._id;
+  }
+
+  // 3. Save user message + fetch context in parallel
+  const chatMsgFn = args.useInternal
+    ? internal.aiAssistants.getChatMessagesInternal
+    : api.aiAssistants.getChatMessages;
+  const kbFn = args.useInternal
+    ? internal.aiAssistants.getKnowledgeBaseInternal
+    : api.aiAssistants.getKnowledgeBase;
+  const taskFn = args.useInternal
+    ? internal.aiAssistants.getActiveTasksInternalQuery
+    : api.aiAssistants.getActiveTasksInternal;
+
+  const [, history, knowledgeBase, activeTasks] = await Promise.all([
+    ctx.runMutation(internal.aiAssistants.addChatMessage, {
+      sessionId: internalSessionId,
+      role: "user",
+      content: args.message,
+    }),
+    ctx.runQuery(chatMsgFn, { sessionId: internalSessionId }),
+    ctx.runQuery(kbFn, { assistantId: args.assistantId }),
+    ctx.runQuery(taskFn, { assistantId: args.assistantId }),
+  ]);
+
+  // 4. Build OpenAI messages with trimmed history
+  const systemPrompt = buildSystemPrompt(assistant, knowledgeBase, activeTasks.length > 0);
+  const openaiMessages: OpenAI.ChatCompletionMessageParam[] = [
+    { role: "system", content: systemPrompt },
+  ];
+
+  const recentHistory = history.slice(-MAX_HISTORY);
+  for (const msg of recentHistory) {
+    if (msg.role === "user" || msg.role === "assistant") {
+      openaiMessages.push({ role: msg.role, content: msg.content });
+    }
+  }
+
+  // 5. Build tools from active tasks
+  const tools = activeTasks.length > 0 ? tasksToOpenAITools(activeTasks) : undefined;
+
+  // 6. Call AI
+  const openai = new OpenAI({
+    baseURL: "http://ai-gateway.hercules.app/v1",
+    apiKey: process.env.HERCULES_API_KEY,
+  });
+
+  try {
+    const completionArgs: OpenAI.ChatCompletionCreateParamsNonStreaming = {
+      model: AI_MODEL,
+      messages: openaiMessages,
+      max_tokens: MAX_TOKENS,
+    };
+    if (tools && tools.length > 0) {
+      completionArgs.tools = tools;
+    }
+
+    let response = await openai.chat.completions.create(completionArgs);
+    let choice = response.choices[0];
+
+    // Handle function calls (up to 3 iterations)
+    let iterations = 0;
+    while (choice?.finish_reason === "tool_calls" && choice.message.tool_calls && iterations < 3) {
+      iterations++;
+      openaiMessages.push(choice.message);
+
+      for (const toolCall of choice.message.tool_calls) {
+        if (toolCall.type !== "function") continue;
+        const funcCall = toolCall as { type: "function"; id: string; function: { name: string; arguments: string } };
+        const taskId = funcCall.function.name.replace("task_", "") as Id<"aiAssistantTasks">;
+        const task = activeTasks.find((t) => t._id === taskId);
+
+        let toolResult: string;
+        if (task) {
+          const params = JSON.parse(funcCall.function.arguments) as Record<string, unknown>;
+          const result = await executeTask(task, params);
+
+          // Fire-and-forget log (don't wait for it to complete)
+          void ctx.runMutation(internal.aiAssistants.logTaskExecution, {
+            taskId: task._id,
+            sessionId: internalSessionId,
+            assistantId: args.assistantId,
+            parameters: JSON.stringify(params),
+            responseStatus: result.status,
+            responseBody: result.body,
+            success: result.success,
+            errorMessage: result.success ? undefined : result.body,
+          });
+
+          toolResult = result.success ? result.body : `Task failed: ${result.body}`;
+        } else {
+          toolResult = "Task not found or unavailable.";
+        }
+
+        openaiMessages.push({
+          role: "tool",
+          tool_call_id: toolCall.id,
+          content: toolResult,
+        });
+      }
+
+      response = await openai.chat.completions.create({
+        model: AI_MODEL,
+        messages: openaiMessages,
+        tools,
+        max_tokens: MAX_TOKENS,
+      });
+      choice = response.choices[0];
+    }
+
+    const aiResponse =
+      choice?.message?.content ??
+      "I apologize, but I'm unable to respond right now. Please try again.";
+
+    // 7. Save assistant response
+    await ctx.runMutation(internal.aiAssistants.addChatMessage, {
+      sessionId: internalSessionId,
+      role: "assistant",
+      content: aiResponse,
+    });
+
+    return { response: aiResponse, sessionId: args.sessionId };
+  } catch (error) {
+    console.error("AI chat error:", error);
+    const errorMsg =
+      "I'm experiencing technical difficulties. Please try again later or contact support.";
+
+    await ctx.runMutation(internal.aiAssistants.addChatMessage, {
+      sessionId: internalSessionId,
+      role: "assistant",
+      content: errorMsg,
+    });
+
+    return { response: errorMsg, sessionId: args.sessionId };
+  }
+}
+
 export const chat = action({
   args: {
     assistantId: v.id("aiAssistants"),
@@ -290,168 +482,7 @@ export const chat = action({
     visitorPhone: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<{ response: string; sessionId: string }> => {
-    // 1. Get assistant
-    const assistant = await ctx.runQuery(api.aiAssistants.getById, {
-      assistantId: args.assistantId,
-    });
-    if (!assistant || !assistant.isActive) {
-      return { response: "This assistant is currently unavailable.", sessionId: args.sessionId };
-    }
-
-    // 2. Get or create session
-    let session = await ctx.runQuery(api.aiAssistants.getSessionByPublicId, {
-      sessionId: args.sessionId,
-    });
-
-    let internalSessionId: Id<"aiChatSessions">;
-
-    if (!session) {
-      internalSessionId = await ctx.runMutation(api.aiAssistants.createChatSession, {
-        assistantId: args.assistantId,
-        sessionId: args.sessionId,
-        channel: args.channel,
-        visitorName: args.visitorName,
-        visitorEmail: args.visitorEmail,
-        visitorPhone: args.visitorPhone,
-      });
-      await ctx.runMutation(internal.aiAssistants.incrementConversationCount, {
-        assistantId: args.assistantId,
-      });
-    } else {
-      internalSessionId = session._id;
-    }
-
-    // 3. Save user message
-    await ctx.runMutation(internal.aiAssistants.addChatMessage, {
-      sessionId: internalSessionId,
-      role: "user",
-      content: args.message,
-    });
-
-    // 4. Get context data
-    const [history, knowledgeBase, activeTasks] = await Promise.all([
-      ctx.runQuery(api.aiAssistants.getChatMessages, { sessionId: internalSessionId }),
-      ctx.runQuery(api.aiAssistants.getKnowledgeBase, { assistantId: args.assistantId }),
-      ctx.runQuery(api.aiAssistants.getActiveTasksInternal, { assistantId: args.assistantId }),
-    ]);
-
-    // 5. Build OpenAI messages
-    const systemPrompt = buildSystemPrompt(assistant, knowledgeBase, activeTasks.length > 0);
-    const openaiMessages: OpenAI.ChatCompletionMessageParam[] = [
-      { role: "system", content: systemPrompt },
-    ];
-
-    // Add recent history (last 20 messages)
-    const recentHistory = history.slice(-20);
-    for (const msg of recentHistory) {
-      if (msg.role === "user" || msg.role === "assistant") {
-        openaiMessages.push({ role: msg.role, content: msg.content });
-      }
-    }
-
-    // 6. Build tools from active tasks
-    const tools = activeTasks.length > 0 ? tasksToOpenAITools(activeTasks) : undefined;
-
-    // 7. Call AI via Hercules AI Gateway
-    const openai = new OpenAI({
-      baseURL: "http://ai-gateway.hercules.app/v1",
-      apiKey: process.env.HERCULES_API_KEY,
-    });
-
-    try {
-      const completionArgs: OpenAI.ChatCompletionCreateParamsNonStreaming = {
-        model: "openai/gpt-4o-mini",
-        messages: openaiMessages,
-      };
-      if (tools && tools.length > 0) {
-        completionArgs.tools = tools;
-      }
-
-      let response = await openai.chat.completions.create(completionArgs);
-      let choice = response.choices[0];
-
-      // Handle function calls (up to 3 iterations to prevent infinite loops)
-      let iterations = 0;
-      while (choice?.finish_reason === "tool_calls" && choice.message.tool_calls && iterations < 3) {
-        iterations++;
-
-        // Add assistant message with tool calls
-        openaiMessages.push(choice.message);
-
-        // Execute each tool call
-        for (const toolCall of choice.message.tool_calls) {
-          // Narrow to function tool calls only
-          if (toolCall.type !== "function") continue;
-          const funcCall = toolCall as { type: "function"; id: string; function: { name: string; arguments: string } };
-          const taskId = funcCall.function.name.replace("task_", "") as Id<"aiAssistantTasks">;
-          const task = activeTasks.find((t) => t._id === taskId);
-
-          let toolResult: string;
-
-          if (task) {
-            const params = JSON.parse(funcCall.function.arguments) as Record<string, unknown>;
-            const result = await executeTask(task, params);
-
-            // Log execution
-            await ctx.runMutation(internal.aiAssistants.logTaskExecution, {
-              taskId: task._id,
-              sessionId: internalSessionId,
-              assistantId: args.assistantId,
-              parameters: JSON.stringify(params),
-              responseStatus: result.status,
-              responseBody: result.body,
-              success: result.success,
-              errorMessage: result.success ? undefined : result.body,
-            });
-
-            toolResult = result.success
-              ? result.body
-              : `Task failed: ${result.body}`;
-          } else {
-            toolResult = "Task not found or unavailable.";
-          }
-
-          openaiMessages.push({
-            role: "tool",
-            tool_call_id: toolCall.id,
-            content: toolResult,
-          });
-        }
-
-        // Get next response after tool execution
-        response = await openai.chat.completions.create({
-          model: "openai/gpt-4o-mini",
-          messages: openaiMessages,
-          tools,
-        });
-        choice = response.choices[0];
-      }
-
-      const aiResponse =
-        choice?.message?.content ??
-        "I apologize, but I'm unable to respond right now. Please try again.";
-
-      // 8. Save assistant response
-      await ctx.runMutation(internal.aiAssistants.addChatMessage, {
-        sessionId: internalSessionId,
-        role: "assistant",
-        content: aiResponse,
-      });
-
-      return { response: aiResponse, sessionId: args.sessionId };
-    } catch (error) {
-      console.error("AI chat error:", error);
-      const errorMsg =
-        "I'm experiencing technical difficulties. Please try again later or contact support.";
-
-      await ctx.runMutation(internal.aiAssistants.addChatMessage, {
-        sessionId: internalSessionId,
-        role: "assistant",
-        content: errorMsg,
-      });
-
-      return { response: errorMsg, sessionId: args.sessionId };
-    }
+    return runChatCore(ctx, { ...args, useInternal: false });
   },
 });
 
@@ -473,157 +504,7 @@ export const publicChat = internalAction({
     visitorPhone: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<{ response: string; sessionId: string }> => {
-    // 1. Get assistant (internal - no auth)
-    const assistant = await ctx.runQuery(internal.aiAssistants.getByIdInternal, {
-      assistantId: args.assistantId,
-    });
-    if (!assistant || !assistant.isActive) {
-      return { response: "This assistant is currently unavailable.", sessionId: args.sessionId };
-    }
-
-    // 2. Get or create session
-    const session = await ctx.runQuery(internal.aiAssistants.getSessionByPublicIdInternal, {
-      sessionId: args.sessionId,
-    });
-
-    let internalSessionId: Id<"aiChatSessions">;
-
-    if (!session) {
-      internalSessionId = await ctx.runMutation(internal.aiAssistants.createChatSessionInternal, {
-        assistantId: args.assistantId,
-        sessionId: args.sessionId,
-        channel: args.channel,
-        visitorName: args.visitorName,
-        visitorEmail: args.visitorEmail,
-        visitorPhone: args.visitorPhone,
-      });
-      await ctx.runMutation(internal.aiAssistants.incrementConversationCount, {
-        assistantId: args.assistantId,
-      });
-    } else {
-      internalSessionId = session._id;
-    }
-
-    // 3. Save user message
-    await ctx.runMutation(internal.aiAssistants.addChatMessage, {
-      sessionId: internalSessionId,
-      role: "user",
-      content: args.message,
-    });
-
-    // 4. Get context data (internal - no auth)
-    const [history, knowledgeBase, activeTasks] = await Promise.all([
-      ctx.runQuery(internal.aiAssistants.getChatMessagesInternal, { sessionId: internalSessionId }),
-      ctx.runQuery(internal.aiAssistants.getKnowledgeBaseInternal, { assistantId: args.assistantId }),
-      ctx.runQuery(internal.aiAssistants.getActiveTasksInternalQuery, { assistantId: args.assistantId }),
-    ]);
-
-    // 5. Build OpenAI messages
-    const systemPrompt = buildSystemPrompt(assistant, knowledgeBase, activeTasks.length > 0);
-    const openaiMessages: OpenAI.ChatCompletionMessageParam[] = [
-      { role: "system", content: systemPrompt },
-    ];
-
-    const recentHistory = history.slice(-20);
-    for (const msg of recentHistory) {
-      if (msg.role === "user" || msg.role === "assistant") {
-        openaiMessages.push({ role: msg.role, content: msg.content });
-      }
-    }
-
-    // 6. Build tools from active tasks
-    const tools = activeTasks.length > 0 ? tasksToOpenAITools(activeTasks) : undefined;
-
-    // 7. Call AI via Hercules AI Gateway
-    const openai = new OpenAI({
-      baseURL: "http://ai-gateway.hercules.app/v1",
-      apiKey: process.env.HERCULES_API_KEY,
-    });
-
-    try {
-      const completionArgs: OpenAI.ChatCompletionCreateParamsNonStreaming = {
-        model: "openai/gpt-4o-mini",
-        messages: openaiMessages,
-      };
-      if (tools && tools.length > 0) {
-        completionArgs.tools = tools;
-      }
-
-      let response = await openai.chat.completions.create(completionArgs);
-      let choice = response.choices[0];
-
-      let iterations = 0;
-      while (choice?.finish_reason === "tool_calls" && choice.message.tool_calls && iterations < 3) {
-        iterations++;
-        openaiMessages.push(choice.message);
-
-        for (const toolCall of choice.message.tool_calls) {
-          if (toolCall.type !== "function") continue;
-          const funcCall = toolCall as { type: "function"; id: string; function: { name: string; arguments: string } };
-          const taskId = funcCall.function.name.replace("task_", "") as Id<"aiAssistantTasks">;
-          const task = activeTasks.find((t) => t._id === taskId);
-
-          let toolResult: string;
-
-          if (task) {
-            const params = JSON.parse(funcCall.function.arguments) as Record<string, unknown>;
-            const result = await executeTask(task, params);
-
-            await ctx.runMutation(internal.aiAssistants.logTaskExecution, {
-              taskId: task._id,
-              sessionId: internalSessionId,
-              assistantId: args.assistantId,
-              parameters: JSON.stringify(params),
-              responseStatus: result.status,
-              responseBody: result.body,
-              success: result.success,
-              errorMessage: result.success ? undefined : result.body,
-            });
-
-            toolResult = result.success ? result.body : `Task failed: ${result.body}`;
-          } else {
-            toolResult = "Task not found or unavailable.";
-          }
-
-          openaiMessages.push({
-            role: "tool",
-            tool_call_id: toolCall.id,
-            content: toolResult,
-          });
-        }
-
-        response = await openai.chat.completions.create({
-          model: "openai/gpt-4o-mini",
-          messages: openaiMessages,
-          tools,
-        });
-        choice = response.choices[0];
-      }
-
-      const aiResponse =
-        choice?.message?.content ??
-        "I apologize, but I'm unable to respond right now. Please try again.";
-
-      await ctx.runMutation(internal.aiAssistants.addChatMessage, {
-        sessionId: internalSessionId,
-        role: "assistant",
-        content: aiResponse,
-      });
-
-      return { response: aiResponse, sessionId: args.sessionId };
-    } catch (error) {
-      console.error("AI chat error:", error);
-      const errorMsg =
-        "I'm experiencing technical difficulties. Please try again later or contact support.";
-
-      await ctx.runMutation(internal.aiAssistants.addChatMessage, {
-        sessionId: internalSessionId,
-        role: "assistant",
-        content: errorMsg,
-      });
-
-      return { response: errorMsg, sessionId: args.sessionId };
-    }
+    return runChatCore(ctx, { ...args, useInternal: true });
   },
 });
 
@@ -642,11 +523,13 @@ export const testChat = action({
 
     const testSessionId = `test_${identity.tokenIdentifier}_${args.assistantId}`;
 
-    const result = await ctx.runAction(api.aiAssistantsActions.chat, {
+    // Call shared core directly — no nested action overhead
+    const result = await runChatCore(ctx, {
       assistantId: args.assistantId,
       sessionId: testSessionId,
       message: args.message,
       channel: "web",
+      useInternal: false,
     });
 
     return { response: result.response };
