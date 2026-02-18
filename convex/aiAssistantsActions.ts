@@ -380,7 +380,7 @@ async function runChatCore(
     const completionArgs: OpenAI.ChatCompletionCreateParamsNonStreaming = {
       model: AI_MODEL,
       messages: openaiMessages,
-      max_tokens: MAX_TOKENS,
+      max_completion_tokens: MAX_TOKENS,
     };
     if (tools && tools.length > 0) {
       completionArgs.tools = tools;
@@ -434,7 +434,7 @@ async function runChatCore(
         model: AI_MODEL,
         messages: openaiMessages,
         tools,
-        max_tokens: MAX_TOKENS,
+        max_completion_tokens: MAX_TOKENS,
       });
       choice = response.choices[0];
     }
