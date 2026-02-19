@@ -278,7 +278,7 @@ async function executeTask(
 // AI model used across all chat actions — fast and cost-effective
 const AI_MODEL = "openai/gpt-5-mini";
 const MAX_HISTORY = 10; // keep context small for speed
-const MAX_TOKENS = 512; // cap response length
+const MAX_TOKENS = 4096; // gpt-5 models use reasoning tokens that count against this limit
 
 /**
  * Shared core chat logic used by both authenticated and public chat.
@@ -387,15 +387,6 @@ async function runChatCore(
     }
 
     let response = await openai.chat.completions.create(completionArgs);
-    console.log("AI response keys:", JSON.stringify({
-      model: response.model,
-      choicesLen: response.choices?.length,
-      finishReason: response.choices?.[0]?.finish_reason,
-      hasContent: !!response.choices?.[0]?.message?.content,
-      contentLen: response.choices?.[0]?.message?.content?.length,
-      contentPreview: response.choices?.[0]?.message?.content?.substring(0, 100),
-      messageKeys: Object.keys(response.choices?.[0]?.message ?? {}),
-    }));
     let choice = response.choices[0];
 
     // Handle function calls (up to 3 iterations)
@@ -448,9 +439,11 @@ async function runChatCore(
       choice = response.choices[0];
     }
 
+    const rawContent = choice?.message?.content;
     const aiResponse =
-      choice?.message?.content ??
-      "I apologize, but I'm unable to respond right now. Please try again.";
+      rawContent && rawContent.trim().length > 0
+        ? rawContent
+        : "I apologize, but I'm unable to respond right now. Please try again.";
 
     // 7. Save assistant response
     await ctx.runMutation(internal.aiAssistants.addChatMessage, {
