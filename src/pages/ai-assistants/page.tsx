@@ -639,91 +639,206 @@ response = requests.post(
 data = response.json()
 print(data["response"])`;
 
-  const widgetExample = `<!-- Embed Chat Widget -->
+  const widgetExample = `<!-- SAYELE Chat Widget — Full-Featured -->
 <script>
 (function() {
   const ASSISTANT_ID = "${assistantId}";
   const API_URL = "${API_BASE}/api/v1/ai/chat";
+  const HANDOVER_URL = "${API_BASE}/api/v1/ai/handover";
+  const COLOR = "${assistant.primaryColor ?? "#3B82F6"}";
+  const NAME = "${assistant.name}";
   let sessionId = "widget_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+  let isHandedOver = false;
 
-  // Create chat widget UI
+  // ── Build Widget UI ──
   const widget = document.createElement("div");
   widget.id = "sayele-chat-widget";
   widget.innerHTML = \`
-    <div style="position:fixed;bottom:20px;right:20px;z-index:9999;">
-      <div id="chat-popup" style="display:none;width:380px;height:500px;
-        border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.15);
+    <div style="position:fixed;bottom:20px;right:20px;z-index:9999;font-family:system-ui,-apple-system,sans-serif;">
+      <div id="sc-popup" style="display:none;width:380px;height:540px;
+        border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.18);
         background:#fff;flex-direction:column;overflow:hidden;">
-        <div style="background:${assistant.primaryColor ?? "#3B82F6"};color:white;
-          padding:16px;font-weight:bold;display:flex;justify-content:space-between;">
-          <span>${assistant.name}</span>
-          <button onclick="document.getElementById('chat-popup').style.display='none'"
-            style="background:none;border:none;color:white;cursor:pointer;font-size:18px;">&#10005;</button>
+        <div style="background:\${COLOR};color:white;
+          padding:16px 20px;font-weight:600;display:flex;justify-content:space-between;align-items:center;font-size:15px;">
+          <span>\${NAME}</span>
+          <button onclick="document.getElementById('sc-popup').style.display='none'"
+            style="background:none;border:none;color:white;cursor:pointer;font-size:20px;line-height:1;">&#10005;</button>
         </div>
-        <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;"></div>
-        <div style="padding:12px;border-top:1px solid #eee;display:flex;gap:8px;">
-          <input id="chat-input" type="text" placeholder="Type a message..."
-            style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:8px;outline:none;" />
-          <button id="chat-send" style="background:${assistant.primaryColor ?? "#3B82F6"};
-            color:white;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;">Send</button>
+        <div id="sc-messages" style="flex:1;overflow-y:auto;padding:16px;font-size:14px;"></div>
+        <div id="sc-input-area" style="padding:12px;border-top:1px solid #eee;display:flex;gap:8px;align-items:center;">
+          <button id="sc-mic" title="Voice input"
+            style="background:none;border:1px solid #ddd;border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">
+            &#127908;
+          </button>
+          <input id="sc-input" type="text" placeholder="Type a message..."
+            style="flex:1;padding:8px 14px;border:1px solid #ddd;border-radius:20px;outline:none;font-size:14px;" />
+          <button id="sc-send"
+            style="background:\${COLOR};color:white;border:none;border-radius:20px;padding:8px 16px;cursor:pointer;font-weight:500;font-size:14px;flex-shrink:0;">
+            Send</button>
+          <button id="sc-handover" title="Talk to a human"
+            style="background:none;border:1px solid #ddd;border-radius:50%;width:36px;height:36px;cursor:pointer;display:none;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">
+            &#128100;
+          </button>
         </div>
       </div>
-      <button id="chat-toggle" onclick="
-        var p=document.getElementById('chat-popup');
+      <button id="sc-toggle" onclick="
+        var p=document.getElementById('sc-popup');
         p.style.display=p.style.display==='none'?'flex':'none';"
         style="width:60px;height:60px;border-radius:50%;
-        background:${assistant.primaryColor ?? "#3B82F6"};color:white;
-        border:none;cursor:pointer;font-size:24px;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+        background:\${COLOR};color:white;
+        border:none;cursor:pointer;font-size:26px;
+        box-shadow:0 4px 16px rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;">
         &#128172;
       </button>
     </div>\`;
   document.body.appendChild(widget);
 
-  // Chat logic
-  document.getElementById("chat-send").addEventListener("click", sendMessage);
-  document.getElementById("chat-input").addEventListener("keydown", function(e) {
+  var hasMessages = false;
+  var SpeechRecog = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var recognition = SpeechRecog ? new SpeechRecog() : null;
+  if (recognition) { recognition.continuous = false; recognition.interimResults = false; }
+
+  // ── Send Message ──
+  document.getElementById("sc-send").addEventListener("click", sendMessage);
+  document.getElementById("sc-input").addEventListener("keydown", function(e) {
     if (e.key === "Enter") sendMessage();
   });
 
-  async function sendMessage() {
-    const input = document.getElementById("chat-input");
-    const msg = input.value.trim();
+  async function sendMessage(textOverride) {
+    if (isHandedOver) return;
+    var input = document.getElementById("sc-input");
+    var msg = textOverride || input.value.trim();
     if (!msg) return;
     input.value = "";
     addMessage(msg, "user");
+    showTyping();
 
     try {
-      const res = await fetch(API_URL, {
+      var res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          assistantId: ASSISTANT_ID,
-          message: msg,
-          sessionId: sessionId,
-          channel: "web"
+          assistantId: ASSISTANT_ID, message: msg,
+          sessionId: sessionId, channel: "web"
         })
       });
-      const data = await res.json();
-      addMessage(data.response || "Sorry, something went wrong.", "bot");
+      var data = await res.json();
+      hideTyping();
+      var reply = data.response || "Sorry, something went wrong.";
+      addMessage(reply, "bot");
       sessionId = data.sessionId || sessionId;
+      hasMessages = true;
+      document.getElementById("sc-handover").style.display = "flex";
     } catch (err) {
+      hideTyping();
       addMessage("Connection error. Please try again.", "bot");
     }
   }
 
-  function addMessage(text, sender) {
-    const container = document.getElementById("chat-messages");
-    const div = document.createElement("div");
-    div.style.cssText = "margin-bottom:12px;display:flex;" +
-      (sender === "user" ? "justify-content:flex-end;" : "justify-content:flex-start;");
-    div.innerHTML = '<div style="max-width:80%;padding:10px 14px;border-radius:12px;font-size:14px;' +
-      (sender === "user"
-        ? 'background:${assistant.primaryColor ?? "#3B82F6"};color:white;'
-        : 'background:#f0f0f0;color:#333;') +
-      '">' + text.replace(/</g,"&lt;") + '</div>';
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
+  // ── Voice Input ──
+  document.getElementById("sc-mic").addEventListener("click", function() {
+    if (!recognition) { alert("Voice input is not supported in this browser."); return; }
+    if (isHandedOver) return;
+    var btn = document.getElementById("sc-mic");
+    if (btn.dataset.recording === "true") {
+      recognition.stop();
+      btn.dataset.recording = "false";
+      btn.style.background = "none"; btn.style.color = "#333";
+      return;
+    }
+    btn.dataset.recording = "true";
+    btn.style.background = "#ef4444"; btn.style.color = "white";
+    recognition.start();
+    recognition.onresult = function(e) {
+      var text = e.results[0][0].transcript;
+      if (text.trim()) sendMessage(text.trim());
+    };
+    recognition.onend = function() {
+      btn.dataset.recording = "false";
+      btn.style.background = "none"; btn.style.color = "#333";
+    };
+    recognition.onerror = function() {
+      btn.dataset.recording = "false";
+      btn.style.background = "none"; btn.style.color = "#333";
+    };
+  });
+
+  // ── Voice Output (click speaker icon on bot messages) ──
+  function speakText(text, btn) {
+    if (window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); return; }
+    var u = new SpeechSynthesisUtterance(text);
+    u.rate = 1; u.pitch = 1;
+    u.onend = function() { btn.style.opacity = "0.6"; };
+    btn.style.opacity = "1";
+    window.speechSynthesis.speak(u);
   }
+
+  // ── Handover ──
+  document.getElementById("sc-handover").addEventListener("click", async function() {
+    if (!hasMessages || isHandedOver) return;
+    var btn = document.getElementById("sc-handover");
+    btn.disabled = true; btn.style.opacity = "0.5";
+    try {
+      var res = await fetch(HANDOVER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assistantId: ASSISTANT_ID, sessionId: sessionId,
+          reason: "Customer requested human agent via widget"
+        })
+      });
+      var data = await res.json();
+      if (data.success) {
+        isHandedOver = true;
+        addMessage("Your conversation has been forwarded to a human agent. They will get back to you soon.", "system");
+        document.getElementById("sc-input").disabled = true;
+        document.getElementById("sc-input").placeholder = "Handed over to agent";
+      } else {
+        addMessage(data.error || "Could not connect to an agent right now.", "system");
+        btn.disabled = false; btn.style.opacity = "1";
+      }
+    } catch (err) {
+      addMessage("Connection error. Please try again.", "system");
+      btn.disabled = false; btn.style.opacity = "1";
+    }
+  });
+
+  // ── UI Helpers ──
+  function addMessage(text, sender) {
+    var c = document.getElementById("sc-messages");
+    var div = document.createElement("div");
+    div.style.cssText = "margin-bottom:12px;display:flex;" +
+      (sender === "user" ? "justify-content:flex-end;" :
+       sender === "system" ? "justify-content:center;" : "justify-content:flex-start;");
+
+    if (sender === "system") {
+      div.innerHTML = '<div style="background:#fef3c7;color:#92400e;padding:8px 14px;border-radius:10px;font-size:12px;text-align:center;max-width:90%;font-style:italic;">' +
+        text.replace(/</g,"&lt;") + '</div>';
+    } else if (sender === "bot") {
+      div.innerHTML = '<div style="display:flex;align-items:flex-end;gap:4px;">' +
+        '<div style="max-width:75%;padding:10px 14px;border-radius:14px;background:#f3f4f6;color:#333;line-height:1.4;">' +
+        text.replace(/</g,"&lt;") + '</div>' +
+        '<button onclick="(function(b){window.__sayeleSpeak(b.parentElement.querySelector(\\'div\\').innerText,b);})(this)" ' +
+        'style="background:none;border:none;cursor:pointer;font-size:14px;opacity:0.6;flex-shrink:0;" title="Listen">&#128264;</button></div>';
+    } else {
+      div.innerHTML = '<div style="max-width:75%;padding:10px 14px;border-radius:14px;background:' + COLOR + ';color:white;line-height:1.4;">' +
+        text.replace(/</g,"&lt;") + '</div>';
+    }
+    c.appendChild(div); c.scrollTop = c.scrollHeight;
+  }
+
+  function showTyping() {
+    var c = document.getElementById("sc-messages");
+    var div = document.createElement("div");
+    div.id = "sc-typing";
+    div.style.cssText = "margin-bottom:12px;display:flex;justify-content:flex-start;";
+    div.innerHTML = '<div style="padding:10px 18px;border-radius:14px;background:#f3f4f6;color:#999;font-size:13px;">Typing...</div>';
+    c.appendChild(div); c.scrollTop = c.scrollHeight;
+  }
+  function hideTyping() { var t = document.getElementById("sc-typing"); if (t) t.remove(); }
+
+  // Expose speak function globally for inline onclick
+  window.__sayeleSpeak = speakText;
 })();
 </script>`;
 

@@ -276,9 +276,9 @@ async function executeTask(
 // ─── Main Chat Action ───────────────────────────────────────────────────────
 
 // AI model used across all chat actions — fast and cost-effective
-const AI_MODEL = "openai/gpt-5-mini";
+const AI_MODEL = "gpt-4o-mini";
 const MAX_HISTORY = 10; // keep context small for speed
-const MAX_TOKENS = 4096; // gpt-5 models use reasoning tokens that count against this limit
+const MAX_TOKENS = 4096; // reasoning models need headroom
 
 /**
  * Shared core chat logic used by both authenticated and public chat.
@@ -372,15 +372,14 @@ async function runChatCore(
 
   // 6. Call AI
   const openai = new OpenAI({
-    baseURL: "http://ai-gateway.hercules.app/v1",
-    apiKey: process.env.HERCULES_API_KEY,
+    apiKey: process.env.OPENAI_API_KEY,
   });
 
   try {
     const completionArgs: OpenAI.ChatCompletionCreateParamsNonStreaming = {
       model: AI_MODEL,
       messages: openaiMessages,
-      max_completion_tokens: MAX_TOKENS,
+      max_tokens: MAX_TOKENS,
     };
     if (tools && tools.length > 0) {
       completionArgs.tools = tools;
@@ -434,7 +433,7 @@ async function runChatCore(
         model: AI_MODEL,
         messages: openaiMessages,
         tools,
-        max_completion_tokens: MAX_TOKENS,
+        max_tokens: MAX_TOKENS,
       });
       choice = response.choices[0];
     }
