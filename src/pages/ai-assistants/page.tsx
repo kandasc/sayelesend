@@ -650,6 +650,16 @@ print(data["response"])`;
   let sessionId = "widget_" + Date.now() + "_" + Math.random().toString(36).slice(2);
   let isHandedOver = false;
 
+  // ── Helper: open / close chat ──
+  function openChat() {
+    document.getElementById("sc-popup").style.display = "flex";
+    document.getElementById("sc-toggle").style.display = "none";
+  }
+  function closeChat() {
+    document.getElementById("sc-popup").style.display = "none";
+    document.getElementById("sc-toggle").style.display = "flex";
+  }
+
   // ── Build Widget UI ──
   const widget = document.createElement("div");
   widget.id = "sayele-chat-widget";
@@ -661,7 +671,7 @@ print(data["response"])`;
         <div style="background:\${COLOR};color:white;
           padding:16px 20px;font-weight:600;display:flex;justify-content:space-between;align-items:center;font-size:15px;">
           <span>\${NAME}</span>
-          <button onclick="document.getElementById('sc-popup').style.display='none'"
+          <button id="sc-close"
             style="background:none;border:none;color:white;cursor:pointer;font-size:20px;line-height:1;">&#10005;</button>
         </div>
         <div id="sc-messages" style="flex:1;overflow-y:auto;padding:16px;font-size:14px;"></div>
@@ -681,9 +691,7 @@ print(data["response"])`;
           </button>
         </div>
       </div>
-      <button id="sc-toggle" onclick="
-        var p=document.getElementById('sc-popup');
-        p.style.display=p.style.display==='none'?'flex':'none';"
+      <button id="sc-toggle"
         style="width:60px;height:60px;border-radius:50%;
         background:\${COLOR};color:white;
         border:none;cursor:pointer;font-size:26px;
@@ -692,6 +700,10 @@ print(data["response"])`;
       </button>
     </div>\`;
   document.body.appendChild(widget);
+
+  // ── Toggle / Close listeners ──
+  document.getElementById("sc-toggle").addEventListener("click", openChat);
+  document.getElementById("sc-close").addEventListener("click", closeChat);
 
   var hasMessages = false;
   var SpeechRecog = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -707,7 +719,7 @@ print(data["response"])`;
   async function sendMessage(textOverride) {
     if (isHandedOver) return;
     var input = document.getElementById("sc-input");
-    var msg = textOverride || input.value.trim();
+    var msg = (typeof textOverride === "string") ? textOverride : input.value.trim();
     if (!msg) return;
     input.value = "";
     addMessage(msg, "user");
@@ -726,6 +738,12 @@ print(data["response"])`;
       hideTyping();
       var reply = data.response || "Sorry, something went wrong.";
       addMessage(reply, "bot");
+      // Auto-speak bot replies
+      if (window.speechSynthesis) {
+        var u = new SpeechSynthesisUtterance(reply);
+        u.rate = 1; u.pitch = 1;
+        window.speechSynthesis.speak(u);
+      }
       sessionId = data.sessionId || sessionId;
       hasMessages = true;
       document.getElementById("sc-handover").style.display = "flex";
