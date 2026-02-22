@@ -185,7 +185,7 @@ http.route({
 
 // OPTIONS handler for status endpoint
 http.route({
-  path: "/api/v1/sms/status/:messageId",
+  pathPrefix: "/api/v1/sms/status/",
   method: "OPTIONS",
   handler: httpAction(async (_ctx, request) => {
     const origin = request.headers.get("Origin");
@@ -197,7 +197,7 @@ http.route({
 });
 
 http.route({
-  path: "/api/v1/sms/status/:messageId",
+  pathPrefix: "/api/v1/sms/status/",
   method: "GET",
   handler: httpAction(async (ctx, request) => {
     try {
@@ -635,7 +635,7 @@ http.route({
 
 // OPTIONS for AI Assistant info
 http.route({
-  path: "/api/v1/ai/assistants/:assistantId",
+  pathPrefix: "/api/v1/ai/assistants/",
   method: "OPTIONS",
   handler: httpAction(async (_ctx, request) => {
     const origin = request.headers.get("Origin");
@@ -643,9 +643,9 @@ http.route({
   }),
 });
 
-// GET /api/v1/ai/assistants/:assistantId - Get public assistant info
+// GET /api/v1/ai/assistants/{assistantId} - Get public assistant info
 http.route({
-  path: "/api/v1/ai/assistants/:assistantId",
+  pathPrefix: "/api/v1/ai/assistants/",
   method: "GET",
   handler: httpAction(async (ctx, request) => {
     const origin = request.headers.get("Origin");
