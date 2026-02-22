@@ -273,12 +273,62 @@ async function executeTask(
   }
 }
 
+// ─── Knowledge-base keyword filter ─────────────────────────────────────────
+// Only send knowledge entries that are relevant to the user's message,
+// keeping the system prompt small so OpenAI responds faster.
+
+const MAX_KNOWLEDGE_ENTRIES = 5; // at most 5 entries per request
+const MAX_KNOWLEDGE_CHARS = 6000; // total chars cap for knowledge section
+
+function filterRelevantKnowledge(
+  entries: Doc<"aiKnowledgeBase">[],
+  userMessage: string,
+): Doc<"aiKnowledgeBase">[] {
+  const activeEntries = entries.filter((e) => e.isActive);
+  if (activeEntries.length <= MAX_KNOWLEDGE_ENTRIES) return activeEntries;
+
+  // Tokenise user message into lowercase keywords (3+ chars)
+  const keywords = userMessage
+    .toLowerCase()
+    .replace(/[^a-z0-9àâäéèêëïîôùûüçœæ\s]/gi, " ")
+    .split(/\s+/)
+    .filter((w) => w.length >= 3);
+
+  if (keywords.length === 0) return activeEntries.slice(0, MAX_KNOWLEDGE_ENTRIES);
+
+  // Score each entry by how many keywords appear in title + content + category
+  const scored = activeEntries.map((entry) => {
+    const haystack = `${entry.title} ${entry.content} ${entry.category ?? ""}`.toLowerCase();
+    let score = 0;
+    for (const kw of keywords) {
+      if (haystack.includes(kw)) score++;
+    }
+    return { entry, score };
+  });
+
+  // Sort by relevance (highest first), take top entries within char budget
+  scored.sort((a, b) => b.score - a.score);
+
+  const result: Doc<"aiKnowledgeBase">[] = [];
+  let totalChars = 0;
+  for (const { entry, score } of scored) {
+    if (result.length >= MAX_KNOWLEDGE_ENTRIES) break;
+    if (score === 0 && result.length > 0) break; // stop adding zero-score entries if we already have matches
+    const entryChars = entry.title.length + entry.content.length;
+    if (totalChars + entryChars > MAX_KNOWLEDGE_CHARS && result.length > 0) break;
+    result.push(entry);
+    totalChars += entryChars;
+  }
+
+  return result;
+}
+
 // ─── Main Chat Action ───────────────────────────────────────────────────────
 
 // AI model used across all chat actions — fast and cost-effective
 const AI_MODEL = "gpt-4o-mini";
 const MAX_HISTORY = 10; // keep context small for speed
-const MAX_TOKENS = 4096; // reasoning models need headroom
+const MAX_TOKENS = 1024; // enough for detailed chat replies, fast completion
 
 /**
  * Shared core chat logic used by both authenticated and public chat.
@@ -311,23 +361,27 @@ async function runChatCore(
     return { response: "This assistant is currently unavailable.", sessionId: args.sessionId };
   }
 
-  // 2. Create session if needed
+  // 2. Create session if needed — parallelize creation + counter increment
   let internalSessionId: Id<"aiChatSessions">;
   if (!session) {
     const createFn = args.useInternal
       ? internal.aiAssistants.createChatSessionInternal
       : api.aiAssistants.createChatSession;
-    internalSessionId = await ctx.runMutation(createFn, {
-      assistantId: args.assistantId,
-      sessionId: args.sessionId,
-      channel: args.channel,
-      visitorName: args.visitorName,
-      visitorEmail: args.visitorEmail,
-      visitorPhone: args.visitorPhone,
-    });
-    await ctx.runMutation(internal.aiAssistants.incrementConversationCount, {
-      assistantId: args.assistantId,
-    });
+    // Run both mutations in parallel instead of sequentially
+    const [newSessionId] = await Promise.all([
+      ctx.runMutation(createFn, {
+        assistantId: args.assistantId,
+        sessionId: args.sessionId,
+        channel: args.channel,
+        visitorName: args.visitorName,
+        visitorEmail: args.visitorEmail,
+        visitorPhone: args.visitorPhone,
+      }),
+      ctx.runMutation(internal.aiAssistants.incrementConversationCount, {
+        assistantId: args.assistantId,
+      }),
+    ]);
+    internalSessionId = newSessionId;
   } else {
     internalSessionId = session._id;
   }
@@ -354,8 +408,11 @@ async function runChatCore(
     ctx.runQuery(taskFn, { assistantId: args.assistantId }),
   ]);
 
-  // 4. Build OpenAI messages with trimmed history
-  const systemPrompt = buildSystemPrompt(assistant, knowledgeBase, activeTasks.length > 0);
+  // 4. Filter knowledge to only relevant entries — keeps system prompt small
+  const relevantKnowledge = filterRelevantKnowledge(knowledgeBase, args.message);
+
+  // 5. Build OpenAI messages with trimmed history
+  const systemPrompt = buildSystemPrompt(assistant, relevantKnowledge, activeTasks.length > 0);
   const openaiMessages: OpenAI.ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
   ];
@@ -367,10 +424,10 @@ async function runChatCore(
     }
   }
 
-  // 5. Build tools from active tasks
+  // 6. Build tools from active tasks
   const tools = activeTasks.length > 0 ? tasksToOpenAITools(activeTasks) : undefined;
 
-  // 6. Call AI
+  // 7. Call AI
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   });
@@ -405,7 +462,7 @@ async function runChatCore(
           const params = JSON.parse(funcCall.function.arguments) as Record<string, unknown>;
           const result = await executeTask(task, params);
 
-          // Fire-and-forget log (don't wait for it to complete)
+          // Fire-and-forget log
           void ctx.runMutation(internal.aiAssistants.logTaskExecution, {
             taskId: task._id,
             sessionId: internalSessionId,
@@ -444,8 +501,8 @@ async function runChatCore(
         ? rawContent
         : "I apologize, but I'm unable to respond right now. Please try again.";
 
-    // 7. Save assistant response
-    await ctx.runMutation(internal.aiAssistants.addChatMessage, {
+    // 8. Save assistant response (fire-and-forget — don't block the reply)
+    void ctx.runMutation(internal.aiAssistants.addChatMessage, {
       sessionId: internalSessionId,
       role: "assistant",
       content: aiResponse,
@@ -457,11 +514,7 @@ async function runChatCore(
       ? `${error.name}: ${error.message}`
       : String(error);
     console.error("AI chat error detail:", errDetail);
-    if (error instanceof Error && error.stack) {
-      console.error("AI chat error stack:", error.stack);
-    }
 
-    // Surface more helpful message when possible
     let errorMsg =
       "I'm experiencing technical difficulties. Please try again later or contact support.";
     if (errDetail.includes("401") || errDetail.includes("Unauthorized")) {
@@ -472,7 +525,7 @@ async function runChatCore(
       errorMsg = "AI service timed out. Please try again.";
     }
 
-    await ctx.runMutation(internal.aiAssistants.addChatMessage, {
+    void ctx.runMutation(internal.aiAssistants.addChatMessage, {
       sessionId: internalSessionId,
       role: "assistant",
       content: errorMsg,
