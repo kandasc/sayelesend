@@ -6,36 +6,27 @@ import type { Id } from "./_generated/dataModel.d.ts";
 
 const http = httpRouter();
 
-// Security headers
+// Security headers for webhook/internal endpoints
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "DENY",
   "X-XSS-Protection": "1; mode=block",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-  "Content-Security-Policy": "default-src 'self'",
 };
 
-// CORS headers with specific origins (update with your actual domains)
-const getAllowedOrigins = () => {
-  const envOrigins = process.env.ALLOWED_ORIGINS;
-  if (envOrigins) {
-    return envOrigins.split(',').map(o => o.trim());
-  }
-  return ['*']; // Default to all origins (update for production)
-};
+// CORS headers — public API endpoints must be accessible from any customer website
+const getCorsHeaders = (origin: string | null): Record<string, string> => {
+  // Use the actual origin so credentials/cookies work if needed in the future,
+  // fall back to wildcard when no Origin header is present (e.g. server-to-server)
+  const allowOrigin = origin ?? "*";
 
-const getCorsHeaders = (origin: string | null) => {
-  const allowedOrigins = getAllowedOrigins();
-  const isAllowed = allowedOrigins.includes('*') || 
-                    (origin && allowedOrigins.includes(origin));
-  
   return {
-    "Access-Control-Allow-Origin": isAllowed && origin ? origin : (allowedOrigins[0] === '*' ? '*' : ''),
+    "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+    "Access-Control-Expose-Headers": "X-RateLimit-Remaining, X-RateLimit-Reset",
     "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
     "Content-Type": "application/json",
-    ...securityHeaders,
   };
 };
 
