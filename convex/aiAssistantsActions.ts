@@ -501,8 +501,8 @@ async function runChatCore(
         ? rawContent
         : "I apologize, but I'm unable to respond right now. Please try again.";
 
-    // 8. Save assistant response (fire-and-forget — don't block the reply)
-    void ctx.runMutation(internal.aiAssistants.addChatMessage, {
+    // 8. Save assistant response (must await to preserve conversation history)
+    await ctx.runMutation(internal.aiAssistants.addChatMessage, {
       sessionId: internalSessionId,
       role: "assistant",
       content: aiResponse,
@@ -525,7 +525,7 @@ async function runChatCore(
       errorMsg = "AI service timed out. Please try again.";
     }
 
-    void ctx.runMutation(internal.aiAssistants.addChatMessage, {
+    await ctx.runMutation(internal.aiAssistants.addChatMessage, {
       sessionId: internalSessionId,
       role: "assistant",
       content: errorMsg,
