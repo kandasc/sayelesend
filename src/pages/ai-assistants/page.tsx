@@ -642,22 +642,37 @@ print(data["response"])`;
   const widgetExample = `<!-- SAYELE Chat Widget — Full-Featured -->
 <script>
 (function() {
-  const ASSISTANT_ID = "${assistantId}";
-  const API_URL = "${API_BASE}/api/v1/ai/chat";
-  const HANDOVER_URL = "${API_BASE}/api/v1/ai/handover";
-  const COLOR = "${assistant.primaryColor ?? "#3B82F6"}";
-  const NAME = "${assistant.name}";
-  const WELCOME = "${(assistant.welcomeMessage ?? `Hi! I'm ${assistant.name}. How can I help you today?`).replace(/"/g, '\\"').replace(/\n/g, '\\n')}";
-  let sessionId = "widget_" + Date.now() + "_" + Math.random().toString(36).slice(2);
-  let isHandedOver = false;
-  let welcomeShown = false;
+  var ASSISTANT_ID = "${assistantId}";
+  var API_URL = "${API_BASE}/api/v1/ai/chat";
+  var HANDOVER_URL = "${API_BASE}/api/v1/ai/handover";
+  var COLOR = "${assistant.primaryColor ?? "#3B82F6"}";
+  var NAME = "${assistant.name}";
+  var WELCOME = "${(assistant.welcomeMessage ?? `Hi! I'm ${assistant.name}. How can I help you today?`).replace(/"/g, '\\"').replace(/\n/g, '\\n')}";
+  var sessionId = "widget_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+  var isHandedOver = false;
+  var welcomeShown = false;
+  var hasMessages = false;
 
-  // ── Helper: open / close chat ──
+  // SVG icons
+  var micSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
+  var sendSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>';
+  var speakerSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
+  var userSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+  var closeSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+  var chatSvg = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>';
+  var bigMicSvg = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="' + COLOR + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.35"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
+
+  // Color helpers
+  function hexToRgb(hex) { var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16); return r+","+g+","+b; }
+  var colorRgb = hexToRgb(COLOR);
+
+  // ── Open / Close ──
   function openChat() {
     document.getElementById("sc-popup").style.display = "flex";
     document.getElementById("sc-toggle").style.display = "none";
     if (!welcomeShown) {
       welcomeShown = true;
+      document.getElementById("sc-empty").style.display = "none";
       addMessage(WELCOME, "bot");
     }
   }
@@ -667,60 +682,68 @@ print(data["response"])`;
   }
 
   // ── Build Widget UI ──
-  const widget = document.createElement("div");
+  var widget = document.createElement("div");
   widget.id = "sayele-chat-widget";
-  widget.innerHTML = \`
-    <div style="position:fixed;bottom:20px;right:20px;z-index:9999;font-family:system-ui,-apple-system,sans-serif;">
-      <div id="sc-popup" style="display:none;width:380px;height:540px;
-        border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.18);
-        background:#fff;flex-direction:column;overflow:hidden;">
-        <div style="background:\${COLOR};color:white;
-          padding:16px 20px;font-weight:600;display:flex;justify-content:space-between;align-items:center;font-size:15px;">
-          <span>\${NAME}</span>
-          <button id="sc-close"
-            style="background:none;border:none;color:white;cursor:pointer;font-size:20px;line-height:1;">&#10005;</button>
-        </div>
-        <div id="sc-messages" style="flex:1;overflow-y:auto;padding:16px;font-size:14px;"></div>
-        <div id="sc-input-area" style="padding:12px;border-top:1px solid #eee;display:flex;gap:8px;align-items:center;">
-          <button id="sc-mic" title="Voice input"
-            style="background:none;border:1px solid #ddd;border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">
-            &#127908;
-          </button>
-          <input id="sc-input" type="text" placeholder="Type a message..."
-            style="flex:1;padding:8px 14px;border:1px solid #ddd;border-radius:20px;outline:none;font-size:14px;" />
-          <button id="sc-send"
-            style="background:\${COLOR};color:white;border:none;border-radius:20px;padding:8px 16px;cursor:pointer;font-weight:500;font-size:14px;flex-shrink:0;">
-            Send</button>
-          <button id="sc-handover" title="Talk to a human"
-            style="background:none;border:1px solid #ddd;border-radius:50%;width:36px;height:36px;cursor:pointer;display:none;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">
-            &#128100;
-          </button>
-        </div>
-      </div>
-      <button id="sc-toggle"
-        style="width:60px;height:60px;border-radius:50%;
-        background:\${COLOR};color:white;
-        border:none;cursor:pointer;font-size:26px;
-        box-shadow:0 4px 16px rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;">
-        &#128172;
-      </button>
-    </div>\`;
+  widget.innerHTML =
+    '<div style="position:fixed;bottom:20px;right:20px;z-index:9999;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">' +
+
+    '<div id="sc-popup" style="display:none;width:380px;height:560px;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.15);background:#fff;flex-direction:column;overflow:hidden;border:1px solid #e5e7eb;">' +
+
+      '<div style="background:' + COLOR + ';color:white;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;">' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>' +
+          '</div>' +
+          '<div>' +
+            '<div style="font-weight:600;font-size:15px;">' + NAME + '</div>' +
+            '<div style="font-size:11px;opacity:0.85;">Online</div>' +
+          '</div>' +
+        '</div>' +
+        '<button id="sc-close" style="background:rgba(255,255,255,0.15);border:none;color:white;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background 0.2s;">' + closeSvg + '</button>' +
+      '</div>' +
+
+      '<div id="sc-messages" style="flex:1;overflow-y:auto;padding:16px;font-size:14px;background:#fafafa;">' +
+        '<div id="sc-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;opacity:0.7;">' +
+          bigMicSvg +
+          '<div style="font-size:13px;color:#888;text-align:center;">Send a message or tap the mic to speak</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div style="padding:12px 14px;border-top:1px solid #eee;display:flex;gap:8px;align-items:center;background:#fff;">' +
+        '<button id="sc-mic" title="Voice input" style="background:rgba(' + colorRgb + ',0.08);border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:' + COLOR + ';transition:all 0.2s;">' + micSvg + '</button>' +
+        '<input id="sc-input" type="text" placeholder="Type or speak a message..." style="flex:1;padding:10px 16px;border:1px solid #e5e7eb;border-radius:24px;outline:none;font-size:14px;background:#f9fafb;transition:border-color 0.2s;font-family:inherit;" />' +
+        '<button id="sc-send" title="Send" style="background:' + COLOR + ';color:white;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity 0.2s;box-shadow:0 2px 8px rgba(' + colorRgb + ',0.3);">' + sendSvg + '</button>' +
+        '<button id="sc-handover" title="Talk to a human" style="background:rgba(' + colorRgb + ',0.08);border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;display:none;align-items:center;justify-content:center;flex-shrink:0;color:' + COLOR + ';transition:all 0.2s;">' + userSvg + '</button>' +
+      '</div>' +
+
+    '</div>' +
+
+    '<button id="sc-toggle" style="width:60px;height:60px;border-radius:50%;background:' + COLOR + ';color:white;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(' + colorRgb + ',0.4);display:flex;align-items:center;justify-content:center;transition:transform 0.2s,box-shadow 0.2s;">' + chatSvg + '</button>' +
+
+    '</div>';
   document.body.appendChild(widget);
 
-  // ── Toggle / Close listeners ──
-  document.getElementById("sc-toggle").addEventListener("click", openChat);
-  document.getElementById("sc-close").addEventListener("click", closeChat);
+  // Hover effects
+  var toggle = document.getElementById("sc-toggle");
+  toggle.onmouseenter = function() { toggle.style.transform = "scale(1.08)"; toggle.style.boxShadow = "0 6px 24px rgba(" + colorRgb + ",0.5)"; };
+  toggle.onmouseleave = function() { toggle.style.transform = "scale(1)"; toggle.style.boxShadow = "0 4px 20px rgba(" + colorRgb + ",0.4)"; };
+  var scClose = document.getElementById("sc-close");
+  scClose.onmouseenter = function() { scClose.style.background = "rgba(255,255,255,0.25)"; };
+  scClose.onmouseleave = function() { scClose.style.background = "rgba(255,255,255,0.15)"; };
+  var scInput = document.getElementById("sc-input");
+  scInput.onfocus = function() { scInput.style.borderColor = COLOR; scInput.style.background = "#fff"; };
+  scInput.onblur = function() { scInput.style.borderColor = "#e5e7eb"; scInput.style.background = "#f9fafb"; };
 
-  var hasMessages = false;
+  // ── Listeners ──
+  toggle.addEventListener("click", openChat);
+  scClose.addEventListener("click", closeChat);
+
   var SpeechRecog = window.SpeechRecognition || window.webkitSpeechRecognition;
   var recognition = SpeechRecog ? new SpeechRecog() : null;
   if (recognition) { recognition.continuous = false; recognition.interimResults = false; }
 
-  // ── Send Message ──
   document.getElementById("sc-send").addEventListener("click", sendMessage);
-  document.getElementById("sc-input").addEventListener("keydown", function(e) {
-    if (e.key === "Enter") sendMessage();
-  });
+  scInput.addEventListener("keydown", function(e) { if (e.key === "Enter") sendMessage(); });
 
   async function sendMessage(textOverride) {
     if (isHandedOver) return;
@@ -728,6 +751,8 @@ print(data["response"])`;
     var msg = (typeof textOverride === "string") ? textOverride : input.value.trim();
     if (!msg) return;
     input.value = "";
+    var empty = document.getElementById("sc-empty");
+    if (empty) empty.style.display = "none";
     addMessage(msg, "user");
     showTyping();
 
@@ -735,21 +760,13 @@ print(data["response"])`;
       var res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          assistantId: ASSISTANT_ID, message: msg,
-          sessionId: sessionId, channel: "web"
-        })
+        body: JSON.stringify({ assistantId: ASSISTANT_ID, message: msg, sessionId: sessionId, channel: "web" })
       });
       var data = await res.json();
       hideTyping();
       var reply = data.response || "Sorry, something went wrong.";
       addMessage(reply, "bot");
-      // Auto-speak bot replies
-      if (window.speechSynthesis) {
-        var u = new SpeechSynthesisUtterance(reply);
-        u.rate = 1; u.pitch = 1;
-        window.speechSynthesis.speak(u);
-      }
+      if (window.speechSynthesis) { var u = new SpeechSynthesisUtterance(reply); u.rate = 1; u.pitch = 1; window.speechSynthesis.speak(u); }
       sessionId = data.sessionId || sessionId;
       hasMessages = true;
       document.getElementById("sc-handover").style.display = "flex";
@@ -765,34 +782,24 @@ print(data["response"])`;
     if (isHandedOver) return;
     var btn = document.getElementById("sc-mic");
     if (btn.dataset.recording === "true") {
-      recognition.stop();
-      btn.dataset.recording = "false";
-      btn.style.background = "none"; btn.style.color = "#333";
+      recognition.stop(); btn.dataset.recording = "false";
+      btn.style.background = "rgba(" + colorRgb + ",0.08)"; btn.style.color = COLOR;
       return;
     }
     btn.dataset.recording = "true";
     btn.style.background = "#ef4444"; btn.style.color = "white";
     recognition.start();
-    recognition.onresult = function(e) {
-      var text = e.results[0][0].transcript;
-      if (text.trim()) sendMessage(text.trim());
-    };
-    recognition.onend = function() {
-      btn.dataset.recording = "false";
-      btn.style.background = "none"; btn.style.color = "#333";
-    };
-    recognition.onerror = function() {
-      btn.dataset.recording = "false";
-      btn.style.background = "none"; btn.style.color = "#333";
-    };
+    recognition.onresult = function(e) { var text = e.results[0][0].transcript; if (text.trim()) sendMessage(text.trim()); };
+    recognition.onend = function() { btn.dataset.recording = "false"; btn.style.background = "rgba(" + colorRgb + ",0.08)"; btn.style.color = COLOR; };
+    recognition.onerror = function() { btn.dataset.recording = "false"; btn.style.background = "rgba(" + colorRgb + ",0.08)"; btn.style.color = COLOR; };
   });
 
-  // ── Voice Output (click speaker icon on bot messages) ──
+  // ── Voice Output ──
   function speakText(text, btn) {
     if (window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); return; }
     var u = new SpeechSynthesisUtterance(text);
     u.rate = 1; u.pitch = 1;
-    u.onend = function() { btn.style.opacity = "0.6"; };
+    u.onend = function() { btn.style.opacity = "0.5"; };
     btn.style.opacity = "1";
     window.speechSynthesis.speak(u);
   }
@@ -806,10 +813,7 @@ print(data["response"])`;
       var res = await fetch(HANDOVER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          assistantId: ASSISTANT_ID, sessionId: sessionId,
-          reason: "Customer requested human agent via widget"
-        })
+        body: JSON.stringify({ assistantId: ASSISTANT_ID, sessionId: sessionId, reason: "Customer requested human agent via widget" })
       });
       var data = await res.json();
       if (data.success) {
@@ -831,22 +835,18 @@ print(data["response"])`;
   function addMessage(text, sender) {
     var c = document.getElementById("sc-messages");
     var div = document.createElement("div");
-    div.style.cssText = "margin-bottom:12px;display:flex;" +
+    div.style.cssText = "margin-bottom:14px;display:flex;" +
       (sender === "user" ? "justify-content:flex-end;" :
        sender === "system" ? "justify-content:center;" : "justify-content:flex-start;");
 
     if (sender === "system") {
-      div.innerHTML = '<div style="background:#fef3c7;color:#92400e;padding:8px 14px;border-radius:10px;font-size:12px;text-align:center;max-width:90%;font-style:italic;">' +
-        text.replace(/</g,"&lt;") + '</div>';
+      div.innerHTML = '<div style="background:#fef3c7;color:#92400e;padding:8px 14px;border-radius:12px;font-size:12px;text-align:center;max-width:90%;font-style:italic;">' + text.replace(/</g,"&lt;") + '</div>';
     } else if (sender === "bot") {
-      div.innerHTML = '<div style="display:flex;align-items:flex-end;gap:4px;">' +
-        '<div style="max-width:75%;padding:10px 14px;border-radius:14px;background:#f3f4f6;color:#333;line-height:1.4;">' +
-        text.replace(/</g,"&lt;") + '</div>' +
-        '<button onclick="(function(b){window.__sayeleSpeak(b.parentElement.querySelector(\\'div\\').innerText,b);})(this)" ' +
-        'style="background:none;border:none;cursor:pointer;font-size:14px;opacity:0.6;flex-shrink:0;" title="Listen">&#128264;</button></div>';
+      div.innerHTML = '<div style="display:flex;align-items:flex-end;gap:6px;max-width:80%;">' +
+        '<div style="padding:10px 14px;border-radius:16px 16px 16px 4px;background:#fff;color:#333;line-height:1.5;font-size:13.5px;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1px solid #eee;">' + text.replace(/</g,"&lt;") + '</div>' +
+        '<button onclick="(function(b){window.__sayeleSpeak(b.parentElement.querySelector(\\'div\\').innerText,b);})(this)" style="background:none;border:none;cursor:pointer;opacity:0.5;flex-shrink:0;color:#888;padding:2px;transition:opacity 0.2s;" title="Listen">' + speakerSvg + '</button></div>';
     } else {
-      div.innerHTML = '<div style="max-width:75%;padding:10px 14px;border-radius:14px;background:' + COLOR + ';color:white;line-height:1.4;">' +
-        text.replace(/</g,"&lt;") + '</div>';
+      div.innerHTML = '<div style="max-width:80%;padding:10px 14px;border-radius:16px 16px 4px 16px;background:' + COLOR + ';color:white;line-height:1.5;font-size:13.5px;box-shadow:0 2px 6px rgba(' + colorRgb + ',0.25);">' + text.replace(/</g,"&lt;") + '</div>';
     }
     c.appendChild(div); c.scrollTop = c.scrollHeight;
   }
@@ -855,13 +855,17 @@ print(data["response"])`;
     var c = document.getElementById("sc-messages");
     var div = document.createElement("div");
     div.id = "sc-typing";
-    div.style.cssText = "margin-bottom:12px;display:flex;justify-content:flex-start;";
-    div.innerHTML = '<div style="padding:10px 18px;border-radius:14px;background:#f3f4f6;color:#999;font-size:13px;">Typing...</div>';
+    div.style.cssText = "margin-bottom:14px;display:flex;justify-content:flex-start;";
+    div.innerHTML = '<div style="padding:12px 18px;border-radius:16px 16px 16px 4px;background:#fff;color:#aaa;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1px solid #eee;display:flex;align-items:center;gap:4px;"><span style="animation:sc-dot 1.4s infinite;width:6px;height:6px;border-radius:50%;background:#ccc;display:inline-block;"></span><span style="animation:sc-dot 1.4s infinite 0.2s;width:6px;height:6px;border-radius:50%;background:#ccc;display:inline-block;"></span><span style="animation:sc-dot 1.4s infinite 0.4s;width:6px;height:6px;border-radius:50%;background:#ccc;display:inline-block;"></span></div>';
     c.appendChild(div); c.scrollTop = c.scrollHeight;
   }
   function hideTyping() { var t = document.getElementById("sc-typing"); if (t) t.remove(); }
 
-  // Expose speak function globally for inline onclick
+  // Typing animation
+  var style = document.createElement("style");
+  style.textContent = "@keyframes sc-dot{0%,80%,100%{opacity:0.3;transform:scale(0.8);}40%{opacity:1;transform:scale(1.1);}}";
+  document.head.appendChild(style);
+
   window.__sayeleSpeak = speakText;
 })();
 </script>`;
