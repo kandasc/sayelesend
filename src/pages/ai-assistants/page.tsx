@@ -647,13 +647,19 @@ print(data["response"])`;
   const HANDOVER_URL = "${API_BASE}/api/v1/ai/handover";
   const COLOR = "${assistant.primaryColor ?? "#3B82F6"}";
   const NAME = "${assistant.name}";
+  const WELCOME = "${(assistant.welcomeMessage ?? `Hi! I'm ${assistant.name}. How can I help you today?`).replace(/"/g, '\\"').replace(/\n/g, '\\n')}";
   let sessionId = "widget_" + Date.now() + "_" + Math.random().toString(36).slice(2);
   let isHandedOver = false;
+  let welcomeShown = false;
 
   // ── Helper: open / close chat ──
   function openChat() {
     document.getElementById("sc-popup").style.display = "flex";
     document.getElementById("sc-toggle").style.display = "none";
+    if (!welcomeShown) {
+      welcomeShown = true;
+      addMessage(WELCOME, "bot");
+    }
   }
   function closeChat() {
     document.getElementById("sc-popup").style.display = "none";
