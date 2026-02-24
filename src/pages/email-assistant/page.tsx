@@ -716,51 +716,267 @@ function ImproveTab() {
 // ─── API Integration Tab ────────────────────────────────────────────────────
 
 function ApiTab() {
-  const baseUrl = import.meta.env.VITE_CONVEX_SITE_URL || "https://api.sayele.co";
+  const baseUrl = "https://api.sayele.co";
 
   const endpoints = [
     {
       method: "POST",
       path: "/api/v1/email/summarize",
       description: "Summarize an email and extract key points, sentiment, action items",
-      body: `{ "emailContent": "Full email text...", "language": "English" }`,
+      body: `{
+  "emailContent": "Full email text...",
+  "language": "English"
+}`,
+      response: `{
+  "success": true,
+  "summary": "...",
+  "keyPoints": ["..."],
+  "sentiment": "positive|negative|neutral|urgent",
+  "actionItems": ["..."],
+  "priority": "high|medium|low"
+}`,
     },
     {
       method: "POST",
       path: "/api/v1/email/reply",
       description: "Draft a reply to an email with a specific tone",
-      body: `{ "originalEmail": "...", "tone": "professional", "instructions": "Agree to meeting" }`,
+      body: `{
+  "originalEmail": "...",
+  "tone": "professional",
+  "instructions": "Agree to meeting",
+  "language": "English"
+}`,
+      response: `{
+  "success": true,
+  "reply": "...",
+  "subject": "Re: ..."
+}`,
     },
     {
       method: "POST",
       path: "/api/v1/email/compose",
       description: "Compose a new email from a prompt",
-      body: `{ "prompt": "Write a follow-up email...", "tone": "friendly", "recipientContext": "client" }`,
+      body: `{
+  "prompt": "Write a follow-up email...",
+  "tone": "friendly",
+  "recipientContext": "client",
+  "language": "English"
+}`,
+      response: `{
+  "success": true,
+  "subject": "...",
+  "body": "...",
+  "greeting": "...",
+  "closing": "..."
+}`,
     },
     {
       method: "POST",
       path: "/api/v1/email/review",
       description: "Review and proofread a document",
-      body: `{ "content": "Text to review...", "reviewType": "comprehensive" }`,
+      body: `{
+  "content": "Text to review...",
+  "reviewType": "comprehensive",
+  "language": "English"
+}`,
+      response: `{
+  "success": true,
+  "correctedText": "...",
+  "changes": ["..."],
+  "score": 85,
+  "suggestions": ["..."]
+}`,
     },
     {
       method: "POST",
       path: "/api/v1/email/improve",
       description: "Improve writing style or translate",
-      body: `{ "text": "Text to improve...", "improvement": "professional" }`,
+      body: `{
+  "text": "Text to improve...",
+  "improvement": "professional",
+  "targetLanguage": "French"
+}`,
+      response: `{
+  "success": true,
+  "improvedText": "..."
+}`,
     },
   ];
 
+  const curlExample = `curl -X POST ${baseUrl}/api/v1/email/summarize \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -d '{"emailContent": "Dear team, please review the Q4 report..."}'`;
+
+  const pythonExample = `import requests
+
+API_KEY = "YOUR_API_KEY"
+BASE_URL = "${baseUrl}"
+
+response = requests.post(
+    f"{BASE_URL}/api/v1/email/summarize",
+    headers={
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {API_KEY}"
+    },
+    json={"emailContent": "Dear team, please review..."}
+)
+data = response.json()
+print(data["summary"])`;
+
+  const outlookSummarizeCode = `// taskpane.js - Summarize the currently open email
+Office.onReady(() => {
+  document.getElementById("summarize-btn")
+    .addEventListener("click", summarizeEmail);
+});
+
+async function summarizeEmail() {
+  const item = Office.context.mailbox.item;
+
+  // Read the email body
+  item.body.getAsync(Office.CoercionType.Text, async (result) => {
+    if (result.status !== Office.AsyncResultStatus.Succeeded) {
+      showError("Could not read email body");
+      return;
+    }
+
+    try {
+      const response = await fetch("${baseUrl}/api/v1/email/summarize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer YOUR_API_KEY"
+        },
+        body: JSON.stringify({ emailContent: result.value })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        document.getElementById("summary").innerText = data.summary;
+        document.getElementById("sentiment").innerText = data.sentiment;
+        showKeyPoints(data.keyPoints);
+        showActionItems(data.actionItems);
+      }
+    } catch (err) {
+      showError("Failed to summarize: " + err.message);
+    }
+  });
+}`;
+
+  const outlookReplyCode = `// Draft a reply using AI and insert it into a new reply
+async function draftAIReply() {
+  const item = Office.context.mailbox.item;
+
+  item.body.getAsync(Office.CoercionType.Text, async (result) => {
+    if (result.status !== Office.AsyncResultStatus.Succeeded) return;
+
+    const response = await fetch("${baseUrl}/api/v1/email/reply", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer YOUR_API_KEY"
+      },
+      body: JSON.stringify({
+        originalEmail: result.value,
+        tone: "professional",
+        instructions: document.getElementById("instructions").value
+      })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      // Display the draft for the user to review and copy
+      document.getElementById("draft-reply").innerText = data.reply;
+      document.getElementById("draft-subject").innerText = data.subject;
+    }
+  });
+}`;
+
+  const outlookComposeCode = `// Compose a new email and insert into the Outlook compose window
+async function composeWithAI() {
+  const prompt = document.getElementById("compose-prompt").value;
+  const tone = document.getElementById("tone-select").value;
+
+  const response = await fetch("${baseUrl}/api/v1/email/compose", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer YOUR_API_KEY"
+    },
+    body: JSON.stringify({ prompt, tone })
+  });
+
+  const data = await response.json();
+  if (data.success) {
+    // Insert the composed email into Outlook's compose body
+    const fullBody = data.greeting + "\\n\\n" + data.body + "\\n\\n" + data.closing;
+    Office.context.mailbox.item.body.setAsync(
+      fullBody,
+      { coercionType: Office.CoercionType.Text },
+      (res) => {
+        if (res.status === Office.AsyncResultStatus.Succeeded) {
+          Office.context.mailbox.item.subject.setAsync(data.subject);
+        }
+      }
+    );
+  }
+}`;
+
+  const manifestSnippet = `<!-- manifest.xml - Key sections for your SAYELE Email Add-in -->
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xsi:type="MailApp">
+  <Id>YOUR-UNIQUE-GUID-HERE</Id>
+  <Version>1.0.0</Version>
+  <ProviderName>SAYELE</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="SAYELE AI Email Assistant" />
+  <Description DefaultValue="AI-powered email summarization, replies, and composition" />
+  
+  <Hosts>
+    <Host Name="Mailbox" />
+  </Hosts>
+  
+  <Requirements>
+    <Sets>
+      <Set Name="Mailbox" MinVersion="1.1" />
+    </Sets>
+  </Requirements>
+
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://your-addin-host.com/taskpane.html" />
+        <RequestedHeight>450</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+    <Form xsi:type="ItemEdit">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://your-addin-host.com/taskpane.html" />
+        <RequestedHeight>450</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+
+  <Permissions>ReadWriteMailbox</Permissions>
+  
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read" />
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Edit" />
+  </Rule>
+</OfficeApp>`;
+
   return (
     <div className="space-y-6">
+      {/* Base URL & Auth */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5" />
-            API Integration
+            SAYELE Email Assistant API
           </CardTitle>
           <CardDescription>
-            Integrate the Email Assistant into Outlook, Microsoft Office, or any mail client using our REST API.
+            Integrate AI email tools into Outlook, Microsoft 365, or any application using the SAYELE REST API.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -776,76 +992,330 @@ function ApiTab() {
           <div>
             <Label>Authentication</Label>
             <p className="text-sm text-muted-foreground mt-1">
-              All endpoints require a Bearer token. Use your SAYELE API key in the Authorization header.
+              All endpoints require a Bearer token. Generate your API key from the <strong>API Keys</strong> page, then include it in every request.
             </p>
-            <code className="block mt-2 bg-muted px-3 py-2 rounded-md text-sm font-mono">
-              {"Authorization: Bearer YOUR_API_KEY"}
-            </code>
+            <div className="mt-2 flex items-center gap-2">
+              <code className="flex-1 bg-muted px-3 py-2 rounded-md text-sm font-mono">
+                {"Authorization: Bearer sk_live_xxxxxxxxxxxxxxxx"}
+              </code>
+              <CopyButton text="Authorization: Bearer sk_live_xxxxxxxxxxxxxxxx" />
+            </div>
+          </div>
+          <div>
+            <Label>Rate Limits</Label>
+            <p className="text-sm text-muted-foreground mt-1">
+              API requests are rate-limited per key. If you exceed the limit, you will receive a <code className="bg-muted px-1 rounded text-foreground">429</code> response with a <code className="bg-muted px-1 rounded text-foreground">Retry-After</code> header.
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      <div className="space-y-4">
-        {endpoints.map((ep) => (
-          <Card key={ep.path}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Badge className="bg-green-600 text-white">{ep.method}</Badge>
-                <code className="text-sm font-mono">{ep.path}</code>
-              </div>
-              <CardDescription>{ep.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between mb-1">
-                <Label className="text-xs text-muted-foreground">Request body</Label>
-                <CopyButton text={ep.body} />
-              </div>
-              <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap">
-                {ep.body}
-              </pre>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
+      {/* Quick Start */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Code className="h-5 w-5" />
-            Outlook / Office Add-in Integration
-          </CardTitle>
+          <CardTitle className="text-base">Quick Start</CardTitle>
+          <CardDescription>Test the API with cURL or Python</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-muted-foreground">
-          <p>
-            To integrate this AI Email Assistant into Outlook or Microsoft Office:
-          </p>
-          <ol className="list-decimal list-inside space-y-2">
-            <li>Create an Office Add-in project using the Yeoman generator or Visual Studio</li>
-            <li>Use the <code className="bg-muted px-1 rounded text-foreground">Office.js</code> API to read the current email content</li>
-            <li>Call SAYELE Email Assistant API endpoints with the email content</li>
-            <li>Display the AI response in a taskpane or dialog</li>
-          </ol>
-          <div className="mt-3">
-            <Label className="text-xs text-muted-foreground">Example: Summarize current email in Outlook</Label>
-            <pre className="mt-1.5 bg-muted px-3 py-2 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap">
-{`// In your Office Add-in JavaScript
-const item = Office.context.mailbox.item;
-item.body.getAsync("text", async (result) => {
-  const response = await fetch("${baseUrl}/api/v1/email/summarize", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer YOUR_API_KEY"
-    },
-    body: JSON.stringify({ emailContent: result.value })
-  });
-  const data = await response.json();
-  // Display data.summary, data.keyPoints, etc.
-});`}
+        <CardContent className="space-y-4">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-xs text-muted-foreground">cURL</Label>
+              <CopyButton text={curlExample} />
+            </div>
+            <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap">
+              {curlExample}
+            </pre>
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-xs text-muted-foreground">Python</Label>
+              <CopyButton text={pythonExample} />
+            </div>
+            <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap">
+              {pythonExample}
             </pre>
           </div>
         </CardContent>
       </Card>
+
+      {/* Endpoints */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">API Endpoints</h3>
+        <div className="space-y-4">
+          {endpoints.map((ep) => (
+            <Card key={ep.path}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-green-600 text-white">{ep.method}</Badge>
+                  <code className="text-sm font-mono">{ep.path}</code>
+                </div>
+                <CardDescription>{ep.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label className="text-xs text-muted-foreground">Request body</Label>
+                    <CopyButton text={ep.body} />
+                  </div>
+                  <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap">
+                    {ep.body}
+                  </pre>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label className="text-xs text-muted-foreground">Response</Label>
+                    <CopyButton text={ep.response} />
+                  </div>
+                  <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap text-green-700 dark:text-green-400">
+                    {ep.response}
+                  </pre>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Outlook Integration Guide */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Code className="h-5 w-5" />
+          Outlook / Microsoft 365 Integration Guide
+        </h3>
+
+        {/* Step 1: Overview */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="text-base">Overview</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              You can integrate SAYELE AI Email Assistant into <strong>Outlook Desktop</strong>, <strong>Outlook Web (OWA)</strong>, and <strong>Microsoft 365</strong> by building an <strong>Office Add-in</strong>. The add-in runs as a taskpane inside Outlook and calls the SAYELE API to process emails.
+            </p>
+            <div className="grid sm:grid-cols-3 gap-3 mt-3">
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <MailOpen className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <p className="font-medium text-foreground text-xs">Read Mode</p>
+                <p className="text-xs mt-1">Summarize, extract action items from any email</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <Reply className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <p className="font-medium text-foreground text-xs">Reply Mode</p>
+                <p className="text-xs mt-1">AI-draft replies with custom tone and instructions</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <PenLine className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <p className="font-medium text-foreground text-xs">Compose Mode</p>
+                <p className="text-xs mt-1">Generate new emails from a brief prompt</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Step 2: Prerequisites */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="text-base">Step 1: Prerequisites</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <ul className="space-y-2">
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500 shrink-0" />
+                <span><strong>Node.js 18+</strong> installed on your development machine</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500 shrink-0" />
+                <span><strong>SAYELE API Key</strong> &mdash; generate one from the API Keys page in your SAYELE dashboard</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500 shrink-0" />
+                <span><strong>Microsoft 365 account</strong> (for testing the add-in in Outlook)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500 shrink-0" />
+                <span><strong>Yeoman + Office Add-in Generator</strong> &mdash; install with the command below</span>
+              </li>
+            </ul>
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs text-muted-foreground">Install generator</Label>
+                <CopyButton text="npm install -g yo generator-office" />
+              </div>
+              <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono">
+                {"npm install -g yo generator-office"}
+              </pre>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Step 3: Create Project */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="text-base">Step 2: Create the Add-in Project</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs text-muted-foreground">Generate a new Outlook Add-in</Label>
+                <CopyButton text='yo office --projectType taskpane --name "SAYELE Email AI" --host outlook --js' />
+              </div>
+              <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap">
+                {'yo office --projectType taskpane --name "SAYELE Email AI" --host outlook --js'}
+              </pre>
+            </div>
+            <p>
+              This generates a project with <code className="bg-muted px-1 rounded text-foreground">manifest.xml</code>, <code className="bg-muted px-1 rounded text-foreground">taskpane.html</code>, and <code className="bg-muted px-1 rounded text-foreground">taskpane.js</code>. The taskpane is the side panel that appears inside Outlook.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Step 4: manifest.xml */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="text-base">Step 3: Configure manifest.xml</CardTitle>
+            <CardDescription>
+              The manifest tells Outlook how to load your add-in. Key sections below:
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-xs text-muted-foreground">manifest.xml</Label>
+              <CopyButton text={manifestSnippet} />
+            </div>
+            <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap max-h-64 overflow-y-auto">
+              {manifestSnippet}
+            </pre>
+            <p className="text-xs text-muted-foreground mt-2">
+              <strong>Note:</strong> Replace <code className="bg-muted px-1 rounded text-foreground">{"https://your-addin-host.com"}</code> with the URL where your add-in is hosted (or <code className="bg-muted px-1 rounded text-foreground">https://localhost:3000</code> for local development).
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Step 5: Summarize */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="text-base">Step 4: Summarize Current Email</CardTitle>
+            <CardDescription>Read the open email and send it to SAYELE for summarization</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-xs text-muted-foreground">taskpane.js &mdash; Summarize</Label>
+              <CopyButton text={outlookSummarizeCode} />
+            </div>
+            <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap max-h-72 overflow-y-auto">
+              {outlookSummarizeCode}
+            </pre>
+          </CardContent>
+        </Card>
+
+        {/* Step 6: Draft Reply */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="text-base">Step 5: Draft an AI Reply</CardTitle>
+            <CardDescription>Generate a reply draft and display it for user review</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-xs text-muted-foreground">taskpane.js &mdash; Draft Reply</Label>
+              <CopyButton text={outlookReplyCode} />
+            </div>
+            <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap max-h-72 overflow-y-auto">
+              {outlookReplyCode}
+            </pre>
+          </CardContent>
+        </Card>
+
+        {/* Step 7: Compose */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="text-base">Step 6: Compose with AI</CardTitle>
+            <CardDescription>Generate a full email and insert it into Outlook&apos;s compose window</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-xs text-muted-foreground">taskpane.js &mdash; Compose</Label>
+              <CopyButton text={outlookComposeCode} />
+            </div>
+            <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap max-h-72 overflow-y-auto">
+              {outlookComposeCode}
+            </pre>
+          </CardContent>
+        </Card>
+
+        {/* Step 8: Test & Deploy */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="text-base">Step 7: Test & Deploy</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-3">
+            <div>
+              <p className="font-medium text-foreground mb-2">Local Testing</p>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs text-muted-foreground">Start the dev server</Label>
+                <CopyButton text="npm start" />
+              </div>
+              <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono">{"npm start"}</pre>
+              <p className="mt-2">This starts a local HTTPS server and side-loads the add-in into Outlook. The taskpane will appear when you select an email.</p>
+            </div>
+            <div>
+              <p className="font-medium text-foreground mb-2">Deployment Options</p>
+              <ul className="space-y-1.5">
+                <li className="flex items-start gap-2">
+                  <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                  <span><strong>Centralized (IT Admin)</strong> &mdash; Upload the manifest to your Microsoft 365 admin center for org-wide deployment</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                  <span><strong>AppSource</strong> &mdash; Submit to the Microsoft AppSource marketplace for public distribution</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                  <span><strong>Sideload</strong> &mdash; Manually load via Outlook settings for personal or testing use</span>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-foreground mb-2">Sideload in Outlook Web</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Open <strong>Outlook on the web</strong> (outlook.office.com)</li>
+                <li>Click the <strong>gear icon</strong> &rarr; <strong>View all Outlook settings</strong></li>
+                <li>Go to <strong>Mail</strong> &rarr; <strong>Customize actions</strong> &rarr; <strong>Get add-ins</strong></li>
+                <li>Click <strong>My add-ins</strong> &rarr; <strong>Add a custom add-in</strong> &rarr; <strong>Add from file</strong></li>
+                <li>Upload your <code className="bg-muted px-1 rounded text-foreground">manifest.xml</code></li>
+              </ol>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Security Note */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
+              Security Best Practice
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>
+              <strong>Never hardcode your API key</strong> in the add-in JavaScript that gets distributed. Instead:
+            </p>
+            <ul className="space-y-1.5">
+              <li className="flex items-start gap-2">
+                <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                <span>Use a lightweight proxy server that holds the API key and forwards requests to SAYELE</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                <span>Or use Azure Key Vault / environment variables on your hosting platform</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                <span>For internal/org-only add-ins, restrict your SAYELE API key to your organization&apos;s IP range</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
