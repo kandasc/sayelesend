@@ -165,7 +165,7 @@ function PaymentsContent() {
               </div>
               <CardTitle className="text-xl">{pkg.name}</CardTitle>
               <CardDescription>
-                {pkg.credits.toLocaleString()} credits
+                {pkg.credits.toLocaleString()} SMS
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-4">
@@ -174,7 +174,7 @@ function PaymentsContent() {
                   {formatAmount(pkg.amount, pkg.currency)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {formatAmount(pkg.amount / pkg.credits, pkg.currency)} per credit
+                  {formatAmount(pkg.amount / pkg.credits, pkg.currency)} per SMS
                 </p>
               </div>
               <Button

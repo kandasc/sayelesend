@@ -274,12 +274,12 @@ export const getCreditPackages = query({
   args: {},
   handler: async () => {
     return [
-      { id: "starter", name: "Starter", credits: 100, amount: 5000, currency: "XOF" },
-      { id: "basic", name: "Basic", credits: 500, amount: 20000, currency: "XOF" },
-      { id: "standard", name: "Standard", credits: 1000, amount: 35000, currency: "XOF" },
-      { id: "premium", name: "Premium", credits: 2500, amount: 75000, currency: "XOF" },
-      { id: "business", name: "Business", credits: 5000, amount: 140000, currency: "XOF" },
-      { id: "enterprise", name: "Enterprise", credits: 10000, amount: 250000, currency: "XOF" },
+      { id: "starter", name: "Starter", credits: 5000, amount: 50000, currency: "XOF" },
+      { id: "basic", name: "Basic", credits: 10000, amount: 100000, currency: "XOF" },
+      { id: "standard", name: "Standard", credits: 25000, amount: 250000, currency: "XOF" },
+      { id: "premium", name: "Premium", credits: 50000, amount: 500000, currency: "XOF" },
+      { id: "business", name: "Business", credits: 100000, amount: 1000000, currency: "XOF" },
+      { id: "enterprise", name: "Enterprise", credits: 250000, amount: 2500000, currency: "XOF" },
     ];
   },
 });
