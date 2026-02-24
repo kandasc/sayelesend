@@ -229,6 +229,7 @@ export const updateClient = mutation({
     webhookUrl: v.optional(v.string()),
     senderId: v.optional(v.string()),
     remoteId: v.optional(v.string()),
+    emailAssistantEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -276,6 +277,7 @@ export const updateClient = mutation({
       webhookUrl: string;
       senderId: string;
       remoteId: string;
+      emailAssistantEnabled: boolean;
     }> = {};
 
     if (args.companyName !== undefined) updates.companyName = args.companyName;
@@ -319,6 +321,7 @@ export const updateClient = mutation({
     }
     if (args.senderId !== undefined) updates.senderId = args.senderId;
     if (args.remoteId !== undefined) updates.remoteId = args.remoteId;
+    if (args.emailAssistantEnabled !== undefined) updates.emailAssistantEnabled = args.emailAssistantEnabled;
 
     await ctx.db.patch(args.clientId, updates);
 

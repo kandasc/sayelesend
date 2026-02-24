@@ -62,6 +62,8 @@ export default defineSchema({
     webhookUrl: v.optional(v.string()),
     senderId: v.optional(v.string()),
     remoteId: v.optional(v.string()),
+    // Feature flags
+    emailAssistantEnabled: v.optional(v.boolean()),
     // Message counts per channel
     smsCount: v.optional(v.number()),
     whatsappCount: v.optional(v.number()),

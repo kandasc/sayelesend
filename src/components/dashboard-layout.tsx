@@ -122,10 +122,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const clients = useQuery(api.admin.listClients, realUser?.role === "admin" ? {} : "skip");
   const setTestMode = useMutation(api.testMode.setTestMode);
 
+  const currentClient = useQuery(api.clients.getCurrentClient, {});
+
   const isAdmin = effectiveUser?.role === "admin";
   const isRealAdmin = realUser?.role === "admin";
   const isTestMode = effectiveUser?.isTestMode ?? false;
   const isSuperAdmin = isAdmin && !effectiveUser?.clientId;
+  
+  const hasEmailAssistant = currentClient?.emailAssistantEnabled === true;
   
   const isPendingActivation = 
     effectiveUser?.role === "client" && 
@@ -190,7 +194,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const bottomItems: NavItem[] = [
     { path: `/${lang}/reports`, label: "Reports", icon: <BarChart3 className="h-5 w-5" /> },
     ...(!isSuperAdmin ? [{ path: `/${lang}/ai-assistants`, label: "AI Assistants", icon: <Bot className="h-5 w-5" /> }] : []),
-    { path: `/${lang}/email-assistant`, label: "Email Assistant", icon: <MailOpen className="h-5 w-5" /> },
+    ...(hasEmailAssistant ? [{ path: `/${lang}/email-assistant`, label: "Email Assistant", icon: <MailOpen className="h-5 w-5" /> }] : []),
     { path: `/${lang}/payments`, label: "Credits & Billing", icon: <CreditCard className="h-5 w-5" /> },
     { path: `/${lang}/settings`, label: "Settings", icon: <Settings className="h-5 w-5" /> },
   ];

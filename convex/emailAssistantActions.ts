@@ -3,12 +3,25 @@
 import { v } from "convex/values";
 import OpenAI from "openai";
 import { action, internalAction } from "./_generated/server";
+import { api } from "./_generated/api";
 
 // AI model for email assistant tasks
 const AI_MODEL = "gpt-4o-mini";
 
 function getOpenAI(): OpenAI {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
+
+// Helper: check if the current user's client has email assistant enabled
+async function requireEmailAssistant(ctx: { auth: { getUserIdentity: () => Promise<{ tokenIdentifier: string } | null> }; runQuery: typeof action.prototype.runQuery }): Promise<void> {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) throw new Error("Not authenticated");
+
+  const client = await ctx.runQuery(api.clients.getCurrentClient, {});
+  if (!client) throw new Error("No client account found. Please contact your administrator.");
+  if (!client.emailAssistantEnabled) {
+    throw new Error("Email Assistant is not enabled for your account. Please contact your administrator to activate this feature.");
+  }
 }
 
 // ─── Summarize Email ───────────────────────────────────────────────────────
@@ -25,8 +38,7 @@ export const summarizeEmail = action({
     actionItems: string[];
     priority: string;
   }> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    await requireEmailAssistant(ctx);
 
     const openai = getOpenAI();
     const lang = args.language || "English";
@@ -97,8 +109,7 @@ export const draftReply = action({
     language: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<{ reply: string; subject: string }> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    await requireEmailAssistant(ctx);
 
     const openai = getOpenAI();
     const tone = args.tone || "professional";
@@ -173,8 +184,7 @@ export const composeEmail = action({
     greeting: string;
     closing: string;
   }> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    await requireEmailAssistant(ctx);
 
     const openai = getOpenAI();
     const tone = args.tone || "professional";
@@ -257,8 +267,7 @@ export const reviewDocument = action({
     score: number;
     suggestions: string[];
   }> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    await requireEmailAssistant(ctx);
 
     const openai = getOpenAI();
     const reviewType = args.reviewType || "comprehensive";
@@ -333,8 +342,7 @@ export const improveWriting = action({
     targetLanguage: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<{ improvedText: string }> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    await requireEmailAssistant(ctx);
 
     const openai = getOpenAI();
 

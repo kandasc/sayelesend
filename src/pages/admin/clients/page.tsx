@@ -22,12 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.tsx";
-import { Plus, Edit, DollarSign, Users as UsersIcon } from "lucide-react";
+import { Plus, Edit, DollarSign, Users as UsersIcon, MailOpen } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
+import { Switch } from "@/components/ui/switch.tsx";
 
 export default function AdminClients() {
   return (
@@ -125,6 +126,12 @@ function ClientsContent() {
                       >
                         {client.status}
                       </Badge>
+                      {client.emailAssistantEnabled && (
+                        <Badge variant="secondary" className="gap-1">
+                          <MailOpen className="h-3 w-3" />
+                          Email AI
+                        </Badge>
+                      )}
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
@@ -430,6 +437,14 @@ function EditClientForm({
   const client = useQuery(api.clients.getClient, { clientId });
   const updateClient = useMutation(api.clients.updateClient);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailAssistantEnabled, setEmailAssistantEnabled] = useState(false);
+
+  // Sync toggle state when client data loads
+  useEffect(() => {
+    if (client) {
+      setEmailAssistantEnabled(client.emailAssistantEnabled ?? false);
+    }
+  }, [client]);
 
   if (!client) {
     return <div>Loading...</div>;
@@ -461,6 +476,7 @@ function EditClientForm({
         webhookUrl: (formData.get("webhookUrl") as string) || undefined,
         senderId: (formData.get("senderId") as string) || undefined,
         remoteId: (formData.get("remoteId") as string) || undefined,
+        emailAssistantEnabled,
       });
       toast.success("Client updated successfully");
       onSuccess();
@@ -599,6 +615,26 @@ function EditClientForm({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+        </div>
+
+        <div className="border-t pt-4">
+          <h3 className="font-semibold mb-4">Add-on Features</h3>
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <MailOpen className="h-4 w-4 text-primary" />
+                <Label htmlFor="emailAssistant" className="font-medium">AI Email Assistant</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Enable AI-powered email summarization, replies, composition, and document review
+              </p>
+            </div>
+            <Switch
+              id="emailAssistant"
+              checked={emailAssistantEnabled}
+              onCheckedChange={setEmailAssistantEnabled}
+            />
           </div>
         </div>
 

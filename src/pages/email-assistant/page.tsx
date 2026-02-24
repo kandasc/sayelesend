@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { Button } from "@/components/ui/button.tsx";
@@ -36,6 +36,7 @@ import {
   ChevronRight,
   Code,
   Globe,
+  Lock,
 } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -1323,6 +1324,34 @@ async function composeWithAI() {
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
 function EmailAssistantInner() {
+  const client = useQuery(api.clients.getCurrentClient, {});
+
+  // Feature not enabled for this client
+  if (client && !client.emailAssistantEnabled) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="rounded-full bg-muted p-4 mb-4">
+          <Lock className="h-10 w-10 text-muted-foreground" />
+        </div>
+        <h2 className="text-xl font-semibold mb-2">Email Assistant Not Enabled</h2>
+        <p className="text-muted-foreground max-w-md">
+          The AI Email Assistant is a premium add-on feature. Please contact your administrator to activate it for your account.
+        </p>
+      </div>
+    );
+  }
+
+  // Loading client data
+  if (!client) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-12 w-full max-w-2xl" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
