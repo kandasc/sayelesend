@@ -12,6 +12,8 @@ import { MessageSquare, Search, Check, Clock, Download, Calendar as CalendarIcon
 import { useState } from "react";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce.ts";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import { PaginationControls } from "@/components/ui/pagination-controls.tsx";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { Label } from "@/components/ui/label.tsx";
 import {
@@ -67,6 +69,8 @@ function IncomingMessagesContent() {
     
     return matchesSearch;
   });
+
+  const pagination = usePagination(filteredMessages, { pageSize: 15 });
 
   const getTruncatedMessage = (text: string) => {
     const words = text.split(' ');
@@ -433,7 +437,7 @@ function IncomingMessagesContent() {
         </Empty>
       ) : (
         <div className="space-y-4">
-          {filteredMessages.map((message) => (
+          {pagination.paginatedItems.map((message) => (
             <IncomingMessageCard 
               key={message._id} 
               message={message} 
@@ -443,6 +447,8 @@ function IncomingMessagesContent() {
           ))}
         </div>
       )}
+
+      <PaginationControls {...pagination} itemLabel="messages" />
 
       {/* Message Detail Dialog */}
       <Dialog open={!!selectedMessage} onOpenChange={(open) => !open && setSelectedMessage(null)}>

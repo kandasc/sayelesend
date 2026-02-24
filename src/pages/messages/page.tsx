@@ -35,6 +35,8 @@ import { Calendar } from "@/components/ui/calendar.tsx";
 import { AIAssistant } from "@/components/ai-assistant.tsx";
 import { AIImprover } from "@/components/ai-improver.tsx";
 import { useDebounce } from "@/hooks/use-debounce.ts";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import { PaginationControls } from "@/components/ui/pagination-controls.tsx";
 import jsPDF from "jspdf";
 import type { DateRange } from "react-day-picker";
 
@@ -82,6 +84,8 @@ function MessagesContent() {
     
     return matchesSearch;
   });
+
+  const pagination = usePagination(filteredMessages, { pageSize: 15 });
 
   const getTruncatedMessage = (text: string) => {
     const words = text.split(' ');
@@ -422,8 +426,9 @@ function MessagesContent() {
               {searchQuery ? "No messages found matching your search" : "No messages found"}
             </p>
           ) : (
-            <div className="space-y-2">
-              {filteredMessages.map((message) => (
+            <>
+              <div className="space-y-2">
+              {pagination.paginatedItems.map((message) => (
                 <div
                   key={message._id}
                   className="flex items-start justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
@@ -455,6 +460,8 @@ function MessagesContent() {
                 </div>
               ))}
             </div>
+            <PaginationControls {...pagination} itemLabel="messages" />
+            </>
           )}
         </CardContent>
       </Card>

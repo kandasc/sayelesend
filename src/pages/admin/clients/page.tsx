@@ -30,6 +30,8 @@ import { format } from "date-fns";
 import { ConvexError } from "convex/values";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import { Switch } from "@/components/ui/switch.tsx";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import PaginationControls from "@/components/ui/pagination-controls.tsx";
 
 function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ConvexError) {
@@ -84,6 +86,8 @@ function ClientsContent() {
     return <ClientsSkeleton />;
   }
 
+  const pagination = usePagination(clients, { pageSize: 10 });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -118,7 +122,7 @@ function ClientsContent() {
       </div>
 
       <div className="grid gap-4">
-        {clients.map((client) => {
+        {pagination.paginatedItems.map((client) => {
           const provider = providers.find((p) => p._id === client.smsProviderId);
           return (
             <Card key={client._id}>
@@ -225,6 +229,7 @@ function ClientsContent() {
           );
         })}
       </div>
+      <PaginationControls {...pagination} itemLabel="clients" />
 
       {editOpen && selectedClient && (
         <Dialog open={editOpen} onOpenChange={setEditOpen}>

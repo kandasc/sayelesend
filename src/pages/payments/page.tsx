@@ -51,6 +51,8 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import PaginationControls from "@/components/ui/pagination-controls.tsx";
 import {
   BarChart,
   Bar,
@@ -702,6 +704,9 @@ function HistoryTab({
   transactions: Transaction[];
   paymentHistory: PaymentTx[] | undefined;
 }) {
+  const txPagination = usePagination(transactions, { pageSize: 15 });
+  const payPagination = usePagination(paymentHistory ?? [], { pageSize: 15 });
+
   const formatAmount = (amount: number, currency: string) => {
     return new Intl.NumberFormat("fr-FR", {
       style: "currency",
@@ -734,6 +739,7 @@ function HistoryTab({
               </EmptyHeader>
             </Empty>
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -745,7 +751,7 @@ function HistoryTab({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.map((tx) => (
+                {txPagination.paginatedItems.map((tx) => (
                   <TableRow key={tx._id}>
                     <TableCell className="text-sm whitespace-nowrap">
                       {format(new Date(tx._creationTime), "MMM d, yyyy HH:mm")}
@@ -780,6 +786,8 @@ function HistoryTab({
                 ))}
               </TableBody>
             </Table>
+            <PaginationControls {...txPagination} itemLabel="transactions" />
+            </>
           )}
         </CardContent>
       </Card>
@@ -803,7 +811,7 @@ function HistoryTab({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paymentHistory.map((tx) => (
+                {payPagination.paginatedItems.map((tx) => (
                   <TableRow key={tx._id}>
                     <TableCell className="text-sm whitespace-nowrap">
                       {format(new Date(tx._creationTime), "MMM d, yyyy HH:mm")}
@@ -834,6 +842,7 @@ function HistoryTab({
                 ))}
               </TableBody>
             </Table>
+            <PaginationControls {...payPagination} itemLabel="payments" />
           </CardContent>
         </Card>
       )}

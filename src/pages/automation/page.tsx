@@ -1,5 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import PaginationControls from "@/components/ui/pagination-controls.tsx";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -118,6 +120,8 @@ export default function AutomationPage() {
     );
   }
 
+  const pagination = usePagination(rules, { pageSize: 15 });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -210,7 +214,7 @@ export default function AutomationPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {rules.map((rule) => (
+              {pagination.paginatedItems.map((rule) => (
                 <div
                   key={rule._id}
                   className="flex items-start justify-between rounded-lg border p-4"
@@ -271,6 +275,7 @@ export default function AutomationPage() {
                   </div>
                 </div>
               ))}
+              <PaginationControls {...pagination} itemLabel="rules" />
             </div>
           )}
         </CardContent>

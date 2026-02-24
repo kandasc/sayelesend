@@ -4,6 +4,8 @@ import { api } from "@/convex/_generated/api.js";
 import { ConvexError } from "convex/values";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import { toast } from "sonner";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import PaginationControls from "@/components/ui/pagination-controls.tsx";
 import {
   ShieldCheck,
   Ban,
@@ -173,6 +175,8 @@ function SuppressionList() {
     }
   };
 
+  const pagination = usePagination(suppressedContacts ?? [], { pageSize: 15 });
+
   if (!suppressedContacts) {
     return (
       <div className="space-y-3">
@@ -211,6 +215,7 @@ function SuppressionList() {
           </EmptyHeader>
         </Empty>
       ) : (
+        <>
         <Card>
           <Table>
             <TableHeader>
@@ -222,7 +227,7 @@ function SuppressionList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {suppressedContacts.map((contact) => (
+              {pagination.paginatedItems.map((contact) => (
                 <TableRow key={contact._id}>
                   <TableCell className="font-mono">{contact.phoneNumber}</TableCell>
                   <TableCell>
@@ -250,6 +255,8 @@ function SuppressionList() {
             </TableBody>
           </Table>
         </Card>
+        <PaginationControls {...pagination} itemLabel="contacts" />
+        </>
       )}
 
       {/* Confirm re-subscribe dialog */}

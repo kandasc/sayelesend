@@ -33,6 +33,8 @@ import { FileText, Plus, Edit, Trash2, Search, Info } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce.ts";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import PaginationControls from "@/components/ui/pagination-controls.tsx";
 
 export default function Templates() {
   return (
@@ -51,6 +53,8 @@ function TemplatesContent() {
     t.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
     t.message.toLowerCase().includes(debouncedSearch.toLowerCase())
   );
+
+  const pagination = usePagination(filteredTemplates, { pageSize: 15 });
 
   if (templates === undefined) {
     return (
@@ -130,10 +134,13 @@ function TemplatesContent() {
           )}
         </Empty>
       ) : (
-        <div className="grid gap-4">
-          {filteredTemplates.map((template) => (
-            <TemplateCard key={template._id} template={template} />
-          ))}
+        <div className="space-y-4">
+          <div className="grid gap-4">
+            {pagination.paginatedItems.map((template) => (
+              <TemplateCard key={template._id} template={template} />
+            ))}
+          </div>
+          <PaginationControls {...pagination} itemLabel="templates" />
         </div>
       )}
     </div>

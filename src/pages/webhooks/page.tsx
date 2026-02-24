@@ -19,6 +19,8 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import PaginationControls from "@/components/ui/pagination-controls.tsx";
 
 export default function Webhooks() {
   return (
@@ -34,6 +36,7 @@ function WebhooksContent() {
   const client = useQuery(api.clients.getCurrentClient);
   const testWebhook = useAction(api.webhookActions.testWebhook);
   const [testing, setTesting] = useState(false);
+  const pagination = usePagination(events || [], { pageSize: 15 });
 
   const handleTestWebhook = async () => {
     setTesting(true);
@@ -166,9 +169,10 @@ function WebhooksContent() {
         </Empty>
       ) : (
         <div className="space-y-4">
-          {events.map((event) => (
+          {pagination.paginatedItems.map((event) => (
             <WebhookEventCard key={event._id} event={event} />
           ))}
+          <PaginationControls {...pagination} itemLabel="events" />
         </div>
       )}
     </div>

@@ -63,6 +63,8 @@ import {
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useDebounce } from "@/hooks/use-debounce";
+import { usePagination } from "@/hooks/use-pagination";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 
 export default function ContactsPage() {
   return (
@@ -109,6 +111,8 @@ function ContactsPageInner() {
           ? false
           : undefined,
   });
+
+  const pagination = usePagination(contacts || [], { pageSize: 15 });
 
   const stats = useQuery(api.contacts.getContactStats, {});
   const tags = useQuery(api.contacts.getTags, {});
@@ -279,71 +283,76 @@ function ContactsPageInner() {
             </EmptyContent>
           </Empty>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Tags</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contacts.map((contact) => (
-                <TableRow key={contact._id}>
-                  <TableCell className="font-medium">
-                    {contact.firstName || contact.lastName
-                      ? `${contact.firstName || ""} ${contact.lastName || ""}`.trim()
-                      : "—"}
-                  </TableCell>
-                  <TableCell>{contact.phoneNumber}</TableCell>
-                  <TableCell>{contact.email || "—"}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {contact.tags.length > 0
-                        ? contact.tags.map((tag) => (
-                            <Badge key={tag} variant="secondary">
-                              {tag}
-                            </Badge>
-                          ))
-                        : "—"}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {contact.isOptedOut ? (
-                      <Badge variant="destructive">Opted Out</Badge>
-                    ) : (
-                      <Badge variant="default">Active</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(contact._id)}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(contact._id)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Tags</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-12"></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {pagination.paginatedItems.map((contact) => (
+                  <TableRow key={contact._id}>
+                    <TableCell className="font-medium">
+                      {contact.firstName || contact.lastName
+                        ? `${contact.firstName || ""} ${contact.lastName || ""}`.trim()
+                        : "—"}
+                    </TableCell>
+                    <TableCell>{contact.phoneNumber}</TableCell>
+                    <TableCell>{contact.email || "—"}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {contact.tags.length > 0
+                          ? contact.tags.map((tag) => (
+                              <Badge key={tag} variant="secondary">
+                                {tag}
+                              </Badge>
+                            ))
+                          : "—"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {contact.isOptedOut ? (
+                        <Badge variant="destructive">Opted Out</Badge>
+                      ) : (
+                        <Badge variant="default">Active</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(contact._id)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(contact._id)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="border-t p-4">
+              <PaginationControls {...pagination} itemLabel="contacts" />
+            </div>
+          </>
         )}
       </div>
 

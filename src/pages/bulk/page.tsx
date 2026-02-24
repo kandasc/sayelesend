@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import { PaginationControls } from "@/components/ui/pagination-controls.tsx";
 import {
   Dialog,
   DialogContent,
@@ -231,9 +233,12 @@ function CampaignList({
     );
   }
 
+  const pagination = usePagination(campaigns, { pageSize: 10 });
+
   return (
-    <div className="grid gap-4">
-      {campaigns.map((campaign) => (
+    <div className="space-y-4">
+      <div className="grid gap-4">
+        {pagination.paginatedItems.map((campaign) => (
         <Card key={campaign._id} className="hover:bg-accent/50 cursor-pointer transition-colors" onClick={() => onViewDetails(campaign._id)}>
           <CardContent className="pt-6">
             <div className="flex items-start justify-between mb-4">
@@ -310,6 +315,8 @@ function CampaignList({
           </CardContent>
         </Card>
       ))}
+      </div>
+      <PaginationControls {...pagination} itemLabel="campaigns" />
     </div>
   );
 }
