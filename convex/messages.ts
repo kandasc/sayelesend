@@ -122,13 +122,13 @@ export const sendSms = mutation({
       )
       .unique();
 
-    if (recipientContact?.isOptedOut) {
-      // Check if blocking is enabled
-      const complianceSettings = await ctx.db
-        .query("complianceSettings")
-        .withIndex("by_client", (q) => q.eq("clientId", clientId))
-        .unique();
+    // Fetch compliance settings once (used for opt-out blocking and footer)
+    const complianceSettings = await ctx.db
+      .query("complianceSettings")
+      .withIndex("by_client", (q) => q.eq("clientId", clientId))
+      .unique();
 
+    if (recipientContact?.isOptedOut) {
       // Block by default, or if explicitly enabled
       if (!complianceSettings || complianceSettings.blockOptedOut) {
         throw new ConvexError({
@@ -145,6 +145,12 @@ export const sendSms = mutation({
       });
     }
 
+    // Append unsubscribe footer if enabled
+    let finalMessage = sanitizedMessage;
+    if (complianceSettings?.addUnsubscribeFooter && complianceSettings.unsubscribeFooterText) {
+      finalMessage = `${sanitizedMessage}\n\n${complianceSettings.unsubscribeFooterText}`;
+    }
+
     await ctx.db.patch(clientId, {
       credits: client.credits - provider.costPerSms,
     });
@@ -153,7 +159,7 @@ export const sendSms = mutation({
       clientId: clientId,
       to: args.to,
       from: client.senderId || args.from || provider.config.senderId || "SAYELE",
-      message: sanitizedMessage,
+      message: finalMessage,
       channel,
       status: args.scheduledAt ? "scheduled" : "pending",
       providerId,

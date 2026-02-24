@@ -562,27 +562,35 @@ export const processOptOutKeyword = internalMutation({
   },
 });
 
+// Helper type for the client fields we need for compliance auto-replies
+type ComplianceCtx = {
+  db: {
+    get: (id: Id<"clients">) => Promise<{
+      smsProviderId: Id<"smsProviders">;
+      whatsappProviderId?: Id<"smsProviders">;
+      telegramProviderId?: Id<"smsProviders">;
+      facebookMessengerProviderId?: Id<"smsProviders">;
+    } | null>;
+    insert: (table: "messages", doc: {
+      clientId: Id<"clients">;
+      to: string;
+      from: string;
+      message: string;
+      channel: "sms" | "whatsapp" | "telegram" | "facebook_messenger";
+      status: "pending";
+      type: "single";
+      providerId: Id<"smsProviders">;
+      creditsUsed: number;
+    }) => Promise<Id<"messages">>;
+  };
+  scheduler: {
+    runAfter: (ms: number, ref: typeof internal.sms.send.sendSingleMessage, args: { messageId: Id<"messages"> }) => Promise<unknown>;
+  };
+};
+
 // Helper: send an auto-reply compliance message
 async function sendComplianceReply(
-  ctx: {
-    db: {
-      get: (id: Id<"clients">) => ReturnType<typeof Object.create>;
-      insert: (table: "messages", doc: {
-        clientId: Id<"clients">;
-        to: string;
-        from: string;
-        message: string;
-        channel: "sms" | "whatsapp" | "telegram" | "facebook_messenger";
-        status: "pending";
-        type: "single";
-        providerId: Id<"smsProviders">;
-        creditsUsed: number;
-      }) => Promise<Id<"messages">>;
-    };
-    scheduler: {
-      runAfter: (ms: number, ref: typeof internal.sms.send.sendSingleMessage, args: { messageId: Id<"messages"> }) => Promise<void>;
-    };
-  },
+  ctx: ComplianceCtx,
   clientId: Id<"clients">,
   recipientPhone: string,
   senderNumber: string,
