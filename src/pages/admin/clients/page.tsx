@@ -27,8 +27,20 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ConvexError } from "convex/values";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import { Switch } from "@/components/ui/switch.tsx";
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ConvexError) {
+    const data = error.data as { message?: string; code?: string };
+    return data?.message || fallback;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return fallback;
+}
 
 export default function AdminClients() {
   return (
@@ -273,7 +285,7 @@ function CreateClientForm({
       toast.success(result.message);
       onSuccess();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create client");
+      toast.error(getErrorMessage(error, "Failed to create client"));
     } finally {
       setIsSubmitting(false);
     }
@@ -481,7 +493,7 @@ function EditClientForm({
       toast.success("Client updated successfully");
       onSuccess();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update client");
+      toast.error(getErrorMessage(error, "Failed to update client"));
     } finally {
       setIsSubmitting(false);
     }
@@ -704,7 +716,7 @@ function AddCreditsDialog({ clientId }: { clientId: Id<"clients"> }) {
       setOpen(false);
       setAmount("");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to add credits");
+      toast.error(getErrorMessage(error, "Failed to add credits"));
     } finally {
       setIsSubmitting(false);
     }
