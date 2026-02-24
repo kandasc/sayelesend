@@ -114,6 +114,30 @@ export const sendSms = mutation({
       });
     }
 
+    // Check opt-out compliance before sending
+    const recipientContact = await ctx.db
+      .query("contacts")
+      .withIndex("by_client_and_phone", (q) =>
+        q.eq("clientId", clientId).eq("phoneNumber", args.to)
+      )
+      .unique();
+
+    if (recipientContact?.isOptedOut) {
+      // Check if blocking is enabled
+      const complianceSettings = await ctx.db
+        .query("complianceSettings")
+        .withIndex("by_client", (q) => q.eq("clientId", clientId))
+        .unique();
+
+      // Block by default, or if explicitly enabled
+      if (!complianceSettings || complianceSettings.blockOptedOut) {
+        throw new ConvexError({
+          message: "Cannot send to this number — recipient has opted out. Remove from suppression list first.",
+          code: "FORBIDDEN",
+        });
+      }
+    }
+
     if (client.credits < provider.costPerSms) {
       throw new ConvexError({
         message: "Insufficient credits",

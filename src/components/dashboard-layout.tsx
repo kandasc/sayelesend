@@ -27,6 +27,7 @@ import {
   Zap,
   CreditCard,
   Bot,
+  ShieldCheck,
   ChevronDown,
   ChevronRight,
   Mail,
@@ -169,6 +170,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { path: `/${lang}/contacts`, label: "Contacts", icon: <UserPlus className="h-4 w-4" /> },
       { path: `/${lang}/groups`, label: "Groups", icon: <Folders className="h-4 w-4" /> },
       { path: `/${lang}/automation`, label: "Automation", icon: <Zap className="h-4 w-4" /> },
+      { path: `/${lang}/compliance`, label: "Compliance", icon: <ShieldCheck className="h-4 w-4" /> },
     ],
   };
 

@@ -634,6 +634,55 @@ export default defineSchema({
   })
     .index("by_session", ["sessionId"]),
 
+  optOutLog: defineTable({
+    clientId: v.id("clients"),
+    contactId: v.optional(v.id("contacts")),
+    phoneNumber: v.string(),
+    channel: v.union(
+      v.literal("sms"),
+      v.literal("whatsapp"),
+      v.literal("telegram"),
+      v.literal("facebook_messenger")
+    ),
+    action: v.union(
+      v.literal("opt_out"),
+      v.literal("opt_in")
+    ),
+    source: v.union(
+      v.literal("keyword"),
+      v.literal("manual"),
+      v.literal("api"),
+      v.literal("import")
+    ),
+    keyword: v.optional(v.string()),
+    incomingMessageId: v.optional(v.id("incomingMessages")),
+    performedBy: v.optional(v.id("users")),
+    note: v.optional(v.string()),
+  })
+    .index("by_client", ["clientId"])
+    .index("by_phone", ["phoneNumber"])
+    .index("by_client_and_phone", ["clientId", "phoneNumber"]),
+
+  complianceSettings: defineTable({
+    clientId: v.id("clients"),
+    // Opt-out keywords that trigger automatic opt-out
+    optOutKeywords: v.array(v.string()),
+    // Opt-in keywords that trigger automatic opt-in (re-subscribe)
+    optInKeywords: v.array(v.string()),
+    // Auto-reply message sent when someone opts out
+    optOutAutoReply: v.optional(v.string()),
+    // Auto-reply message sent when someone opts back in
+    optInAutoReply: v.optional(v.string()),
+    // Whether to auto-reply to opt-out/opt-in messages
+    autoReplyEnabled: v.boolean(),
+    // Whether to block sending to opted-out contacts
+    blockOptedOut: v.boolean(),
+    // Whether to add footer to outgoing messages (e.g., "Reply STOP to unsubscribe")
+    addUnsubscribeFooter: v.boolean(),
+    unsubscribeFooterText: v.optional(v.string()),
+  })
+    .index("by_client", ["clientId"]),
+
   paymentTransactions: defineTable({
     transactionId: v.string(),
     clientId: v.id("clients"),

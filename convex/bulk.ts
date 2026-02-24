@@ -149,7 +149,43 @@ export const createBulkMessage = mutation({
       });
     }
 
-    const totalRecipients = args.recipients.length;
+    // Filter out opted-out contacts for compliance
+    const complianceSettings = await ctx.db
+      .query("complianceSettings")
+      .withIndex("by_client", (q) => q.eq("clientId", clientId))
+      .unique();
+
+    const shouldBlock = !complianceSettings || complianceSettings.blockOptedOut;
+
+    let filteredRecipients = args.recipients;
+    let optedOutCount = 0;
+
+    if (shouldBlock) {
+      const filtered: string[] = [];
+      for (const phone of args.recipients) {
+        const contact = await ctx.db
+          .query("contacts")
+          .withIndex("by_client_and_phone", (q) =>
+            q.eq("clientId", clientId).eq("phoneNumber", phone)
+          )
+          .unique();
+        if (contact?.isOptedOut) {
+          optedOutCount++;
+        } else {
+          filtered.push(phone);
+        }
+      }
+      filteredRecipients = filtered;
+
+      if (filteredRecipients.length === 0) {
+        throw new ConvexError({
+          message: `All ${optedOutCount} recipients are opted out. No messages will be sent.`,
+          code: "BAD_REQUEST",
+        });
+      }
+    }
+
+    const totalRecipients = filteredRecipients.length;
     const totalCost = totalRecipients * provider.costPerSms;
 
     if (client.credits < totalCost) {
@@ -181,7 +217,7 @@ export const createBulkMessage = mutation({
     });
 
     // Create recipient records
-    for (const phoneNumber of args.recipients) {
+    for (const phoneNumber of filteredRecipients) {
       await ctx.db.insert("bulkMessageRecipients", {
         bulkMessageId,
         phoneNumber,

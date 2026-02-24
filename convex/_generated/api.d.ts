@@ -21,6 +21,7 @@ import type * as bulk from "../bulk.js";
 import type * as campaignReports from "../campaignReports.js";
 import type * as campaignReportsQueries from "../campaignReportsQueries.js";
 import type * as clients from "../clients.js";
+import type * as compliance from "../compliance.js";
 import type * as contactForm from "../contactForm.js";
 import type * as contactGroups from "../contactGroups.js";
 import type * as contacts from "../contacts.js";
@@ -80,6 +81,7 @@ declare const fullApi: ApiFromModules<{
   campaignReports: typeof campaignReports;
   campaignReportsQueries: typeof campaignReportsQueries;
   clients: typeof clients;
+  compliance: typeof compliance;
   contactForm: typeof contactForm;
   contactGroups: typeof contactGroups;
   contacts: typeof contacts;

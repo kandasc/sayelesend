@@ -150,6 +150,11 @@ export const receiveIncomingSms = internalMutation({
     // Mark as processed
     await ctx.db.patch(messageId, { processed: true });
 
+    // Process opt-out/opt-in keywords for compliance
+    await ctx.scheduler.runAfter(0, internal.compliance.processOptOutKeyword, {
+      incomingMessageId: messageId,
+    });
+
     // Trigger automation processing
     await ctx.scheduler.runAfter(0, internal.automation.processIncomingMessage, {
       incomingMessageId: messageId,
