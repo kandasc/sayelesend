@@ -1084,14 +1084,65 @@ async function composeWithAI() {
           Outlook / Microsoft 365 Integration Guide
         </h3>
 
-        {/* Step 1: Overview */}
+        {/* Account Requirements */}
+        <Card className="mb-4 border-orange-200 dark:border-orange-800">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
+              Account Requirements
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-3">
+            <p>
+              Outlook Add-in sideloading requires a <strong>Microsoft 365 Business or Enterprise</strong> account. Personal Outlook.com / Hotmail accounts <strong>do not support</strong> custom add-ins.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                <p className="font-medium text-green-800 dark:text-green-400 text-xs mb-1.5">Supported</p>
+                <ul className="space-y-1 text-xs">
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-green-500 shrink-0" />
+                    <span>Microsoft 365 Business Basic / Standard / Premium</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-green-500 shrink-0" />
+                    <span>Microsoft 365 Enterprise (E1, E3, E5)</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-green-500 shrink-0" />
+                    <span>Exchange Online with Outlook Desktop (Windows/Mac)</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+                <p className="font-medium text-red-800 dark:text-red-400 text-xs mb-1.5">Not Supported</p>
+                <ul className="space-y-1 text-xs">
+                  <li className="flex items-start gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-red-500 shrink-0" />
+                    <span>Personal Outlook.com / Hotmail / Live.com</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-red-500 shrink-0" />
+                    <span>Microsoft 365 Personal / Family plans</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-red-500 shrink-0" />
+                    <span>Free Outlook.com accounts</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Overview */}
         <Card className="mb-4">
           <CardHeader>
             <CardTitle className="text-base">Overview</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>
-              You can integrate SAYELE AI Email Assistant into <strong>Outlook Desktop</strong>, <strong>Outlook Web (OWA)</strong>, and <strong>Microsoft 365</strong> by building an <strong>Office Add-in</strong>. The add-in runs as a taskpane inside Outlook and calls the SAYELE API to process emails.
+              The SAYELE Outlook Add-in is a taskpane that runs inside Outlook and calls the SAYELE API to process emails. It supports <strong>Outlook Desktop</strong> (Windows/Mac), <strong>Outlook Web</strong> (OWA), and <strong>Microsoft 365</strong>.
             </p>
             <div className="grid sm:grid-cols-3 gap-3 mt-3">
               <div className="bg-muted/50 rounded-lg p-3 text-center">
@@ -1113,7 +1164,7 @@ async function composeWithAI() {
           </CardContent>
         </Card>
 
-        {/* Step 2: Prerequisites */}
+        {/* Step 1: Prerequisites */}
         <Card className="mb-4">
           <CardHeader>
             <CardTitle className="text-base">Step 1: Prerequisites</CardTitle>
@@ -1122,60 +1173,59 @@ async function composeWithAI() {
             <ul className="space-y-2">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500 shrink-0" />
-                <span><strong>Node.js 18+</strong> installed on your development machine</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500 shrink-0" />
                 <span><strong>SAYELE API Key</strong> &mdash; generate one from the API Keys page in your SAYELE dashboard</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500 shrink-0" />
-                <span><strong>Microsoft 365 account</strong> (for testing the add-in in Outlook)</span>
+                <span><strong>Microsoft 365 Business/Enterprise account</strong> &mdash; required for add-in sideloading</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500 shrink-0" />
-                <span><strong>Yeoman + Office Add-in Generator</strong> &mdash; install with the command below</span>
+                <span><strong>Cloudflare account</strong> (free tier) &mdash; to host the add-in files on Cloudflare Pages</span>
               </li>
             </ul>
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-1">
-                <Label className="text-xs text-muted-foreground">Install generator</Label>
-                <CopyButton text="npm install -g yo generator-office" />
-              </div>
-              <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono">
-                {"npm install -g yo generator-office"}
-              </pre>
-            </div>
           </CardContent>
         </Card>
 
-        {/* Step 3: Create Project */}
+        {/* Step 2: Host on Cloudflare Pages */}
         <Card className="mb-4">
           <CardHeader>
-            <CardTitle className="text-base">Step 2: Create the Add-in Project</CardTitle>
+            <CardTitle className="text-base">Step 2: Host on Cloudflare Pages</CardTitle>
+            <CardDescription>
+              Host the add-in taskpane on Cloudflare Pages (free). Your clients only need the manifest.xml file &mdash; no technical setup on their end.
+            </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-3">
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <Label className="text-xs text-muted-foreground">Generate a new Outlook Add-in</Label>
-                <CopyButton text='yo office --projectType taskpane --name "SAYELE Email AI" --host outlook --js' />
-              </div>
-              <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap">
-                {'yo office --projectType taskpane --name "SAYELE Email AI" --host outlook --js'}
-              </pre>
+              <p className="font-medium text-foreground mb-2">2a. Create the add-in files</p>
+              <p>Create a folder on your computer with two files: <code className="bg-muted px-1 rounded text-foreground">index.html</code> and <code className="bg-muted px-1 rounded text-foreground">taskpane.js</code>. Copy the full code from the <strong>Add-in Source Code</strong> section below.</p>
             </div>
-            <p>
-              This generates a project with <code className="bg-muted px-1 rounded text-foreground">manifest.xml</code>, <code className="bg-muted px-1 rounded text-foreground">taskpane.html</code>, and <code className="bg-muted px-1 rounded text-foreground">taskpane.js</code>. The taskpane is the side panel that appears inside Outlook.
-            </p>
+            <div>
+              <p className="font-medium text-foreground mb-2">2b. Deploy to Cloudflare Pages</p>
+              <ol className="list-decimal list-inside space-y-1.5">
+                <li>Go to <strong>dash.cloudflare.com</strong> and sign in (free account)</li>
+                <li>Click <strong>Workers {"&"} Pages</strong> in the left sidebar</li>
+                <li>Click <strong>Create</strong> &rarr; select <strong>Pages</strong></li>
+                <li>Choose <strong>Direct Upload</strong></li>
+                <li>Name your project (e.g. <code className="bg-muted px-1 rounded text-foreground">sayele-email-addin</code>)</li>
+                <li>Drag and drop the folder with <code className="bg-muted px-1 rounded text-foreground">index.html</code> and <code className="bg-muted px-1 rounded text-foreground">taskpane.js</code></li>
+                <li>Click <strong>Deploy</strong></li>
+              </ol>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-3">
+              <p className="text-xs">
+                After deployment, Cloudflare gives you a URL like: <code className="bg-muted px-1 rounded text-foreground">https://sayele-email-addin.pages.dev</code>. You will need this URL for the manifest.xml in the next step.
+              </p>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Step 4: manifest.xml */}
+        {/* Step 3: manifest.xml */}
         <Card className="mb-4">
           <CardHeader>
             <CardTitle className="text-base">Step 3: Configure manifest.xml</CardTitle>
             <CardDescription>
-              The manifest tells Outlook how to load your add-in. Key sections below:
+              The manifest tells Outlook how to load your add-in. Replace <code className="bg-muted px-1 rounded text-foreground">YOUR-PROJECT.pages.dev</code> with your Cloudflare Pages URL.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1187,15 +1237,89 @@ async function composeWithAI() {
               {manifestSnippet}
             </pre>
             <p className="text-xs text-muted-foreground mt-2">
-              <strong>Note:</strong> Replace <code className="bg-muted px-1 rounded text-foreground">{"https://your-addin-host.com"}</code> with the URL where your add-in is hosted (or <code className="bg-muted px-1 rounded text-foreground">https://localhost:3000</code> for local development).
+              <strong>Important:</strong> Replace both <code className="bg-muted px-1 rounded text-foreground">{"https://your-addin-host.com"}</code> URLs with your Cloudflare Pages URL (e.g. <code className="bg-muted px-1 rounded text-foreground">https://sayele-email-addin.pages.dev/index.html</code>).
             </p>
           </CardContent>
         </Card>
 
-        {/* Step 5: Summarize */}
+        {/* Step 4: Install in Outlook */}
         <Card className="mb-4">
           <CardHeader>
-            <CardTitle className="text-base">Step 4: Summarize Current Email</CardTitle>
+            <CardTitle className="text-base">Step 4: Install in Outlook</CardTitle>
+            <CardDescription>Choose the method that fits your deployment needs</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-4">
+            {/* Method A: IT Admin Centralized */}
+            <div className="border rounded-lg p-4">
+              <p className="font-medium text-foreground mb-2 flex items-center gap-2">
+                <Badge className="bg-primary text-primary-foreground text-xs">Recommended</Badge>
+                Centralized Deployment (IT Admin)
+              </p>
+              <p className="mb-2">Best for organizations &mdash; deploy once, available to all users automatically.</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Go to <strong>admin.microsoft.com</strong></li>
+                <li>Navigate to <strong>Settings</strong> &rarr; <strong>Integrated apps</strong></li>
+                <li>Click <strong>Upload custom apps</strong></li>
+                <li>Upload the <code className="bg-muted px-1 rounded text-foreground">manifest.xml</code> file</li>
+                <li>Assign to users or the entire organization</li>
+                <li>The add-in will appear automatically in all assigned users&apos; Outlook</li>
+              </ol>
+            </div>
+
+            {/* Method B: Sideload Outlook Desktop */}
+            <div className="border rounded-lg p-4">
+              <p className="font-medium text-foreground mb-2">Outlook Desktop (Windows / Mac)</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Open <strong>Outlook Desktop</strong></li>
+                <li>Click <strong>Home</strong> tab &rarr; <strong>Get Add-ins</strong> in the ribbon</li>
+                <li>Click <strong>My add-ins</strong> in the left sidebar</li>
+                <li>Scroll down to <strong>Custom add-ins</strong> &rarr; click <strong>Add a custom add-in</strong> &rarr; <strong>Add from file</strong></li>
+                <li>Select and upload the <code className="bg-muted px-1 rounded text-foreground">manifest.xml</code> file</li>
+              </ol>
+            </div>
+
+            {/* Method C: Sideload Outlook Web */}
+            <div className="border rounded-lg p-4">
+              <p className="font-medium text-foreground mb-2">Outlook Web (OWA)</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Open <strong>outlook.office.com</strong> (must be a Microsoft 365 Business account)</li>
+                <li>Open any email, then click the <strong>three dots (...)</strong> menu in the toolbar</li>
+                <li>Click <strong>Get Add-ins</strong></li>
+                <li>Click <strong>My add-ins</strong> &rarr; scroll to <strong>Custom add-ins</strong></li>
+                <li>Click <strong>Add a custom add-in</strong> &rarr; <strong>Add from file</strong></li>
+                <li>Upload the <code className="bg-muted px-1 rounded text-foreground">manifest.xml</code> file</li>
+              </ol>
+              <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded text-xs border border-orange-200 dark:border-orange-800">
+                <strong>Note:</strong> If you don&apos;t see &quot;Get Add-ins&quot;, your account is a personal Outlook.com account. Custom add-ins require a Microsoft 365 Business or Enterprise subscription.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Step 5: First-time Setup for End Users */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="text-base">Step 5: First-time Setup for End Users</CardTitle>
+            <CardDescription>What your clients see when they first open the add-in</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <ol className="list-decimal list-inside space-y-1.5">
+              <li>Open any email in Outlook</li>
+              <li>Click the <strong>SAYELE AI</strong> icon in the toolbar (or find it in the three-dot menu)</li>
+              <li>The SAYELE taskpane opens on the right side</li>
+              <li>On first use, the add-in will ask for the <strong>SAYELE API Key</strong> &mdash; enter it once and it is saved locally in the browser</li>
+              <li>Click <strong>Summarize</strong>, <strong>Reply</strong>, or <strong>Compose</strong> to start using AI</li>
+            </ol>
+            <p className="text-xs mt-2">
+              The API key is stored securely in the user&apos;s browser localStorage. Each client should use their own SAYELE API key generated from the API Keys page.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Add-in Source Code: Summarize */}
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="text-base">Add-in Source Code: Summarize</CardTitle>
             <CardDescription>Read the open email and send it to SAYELE for summarization</CardDescription>
           </CardHeader>
           <CardContent>
@@ -1209,10 +1333,10 @@ async function composeWithAI() {
           </CardContent>
         </Card>
 
-        {/* Step 6: Draft Reply */}
+        {/* Add-in Source Code: Draft Reply */}
         <Card className="mb-4">
           <CardHeader>
-            <CardTitle className="text-base">Step 5: Draft an AI Reply</CardTitle>
+            <CardTitle className="text-base">Add-in Source Code: Draft Reply</CardTitle>
             <CardDescription>Generate a reply draft and display it for user review</CardDescription>
           </CardHeader>
           <CardContent>
@@ -1226,10 +1350,10 @@ async function composeWithAI() {
           </CardContent>
         </Card>
 
-        {/* Step 7: Compose */}
+        {/* Add-in Source Code: Compose */}
         <Card className="mb-4">
           <CardHeader>
-            <CardTitle className="text-base">Step 6: Compose with AI</CardTitle>
+            <CardTitle className="text-base">Add-in Source Code: Compose</CardTitle>
             <CardDescription>Generate a full email and insert it into Outlook&apos;s compose window</CardDescription>
           </CardHeader>
           <CardContent>
@@ -1243,75 +1367,31 @@ async function composeWithAI() {
           </CardContent>
         </Card>
 
-        {/* Step 8: Test & Deploy */}
-        <Card className="mb-4">
-          <CardHeader>
-            <CardTitle className="text-base">Step 7: Test & Deploy</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-3">
-            <div>
-              <p className="font-medium text-foreground mb-2">Local Testing</p>
-              <div className="flex items-center justify-between mb-1">
-                <Label className="text-xs text-muted-foreground">Start the dev server</Label>
-                <CopyButton text="npm start" />
-              </div>
-              <pre className="bg-muted px-3 py-2 rounded-md text-xs font-mono">{"npm start"}</pre>
-              <p className="mt-2">This starts a local HTTPS server and side-loads the add-in into Outlook. The taskpane will appear when you select an email.</p>
-            </div>
-            <div>
-              <p className="font-medium text-foreground mb-2">Deployment Options</p>
-              <ul className="space-y-1.5">
-                <li className="flex items-start gap-2">
-                  <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                  <span><strong>Centralized (IT Admin)</strong> &mdash; Upload the manifest to your Microsoft 365 admin center for org-wide deployment</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                  <span><strong>AppSource</strong> &mdash; Submit to the Microsoft AppSource marketplace for public distribution</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                  <span><strong>Sideload</strong> &mdash; Manually load via Outlook settings for personal or testing use</span>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <p className="font-medium text-foreground mb-2">Sideload in Outlook Web</p>
-              <ol className="list-decimal list-inside space-y-1">
-                <li>Open <strong>Outlook on the web</strong> (outlook.office.com)</li>
-                <li>Click the <strong>gear icon</strong> &rarr; <strong>View all Outlook settings</strong></li>
-                <li>Go to <strong>Mail</strong> &rarr; <strong>Customize actions</strong> &rarr; <strong>Get add-ins</strong></li>
-                <li>Click <strong>My add-ins</strong> &rarr; <strong>Add a custom add-in</strong> &rarr; <strong>Add from file</strong></li>
-                <li>Upload your <code className="bg-muted px-1 rounded text-foreground">manifest.xml</code></li>
-              </ol>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Security Note */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-orange-500" />
-              Security Best Practice
+              Security Best Practices
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>
-              <strong>Never hardcode your API key</strong> in the add-in JavaScript that gets distributed. Instead:
-            </p>
             <ul className="space-y-1.5">
               <li className="flex items-start gap-2">
                 <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                <span>Use a lightweight proxy server that holds the API key and forwards requests to SAYELE</span>
+                <span>The add-in prompts each user for their API key on first use and stores it locally in their browser &mdash; <strong>keys are never hardcoded</strong> in the source</span>
               </li>
               <li className="flex items-start gap-2">
                 <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                <span>Or use Azure Key Vault / environment variables on your hosting platform</span>
+                <span>For extra security, set up a lightweight proxy server that holds the API key and forwards requests to SAYELE</span>
               </li>
               <li className="flex items-start gap-2">
                 <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                <span>For internal/org-only add-ins, restrict your SAYELE API key to your organization&apos;s IP range</span>
+                <span>Restrict your SAYELE API keys to specific IP ranges for internal/org-only deployments</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                <span>Use the Centralized Deployment method so IT admins can manage the add-in and revoke access if needed</span>
               </li>
             </ul>
           </CardContent>
