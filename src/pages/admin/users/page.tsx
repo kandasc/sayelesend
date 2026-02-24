@@ -41,6 +41,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Users, UserPlus, Mail, Shield, MoreVertical, Edit, Trash2, Eye, UserMinus } from "lucide-react";
 import { toast } from "sonner";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import PaginationControls from "@/components/ui/pagination-controls.tsx";
 
 export default function AdminUsersPage() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -184,6 +186,7 @@ export default function AdminUsersPage() {
   const clientUsers = users.filter((u) => u.role === "client");
   const viewers = users.filter((u) => u.role === "viewer");
   const unassignedUsers = users.filter((u) => !u.role || (!u.clientId && u.role !== "admin"));
+  const usersPagination = usePagination(users, { pageSize: 15 });
 
   return (
     <div className="space-y-6">
@@ -312,14 +315,14 @@ export default function AdminUsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.length === 0 ? (
+              {usersPagination.paginatedItems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground">
                     No users found
                   </TableCell>
                 </TableRow>
               ) : (
-                users.map((user) => {
+                usersPagination.paginatedItems.map((user) => {
                   const client = user.clientId 
                     ? clients.find((c) => c._id === user.clientId)
                     : null;
@@ -417,6 +420,7 @@ export default function AdminUsersPage() {
               )}
             </TableBody>
           </Table>
+          <PaginationControls {...usersPagination} itemLabel="users" />
         </CardContent>
       </Card>
 

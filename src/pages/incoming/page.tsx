@@ -13,7 +13,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce.ts";
 import { usePagination } from "@/hooks/use-pagination.ts";
-import { PaginationControls } from "@/components/ui/pagination-controls.tsx";
+import PaginationControls from "@/components/ui/pagination-controls.tsx";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { Label } from "@/components/ui/label.tsx";
 import {

@@ -64,7 +64,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
-import { PaginationControls } from "@/components/ui/pagination-controls";
+import PaginationControls from "@/components/ui/pagination-controls";
 
 export default function ContactsPage() {
   return (

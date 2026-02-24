@@ -27,6 +27,8 @@ import { Plus, Edit, Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import PaginationControls from "@/components/ui/pagination-controls.tsx";
 
 const CONVEX_SITE_URL = import.meta.env.VITE_CONVEX_SITE_URL as string;
 
@@ -107,6 +109,7 @@ export default function AdminProviders() {
 
 function ProvidersContent() {
   const providers = useQuery(api.providers.listProviders, {});
+  const providersPagination = usePagination(providers ?? [], { pageSize: 10 });
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<Id<"smsProviders"> | null>(
@@ -141,7 +144,7 @@ function ProvidersContent() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {providers.map((provider) => (
+        {providersPagination.paginatedItems.map((provider) => (
           <Card key={provider._id}>
             <CardContent className="pt-6">
               <div className="flex items-start justify-between mb-4">
@@ -189,6 +192,7 @@ function ProvidersContent() {
           </Card>
         ))}
       </div>
+      <PaginationControls {...providersPagination} itemLabel="providers" />
 
       {editOpen && selectedProvider && (
         <Dialog open={editOpen} onOpenChange={setEditOpen}>

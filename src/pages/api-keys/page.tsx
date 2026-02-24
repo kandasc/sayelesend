@@ -10,6 +10,8 @@ import { Plus, Copy, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import PaginationControls from "@/components/ui/pagination-controls.tsx";
 import {
   Dialog,
   DialogContent,
@@ -136,11 +138,7 @@ function ApiKeysContent() {
               No API keys created yet
             </p>
           ) : (
-            <div className="space-y-3">
-              {apiKeys.map((key) => (
-                <ApiKeyItem key={key._id} apiKey={key} />
-              ))}
-            </div>
+            <ApiKeyList apiKeys={apiKeys} />
           )}
         </CardContent>
       </Card>
@@ -180,6 +178,19 @@ function ApiKeysContent() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function ApiKeyList({ apiKeys }: { apiKeys: ApiKey[] }) {
+  const keysPagination = usePagination(apiKeys, { pageSize: 10 });
+
+  return (
+    <div className="space-y-3">
+      {keysPagination.paginatedItems.map((key) => (
+        <ApiKeyItem key={key._id} apiKey={key} />
+      ))}
+      <PaginationControls {...keysPagination} itemLabel="API keys" />
     </div>
   );
 }

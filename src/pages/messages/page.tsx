@@ -36,7 +36,7 @@ import { AIAssistant } from "@/components/ai-assistant.tsx";
 import { AIImprover } from "@/components/ai-improver.tsx";
 import { useDebounce } from "@/hooks/use-debounce.ts";
 import { usePagination } from "@/hooks/use-pagination.ts";
-import { PaginationControls } from "@/components/ui/pagination-controls.tsx";
+import PaginationControls from "@/components/ui/pagination-controls.tsx";
 import jsPDF from "jspdf";
 import type { DateRange } from "react-day-picker";
 

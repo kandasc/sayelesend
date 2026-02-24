@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.t
 import { Badge } from "@/components/ui/badge.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { usePagination } from "@/hooks/use-pagination.ts";
-import { PaginationControls } from "@/components/ui/pagination-controls.tsx";
+import PaginationControls from "@/components/ui/pagination-controls.tsx";
 import {
   Dialog,
   DialogContent,

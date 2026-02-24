@@ -61,6 +61,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useDebounce } from "@/hooks/use-debounce";
+import { usePagination } from "@/hooks/use-pagination.ts";
+import PaginationControls from "@/components/ui/pagination-controls.tsx";
 
 export default function GroupsPage() {
   return (
@@ -99,6 +101,8 @@ function GroupsPageInner() {
   const groups = useQuery(api.contactGroups.listGroups, {
     searchQuery: debouncedSearch || undefined,
   });
+
+  const groupsPagination = usePagination(groups ?? [], { pageSize: 12 });
 
   const deleteGroup = useMutation(api.contactGroups.deleteGroup);
 
@@ -187,8 +191,9 @@ function GroupsPageInner() {
           </EmptyContent>
         </Empty>
       ) : (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {groups.map((group) => (
+          {groupsPagination.paginatedItems.map((group) => (
             <Card key={group._id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -239,6 +244,8 @@ function GroupsPageInner() {
             </Card>
           ))}
         </div>
+        <PaginationControls {...groupsPagination} itemLabel="groups" />
+        </>
       )}
 
       {/* Create Dialog */}
