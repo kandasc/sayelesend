@@ -364,3 +364,90 @@ export const getCreditStats = query({
     };
   },
 });
+
+// Get credit usage stats for the current client (client-facing)
+export const getMyUsageStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user) return null;
+
+    const effectiveClientId = user.testModeClientId || user.clientId;
+    if (!effectiveClientId) return null;
+
+    const client = await ctx.db.get(effectiveClientId);
+    if (!client) return null;
+
+    // Get transactions for this client
+    const transactions = await ctx.db
+      .query("creditTransactions")
+      .withIndex("by_client", (q) => q.eq("clientId", effectiveClientId))
+      .order("desc")
+      .take(200);
+
+    // Get messages for channel breakdown
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_client", (q) => q.eq("clientId", effectiveClientId))
+      .collect();
+
+    // Channel usage breakdown
+    const channelUsage: Record<string, { sent: number; credits: number }> = {};
+    for (const msg of messages) {
+      const ch = msg.channel || "sms";
+      if (!channelUsage[ch]) {
+        channelUsage[ch] = { sent: 0, credits: 0 };
+      }
+      channelUsage[ch].sent++;
+      channelUsage[ch].credits += msg.creditsUsed;
+    }
+
+    // Calculate monthly usage (last 6 months)
+    const monthlyUsage: { month: string; credits: number }[] = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStart = d.getTime();
+      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
+      const monthCredits = messages
+        .filter((m) => m._creationTime >= monthStart && m._creationTime < monthEnd)
+        .reduce((sum, m) => sum + m.creditsUsed, 0);
+      monthlyUsage.push({
+        month: d.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+        credits: monthCredits,
+      });
+    }
+
+    // Total purchased vs used
+    const totalPurchased = transactions
+      .filter((t) => t.type === "purchase" || t.type === "add" || t.type === "bonus")
+      .reduce((sum, t) => sum + t.amount, 0);
+    const totalUsed = transactions
+      .filter((t) => t.type === "deduction")
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+    // Low balance threshold: less than 500 credits
+    const isLowBalance = client.credits < 500;
+    const isCriticalBalance = client.credits < 100;
+
+    return {
+      currentBalance: client.credits,
+      totalPurchased,
+      totalUsed,
+      isLowBalance,
+      isCriticalBalance,
+      channelUsage,
+      monthlyUsage,
+      recentTransactions: transactions.slice(0, 20),
+    };
+  },
+});

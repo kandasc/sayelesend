@@ -189,7 +189,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const bottomItems: NavItem[] = [
     { path: `/${lang}/reports`, label: "Reports", icon: <BarChart3 className="h-5 w-5" /> },
     ...(!isSuperAdmin ? [{ path: `/${lang}/ai-assistants`, label: "AI Assistants", icon: <Bot className="h-5 w-5" /> }] : []),
-    { path: `/${lang}/payments`, label: "Buy Credits", icon: <CreditCard className="h-5 w-5" /> },
+    { path: `/${lang}/payments`, label: "Credits & Billing", icon: <CreditCard className="h-5 w-5" /> },
     { path: `/${lang}/settings`, label: "Settings", icon: <Settings className="h-5 w-5" /> },
   ];
 

@@ -4,7 +4,7 @@ import { api } from "@/convex/_generated/api.js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { MessageSquare, CheckCircle, XCircle, Coins, Send, Plus, RefreshCw, Clock } from "lucide-react";
+import { MessageSquare, CheckCircle, XCircle, Coins, Send, Plus, RefreshCw, Clock, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { format } from "date-fns";
 import { Link, useParams } from "react-router-dom";
@@ -93,6 +93,45 @@ function DashboardContent() {
           icon={<XCircle className="h-5 w-5 text-destructive" />}
         />
       </div>
+
+      {/* Low balance warning */}
+      {client.credits < 100 && (
+        <Card className="border-destructive bg-destructive/5">
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="rounded-full bg-destructive/10 p-3">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-destructive">
+                {client.credits === 0 ? "No credits remaining" : "Critical balance"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {client.credits === 0
+                  ? "Purchase credits to continue sending messages."
+                  : `Only ${client.credits.toLocaleString()} credits left. Top up to avoid service interruption.`}
+              </p>
+            </div>
+            <Link to={`/${lng}/payments`}>
+              <Button size="sm">Buy Credits</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+      {client.credits >= 100 && client.credits < 500 && (
+        <Card className="border-orange-400 bg-orange-500/5">
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="rounded-full bg-orange-500/10 p-3">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-orange-600">Low balance</p>
+              <p className="text-sm text-muted-foreground">
+                Your credits are running low ({client.credits.toLocaleString()} remaining). Consider topping up soon.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
