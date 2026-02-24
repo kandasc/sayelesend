@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button.tsx";
 import Logo from "@/components/logo.tsx";
 import { LanguageSwitcher } from "@/components/language-switcher.tsx";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
-import {
+  import {
   Home,
   MessageSquare,
   Key,
@@ -34,6 +34,7 @@ import {
   MessagesSquare,
   Code,
   Shield,
+  MailOpen,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
@@ -189,6 +190,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const bottomItems: NavItem[] = [
     { path: `/${lang}/reports`, label: "Reports", icon: <BarChart3 className="h-5 w-5" /> },
     ...(!isSuperAdmin ? [{ path: `/${lang}/ai-assistants`, label: "AI Assistants", icon: <Bot className="h-5 w-5" /> }] : []),
+    { path: `/${lang}/email-assistant`, label: "Email Assistant", icon: <MailOpen className="h-5 w-5" /> },
     { path: `/${lang}/payments`, label: "Credits & Billing", icon: <CreditCard className="h-5 w-5" /> },
     { path: `/${lang}/settings`, label: "Settings", icon: <Settings className="h-5 w-5" /> },
   ];

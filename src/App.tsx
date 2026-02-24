@@ -31,6 +31,7 @@ import Payments from "./pages/payments/page.tsx";
 import AIAssistants from "./pages/ai-assistants/page.tsx";
 import UnifiedInbox from "./pages/inbox/page.tsx";
 import Compliance from "./pages/compliance/page.tsx";
+import EmailAssistant from "./pages/email-assistant/page.tsx";
 
 function LanguageWrapper({ children }: { children: React.ReactNode }) {
   const { lng } = useParams();
@@ -76,6 +77,7 @@ export default function App() {
           <Route path="/:lng/groups" element={<LanguageWrapper><DashboardLayout><Groups /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/automation" element={<LanguageWrapper><DashboardLayout><Automation /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/compliance" element={<LanguageWrapper><DashboardLayout><Compliance /></DashboardLayout></LanguageWrapper>} />
+          <Route path="/:lng/email-assistant" element={<LanguageWrapper><DashboardLayout><EmailAssistant /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/templates" element={<LanguageWrapper><DashboardLayout><Templates /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/webhooks" element={<LanguageWrapper><DashboardLayout><Webhooks /></DashboardLayout></LanguageWrapper>} />
           <Route path="/:lng/reports" element={<LanguageWrapper><DashboardLayout><Reports /></DashboardLayout></LanguageWrapper>} />

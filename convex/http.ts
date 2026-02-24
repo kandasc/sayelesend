@@ -732,4 +732,213 @@ http.route({
   }),
 });
 
+// ─── Email Assistant API ─────────────────────────────────────────────────
+
+// OPTIONS for email assistant endpoints
+http.route({
+  path: "/api/v1/email/summarize",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, request) => {
+    const origin = request.headers.get("Origin");
+    return new Response(null, { status: 204, headers: getCorsHeaders(origin) });
+  }),
+});
+
+http.route({
+  path: "/api/v1/email/reply",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, request) => {
+    const origin = request.headers.get("Origin");
+    return new Response(null, { status: 204, headers: getCorsHeaders(origin) });
+  }),
+});
+
+http.route({
+  path: "/api/v1/email/compose",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, request) => {
+    const origin = request.headers.get("Origin");
+    return new Response(null, { status: 204, headers: getCorsHeaders(origin) });
+  }),
+});
+
+http.route({
+  path: "/api/v1/email/review",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, request) => {
+    const origin = request.headers.get("Origin");
+    return new Response(null, { status: 204, headers: getCorsHeaders(origin) });
+  }),
+});
+
+http.route({
+  path: "/api/v1/email/improve",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, request) => {
+    const origin = request.headers.get("Origin");
+    return new Response(null, { status: 204, headers: getCorsHeaders(origin) });
+  }),
+});
+
+// Helper: verify API key for email assistant endpoints
+const emailApiHandler = (
+  processFn: (
+    ctx: Parameters<Parameters<typeof httpAction>[0]>[0],
+    body: Record<string, unknown>,
+    headers: Record<string, string>,
+  ) => Promise<Response>,
+) =>
+  httpAction(async (ctx, request) => {
+    const origin = request.headers.get("Origin");
+    const headers = getCorsHeaders(origin);
+
+    try {
+      const authHeader = request.headers.get("Authorization");
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return new Response(
+          JSON.stringify({ error: "Missing or invalid authorization header" }),
+          { status: 401, headers },
+        );
+      }
+
+      const apiKey = authHeader.substring(7);
+      const verification = await ctx.runAction(api.apiKeys.verifyApiKey, { key: apiKey });
+
+      if (!verification) {
+        return new Response(
+          JSON.stringify({ error: "Invalid or inactive API key" }),
+          { status: 401, headers },
+        );
+      }
+
+      const rateLimit = await ctx.runMutation(internal.httpHelpers.checkAndIncrementRateLimit, {
+        identifier: verification.keyHash,
+      });
+
+      if (!rateLimit.allowed) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded", resetAt: new Date(rateLimit.resetAt).toISOString() }),
+          { status: 429, headers: { ...headers, "Retry-After": Math.ceil((rateLimit.resetAt - Date.now()) / 1000).toString() } },
+        );
+      }
+
+      const body = await request.json();
+      return processFn(ctx, body as Record<string, unknown>, headers);
+    } catch (error) {
+      console.error("Email API error:", error);
+      return new Response(
+        JSON.stringify({ error: "An error occurred processing your request" }),
+        { status: 500, headers },
+      );
+    }
+  });
+
+// POST /api/v1/email/summarize
+http.route({
+  path: "/api/v1/email/summarize",
+  method: "POST",
+  handler: emailApiHandler(async (ctx, body, headers) => {
+    if (!body.emailContent) {
+      return new Response(
+        JSON.stringify({ error: "Missing required field: emailContent" }),
+        { status: 400, headers },
+      );
+    }
+    const result = await ctx.runAction(internal.emailAssistantActions.summarizeEmailInternal, {
+      emailContent: body.emailContent as string,
+      language: (body.language as string) || undefined,
+    });
+    return new Response(JSON.stringify({ success: true, ...result }), { status: 200, headers });
+  }),
+});
+
+// POST /api/v1/email/reply
+http.route({
+  path: "/api/v1/email/reply",
+  method: "POST",
+  handler: emailApiHandler(async (ctx, body, headers) => {
+    if (!body.originalEmail) {
+      return new Response(
+        JSON.stringify({ error: "Missing required field: originalEmail" }),
+        { status: 400, headers },
+      );
+    }
+    const result = await ctx.runAction(internal.emailAssistantActions.draftReplyInternal, {
+      originalEmail: body.originalEmail as string,
+      instructions: (body.instructions as string) || undefined,
+      tone: (body.tone as "professional" | "friendly" | "formal" | "casual" | "apologetic" | "assertive") || undefined,
+      language: (body.language as string) || undefined,
+    });
+    return new Response(JSON.stringify({ success: true, ...result }), { status: 200, headers });
+  }),
+});
+
+// POST /api/v1/email/compose
+http.route({
+  path: "/api/v1/email/compose",
+  method: "POST",
+  handler: emailApiHandler(async (ctx, body, headers) => {
+    if (!body.prompt) {
+      return new Response(
+        JSON.stringify({ error: "Missing required field: prompt" }),
+        { status: 400, headers },
+      );
+    }
+    const result = await ctx.runAction(internal.emailAssistantActions.composeEmailInternal, {
+      prompt: body.prompt as string,
+      tone: (body.tone as "professional" | "friendly" | "formal" | "casual" | "marketing" | "persuasive") || undefined,
+      recipientContext: (body.recipientContext as string) || undefined,
+      language: (body.language as string) || undefined,
+    });
+    return new Response(JSON.stringify({ success: true, ...result }), { status: 200, headers });
+  }),
+});
+
+// POST /api/v1/email/review
+http.route({
+  path: "/api/v1/email/review",
+  method: "POST",
+  handler: emailApiHandler(async (ctx, body, headers) => {
+    if (!body.content) {
+      return new Response(
+        JSON.stringify({ error: "Missing required field: content" }),
+        { status: 400, headers },
+      );
+    }
+    const result = await ctx.runAction(internal.emailAssistantActions.reviewDocumentInternal, {
+      content: body.content as string,
+      reviewType: (body.reviewType as "grammar" | "style" | "clarity" | "comprehensive") || undefined,
+      language: (body.language as string) || undefined,
+    });
+    return new Response(JSON.stringify({ success: true, ...result }), { status: 200, headers });
+  }),
+});
+
+// POST /api/v1/email/improve
+http.route({
+  path: "/api/v1/email/improve",
+  method: "POST",
+  handler: emailApiHandler(async (ctx, body, headers) => {
+    if (!body.text || !body.improvement) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: text, improvement" }),
+        { status: 400, headers },
+      );
+    }
+    const validImprovements = ["shorten", "expand", "professional", "simplify", "persuasive", "translate"];
+    if (!validImprovements.includes(body.improvement as string)) {
+      return new Response(
+        JSON.stringify({ error: `Invalid improvement. Must be one of: ${validImprovements.join(", ")}` }),
+        { status: 400, headers },
+      );
+    }
+    const result = await ctx.runAction(internal.emailAssistantActions.improveWritingInternal, {
+      text: body.text as string,
+      improvement: body.improvement as "shorten" | "expand" | "professional" | "simplify" | "persuasive" | "translate",
+      targetLanguage: (body.targetLanguage as string) || undefined,
+    });
+    return new Response(JSON.stringify({ success: true, ...result }), { status: 200, headers });
+  }),
+});
+
 export default http;
