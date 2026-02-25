@@ -175,7 +175,7 @@ export default function AdminUsersPage() {
 
   const usersPagination = usePagination(users ?? [], { pageSize: 15 });
 
-  if (users === undefined || clients === undefined || clients === null) {
+  if (users === undefined || users === null || clients === undefined || clients === null) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-64" />
