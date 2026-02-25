@@ -82,11 +82,11 @@ function ClientsContent() {
     }
   }, [searchParams, setSearchParams]);
 
+  const pagination = usePagination(clients ?? [], { pageSize: 10 });
+
   if (!clients || !providers) {
     return <ClientsSkeleton />;
   }
-
-  const pagination = usePagination(clients, { pageSize: 10 });
 
   return (
     <div className="space-y-6">

@@ -173,6 +173,8 @@ export default function AdminUsersPage() {
     }
   };
 
+  const usersPagination = usePagination(users ?? [], { pageSize: 15 });
+
   if (users === undefined || clients === undefined || clients === null) {
     return (
       <div className="space-y-6">
@@ -186,7 +188,6 @@ export default function AdminUsersPage() {
   const clientUsers = users.filter((u) => u.role === "client");
   const viewers = users.filter((u) => u.role === "viewer");
   const unassignedUsers = users.filter((u) => !u.role || (!u.clientId && u.role !== "admin"));
-  const usersPagination = usePagination(users, { pageSize: 15 });
 
   return (
     <div className="space-y-6">
