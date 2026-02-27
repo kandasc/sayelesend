@@ -1,4 +1,5 @@
 import { useQuery } from "convex/react";
+import { useIntl } from "react-intl";
 import { api } from "@/convex/_generated/api.js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +19,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#FF6B9D'];
 
 export default function AdminAnalyticsPage() {
+  const intl = useIntl();
   const systemStats = useQuery(api.admin.getSystemStats);
   const clientUsage = useQuery(api.analytics.getClientUsageStats, {});
   const clients = useQuery(api.admin.listClients);
@@ -77,9 +79,9 @@ export default function AdminAnalyticsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Admin Analytics</h1>
+        <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.adminAnalytics.title" })}</h1>
         <p className="text-muted-foreground">
-          System-wide overview and performance metrics
+          {intl.formatMessage({ id: "page.adminAnalytics.subtitle" })}
         </p>
       </div>
 
@@ -87,46 +89,46 @@ export default function AdminAnalyticsPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.adminAnalytics.totalClients" })}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{systemStats.totalClients}</div>
             <p className="text-xs text-muted-foreground">
-              {activeClients} active
+              {activeClients} {intl.formatMessage({ id: "common.active" })}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Messages</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.adminAnalytics.totalMessages" })}</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{systemStats.totalMessages.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              All time
+              {intl.formatMessage({ id: "common.allTime" })}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Messages Sent</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.adminAnalytics.messagesSent" })}</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{systemStats.totalSent.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              Successfully sent
+              {intl.formatMessage({ id: "common.successfullySent" })}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Delivered</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.adminAnalytics.deliveredMessages" })}</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -134,33 +136,33 @@ export default function AdminAnalyticsPage() {
             <p className="text-xs text-muted-foreground">
               {systemStats.totalMessages > 0 
                 ? `${((systemStats.totalDelivered / systemStats.totalMessages) * 100).toFixed(1)}%` 
-                : '0%'} rate
+                : '0%'} {intl.formatMessage({ id: "common.rate" })}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Credits</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.adminAnalytics.systemCredits" })}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{systemStats.totalCredits.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              Across all clients
+              {intl.formatMessage({ id: "common.acrossAllClients" })}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Providers</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.adminAnalytics.totalProviders" })}</CardTitle>
             <Server className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{providers?.length || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Configured
+              {intl.formatMessage({ id: "common.configured" })}
             </p>
           </CardContent>
         </Card>
@@ -170,9 +172,9 @@ export default function AdminAnalyticsPage() {
         {/* Client Usage Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Top Clients by Message Volume</CardTitle>
+            <CardTitle>{intl.formatMessage({ id: "page.adminAnalytics.clientUsage" })}</CardTitle>
             <CardDescription>
-              Clients ranked by total messages sent
+              {intl.formatMessage({ id: "common.clientsRankedByTotalMessagesSent" })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -180,7 +182,7 @@ export default function AdminAnalyticsPage() {
               <Skeleton className="h-[300px] w-full" />
             ) : clientUsage.length === 0 ? (
               <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                No client data available
+                {intl.formatMessage({ id: "common.noClientDataAvailable" })}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
@@ -195,8 +197,8 @@ export default function AdminAnalyticsPage() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="totalMessages" fill="#0088FE" name="Total" />
-                  <Bar dataKey="deliveredMessages" fill="#00C49F" name="Delivered" />
+                  <Bar dataKey="totalMessages" fill="#0088FE" name={intl.formatMessage({ id: "common.total" })} />
+                  <Bar dataKey="deliveredMessages" fill="#00C49F" name={intl.formatMessage({ id: "page.adminAnalytics.deliveredMessages" })} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -206,9 +208,9 @@ export default function AdminAnalyticsPage() {
         {/* Provider Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle>Clients by Provider</CardTitle>
+            <CardTitle>{intl.formatMessage({ id: "page.adminAnalytics.providerDistribution" })}</CardTitle>
             <CardDescription>
-              Distribution of clients across SMS providers
+              {intl.formatMessage({ id: "common.distributionOfClientsAcrossSmsProviders" })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -216,7 +218,7 @@ export default function AdminAnalyticsPage() {
               <Skeleton className="h-[300px] w-full" />
             ) : providerChartData.length === 0 ? (
               <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                No provider data available
+                {intl.formatMessage({ id: "common.noProviderDataAvailable" })}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
@@ -247,9 +249,9 @@ export default function AdminAnalyticsPage() {
         {/* Credit Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle>Credit Distribution</CardTitle>
+            <CardTitle>{intl.formatMessage({ id: "page.adminAnalytics.creditDistribution" })}</CardTitle>
             <CardDescription>
-              Number of clients in each credit range
+              {intl.formatMessage({ id: "common.numberOfClientsInEachCreditRange" })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -259,7 +261,7 @@ export default function AdminAnalyticsPage() {
                 <XAxis dataKey="range" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="count" fill="#FFBB28" name="Clients" />
+                <Bar dataKey="count" fill="#FFBB28" name={intl.formatMessage({ id: "common.clients" })} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -268,9 +270,9 @@ export default function AdminAnalyticsPage() {
         {/* Client Status Overview */}
         <Card>
           <CardHeader>
-            <CardTitle>Client Status Overview</CardTitle>
+            <CardTitle>{intl.formatMessage({ id: "page.adminAnalytics.clientStatusBreakdown" })}</CardTitle>
             <CardDescription>
-              Active vs inactive clients
+              {intl.formatMessage({ id: "common.activeVsInactiveClients" })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -278,8 +280,8 @@ export default function AdminAnalyticsPage() {
               <PieChart>
                 <Pie
                   data={[
-                    { name: "Active", value: activeClients },
-                    { name: "Inactive", value: inactiveClients },
+                    { name: intl.formatMessage({ id: "page.adminAnalytics.activeClients" }), value: activeClients },
+                    { name: intl.formatMessage({ id: "page.adminAnalytics.inactiveClients" }), value: inactiveClients },
                   ]}
                   cx="50%"
                   cy="50%"
@@ -302,9 +304,9 @@ export default function AdminAnalyticsPage() {
       {/* Recent Messages */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Messages</CardTitle>
+          <CardTitle>{intl.formatMessage({ id: "page.adminAnalytics.recentMessages" })}</CardTitle>
           <CardDescription>
-            Latest SMS messages across all clients
+            {intl.formatMessage({ id: "common.latestSmsMessagesAcrossAllClients" })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -316,7 +318,7 @@ export default function AdminAnalyticsPage() {
             </div>
           ) : recentMessages.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">
-              No messages yet
+              {intl.formatMessage({ id: "common.noMessagesYet" })}
             </div>
           ) : (
             <div className="space-y-3">

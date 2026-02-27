@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { useIntl } from "react-intl";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -67,12 +68,16 @@ import { usePagination } from "@/hooks/use-pagination";
 import PaginationControls from "@/components/ui/pagination-controls";
 
 export default function ContactsPage() {
+  const intl = useIntl();
+
   return (
     <>
       <Unauthenticated>
         <div className="flex min-h-screen items-center justify-center p-4">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Please sign in</h1>
+            <h1 className="text-2xl font-bold mb-4">
+              {intl.formatMessage({ id: "page.contacts.pleaseSignIn" })}
+            </h1>
             <SignInButton />
           </div>
         </div>
@@ -91,6 +96,7 @@ export default function ContactsPage() {
 }
 
 function ContactsPageInner() {
+  const intl = useIntl();
   const [searchInput, setSearchInput] = useState("");
   const [selectedTag, setSelectedTag] = useState<string>("all");
   const [filterOptedOut, setFilterOptedOut] = useState<string>("all");
@@ -150,9 +156,11 @@ function ContactsPageInner() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Contacts</h1>
+          <h1 className="text-3xl font-bold">
+            {intl.formatMessage({ id: "page.contacts.title" })}
+          </h1>
           <p className="text-muted-foreground mt-1">
-            Manage your contact list and groups
+            {intl.formatMessage({ id: "page.contacts.subtitle" })}
           </p>
         </div>
         <div className="flex gap-2">
@@ -162,11 +170,11 @@ function ContactsPageInner() {
             onClick={() => setImportDialogOpen(true)}
           >
             <FileUp className="h-4 w-4 mr-2" />
-            Import
+            {intl.formatMessage({ id: "page.contacts.importContacts" })}
           </Button>
           <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
             <UserPlus className="h-4 w-4 mr-2" />
-            Add Contact
+            {intl.formatMessage({ id: "page.contacts.addContact" })}
           </Button>
         </div>
       </div>
@@ -180,7 +188,9 @@ function ContactsPageInner() {
                 <Users className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Contacts</p>
+                <p className="text-sm text-muted-foreground">
+                  {intl.formatMessage({ id: "page.contacts.totalContacts" })}
+                </p>
                 <p className="text-2xl font-bold">{stats.total}</p>
               </div>
             </div>
@@ -191,7 +201,9 @@ function ContactsPageInner() {
                 <Users className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Active</p>
+                <p className="text-sm text-muted-foreground">
+                  {intl.formatMessage({ id: "page.contacts.activeContacts" })}
+                </p>
                 <p className="text-2xl font-bold">{stats.active}</p>
               </div>
             </div>
@@ -202,7 +214,9 @@ function ContactsPageInner() {
                 <UserX className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Opted Out</p>
+                <p className="text-sm text-muted-foreground">
+                  {intl.formatMessage({ id: "page.contacts.optedOut" })}
+                </p>
                 <p className="text-2xl font-bold">{stats.optedOut}</p>
               </div>
             </div>
@@ -216,7 +230,7 @@ function ContactsPageInner() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search contacts..."
+              placeholder={intl.formatMessage({ id: "page.contacts.searchPlaceholder" })}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="pl-10"
@@ -224,10 +238,12 @@ function ContactsPageInner() {
           </div>
           <Select value={selectedTag} onValueChange={setSelectedTag}>
             <SelectTrigger>
-              <SelectValue placeholder="Filter by tag" />
+              <SelectValue placeholder={intl.formatMessage({ id: "page.contacts.filterByTag" })} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All tags</SelectItem>
+              <SelectItem value="all">
+                {intl.formatMessage({ id: "page.contacts.allTags" })}
+              </SelectItem>
               {tags?.map((tag) => (
                 <SelectItem key={tag} value={tag}>
                   {tag}
@@ -237,12 +253,18 @@ function ContactsPageInner() {
           </Select>
           <Select value={filterOptedOut} onValueChange={setFilterOptedOut}>
             <SelectTrigger>
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder={intl.formatMessage({ id: "page.contacts.filterByStatus" })} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All contacts</SelectItem>
-              <SelectItem value="active">Active only</SelectItem>
-              <SelectItem value="opted-out">Opted out only</SelectItem>
+              <SelectItem value="all">
+                {intl.formatMessage({ id: "page.contacts.allContacts" })}
+              </SelectItem>
+              <SelectItem value="active">
+                {intl.formatMessage({ id: "page.contacts.activeOnly" })}
+              </SelectItem>
+              <SelectItem value="opted-out">
+                {intl.formatMessage({ id: "page.contacts.optedOutOnly" })}
+              </SelectItem>
             </SelectContent>
           </Select>
           {hasFilters && (
@@ -266,18 +288,20 @@ function ContactsPageInner() {
               <EmptyMedia variant="icon">
                 <Users />
               </EmptyMedia>
-              <EmptyTitle>No contacts found</EmptyTitle>
+              <EmptyTitle>
+                {intl.formatMessage({ id: "page.contacts.noContacts" })}
+              </EmptyTitle>
               <EmptyDescription>
                 {hasFilters
-                  ? "Try adjusting your filters"
-                  : "Get started by adding your first contact"}
+                  ? intl.formatMessage({ id: "page.contacts.noContactsFilter" })
+                  : intl.formatMessage({ id: "page.contacts.noContactsDesc" })}
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
               {!hasFilters && (
                 <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
                   <UserPlus className="h-4 w-4 mr-2" />
-                  Add Contact
+                  {intl.formatMessage({ id: "page.contacts.addContact" })}
                 </Button>
               )}
             </EmptyContent>
@@ -287,11 +311,19 @@ function ContactsPageInner() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead>
+                    {intl.formatMessage({ id: "common.name" })}
+                  </TableHead>
+                  <TableHead>
+                    {intl.formatMessage({ id: "common.phone" })}
+                  </TableHead>
+                  <TableHead>
+                    {intl.formatMessage({ id: "common.email" })}
+                  </TableHead>
                   <TableHead>Tags</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>
+                    {intl.formatMessage({ id: "common.status" })}
+                  </TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -318,9 +350,13 @@ function ContactsPageInner() {
                     </TableCell>
                     <TableCell>
                       {contact.isOptedOut ? (
-                        <Badge variant="destructive">Opted Out</Badge>
+                        <Badge variant="destructive">
+                          {intl.formatMessage({ id: "page.contacts.optedOut" })}
+                        </Badge>
                       ) : (
-                        <Badge variant="default">Active</Badge>
+                        <Badge variant="default">
+                          {intl.formatMessage({ id: "page.contacts.activeContacts" })}
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell>
@@ -333,14 +369,14 @@ function ContactsPageInner() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleEdit(contact._id)}>
                             <Pencil className="h-4 w-4 mr-2" />
-                            Edit
+                            {intl.formatMessage({ id: "page.contacts.editContact" })}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleDelete(contact._id)}
                             className="text-destructive"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
+                            {intl.formatMessage({ id: "page.contacts.deleteContact" })}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -387,6 +423,7 @@ function CreateContactDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const intl = useIntl();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -432,8 +469,12 @@ function CreateContactDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Contact</DialogTitle>
-          <DialogDescription>Create a new contact</DialogDescription>
+          <DialogTitle>
+            {intl.formatMessage({ id: "page.contacts.addContact" })}
+          </DialogTitle>
+          <DialogDescription>
+            {intl.formatMessage({ id: "page.contacts.createNew" })}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
@@ -449,7 +490,9 @@ function CreateContactDialog({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="firstName">
+                  {intl.formatMessage({ id: "page.contacts.firstName" })}
+                </Label>
                 <Input
                   id="firstName"
                   value={firstName}
@@ -458,7 +501,9 @@ function CreateContactDialog({
                 />
               </div>
               <div>
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="lastName">
+                  {intl.formatMessage({ id: "page.contacts.lastName" })}
+                </Label>
                 <Input
                   id="lastName"
                   value={lastName}
@@ -468,7 +513,9 @@ function CreateContactDialog({
               </div>
             </div>
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">
+                {intl.formatMessage({ id: "common.email" })}
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -478,7 +525,9 @@ function CreateContactDialog({
               />
             </div>
             <div>
-              <Label htmlFor="tags">Tags (comma-separated)</Label>
+              <Label htmlFor="tags">
+                {intl.formatMessage({ id: "page.contacts.tagsComma" })}
+              </Label>
               <Input
                 id="tags"
                 value={tagsInput}
@@ -489,9 +538,11 @@ function CreateContactDialog({
           </div>
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {intl.formatMessage({ id: "buttons.cancel" })}
             </Button>
-            <Button type="submit">Create Contact</Button>
+            <Button type="submit">
+              {intl.formatMessage({ id: "page.contacts.createContact" })}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -508,6 +559,7 @@ function EditContactDialog({
   onOpenChange: (open: boolean) => void;
   contactId: Id<"contacts">;
 }) {
+  const intl = useIntl();
   const contact = useQuery(api.contacts.getContact, { contactId });
   const [phoneNumber, setPhoneNumber] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -563,8 +615,12 @@ function EditContactDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Contact</DialogTitle>
-          <DialogDescription>Update contact information</DialogDescription>
+          <DialogTitle>
+            {intl.formatMessage({ id: "page.contacts.editContact" })}
+          </DialogTitle>
+          <DialogDescription>
+            {intl.formatMessage({ id: "page.contacts.updateInfo" })}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
@@ -580,7 +636,9 @@ function EditContactDialog({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="firstName">
+                  {intl.formatMessage({ id: "page.contacts.firstName" })}
+                </Label>
                 <Input
                   id="firstName"
                   value={firstName}
@@ -589,7 +647,9 @@ function EditContactDialog({
                 />
               </div>
               <div>
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="lastName">
+                  {intl.formatMessage({ id: "page.contacts.lastName" })}
+                </Label>
                 <Input
                   id="lastName"
                   value={lastName}
@@ -599,7 +659,9 @@ function EditContactDialog({
               </div>
             </div>
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">
+                {intl.formatMessage({ id: "common.email" })}
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -609,7 +671,9 @@ function EditContactDialog({
               />
             </div>
             <div>
-              <Label htmlFor="tags">Tags (comma-separated)</Label>
+              <Label htmlFor="tags">
+                {intl.formatMessage({ id: "page.contacts.tagsComma" })}
+              </Label>
               <Input
                 id="tags"
                 value={tagsInput}
@@ -620,9 +684,11 @@ function EditContactDialog({
           </div>
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {intl.formatMessage({ id: "buttons.cancel" })}
             </Button>
-            <Button type="submit">Update Contact</Button>
+            <Button type="submit">
+              {intl.formatMessage({ id: "page.contacts.updateContact" })}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -637,6 +703,7 @@ function ImportContactsDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const intl = useIntl();
   const [csvText, setCsvText] = useState("");
 
   const importContacts = useMutation(api.contacts.importContacts);
@@ -684,7 +751,9 @@ function ImportContactsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Import Contacts</DialogTitle>
+          <DialogTitle>
+            {intl.formatMessage({ id: "page.contacts.importContacts" })}
+          </DialogTitle>
           <DialogDescription>
             Import contacts from CSV format. Format: phone,firstName,lastName,email,tags
           </DialogDescription>
@@ -692,7 +761,9 @@ function ImportContactsDialog({
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="csv">CSV Data</Label>
+              <Label htmlFor="csv">
+                {intl.formatMessage({ id: "page.contacts.csvData" })}
+              </Label>
               <Textarea
                 id="csv"
                 value={csvText}
@@ -704,7 +775,9 @@ function ImportContactsDialog({
               />
             </div>
             <div className="text-xs text-muted-foreground">
-              <p className="font-medium mb-1">Format:</p>
+              <p className="font-medium mb-1">
+                {intl.formatMessage({ id: "page.contacts.csvFormat" })}
+              </p>
               <code className="block bg-muted p-2 rounded">
                 phone,firstName,lastName,email,tags (semicolon-separated)
               </code>
@@ -712,9 +785,11 @@ function ImportContactsDialog({
           </div>
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {intl.formatMessage({ id: "buttons.cancel" })}
             </Button>
-            <Button type="submit">Import</Button>
+            <Button type="submit">
+              {intl.formatMessage({ id: "page.contacts.importContacts" })}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

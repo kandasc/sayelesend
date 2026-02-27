@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import PaginationControls from "@/components/ui/pagination-controls.tsx";
+import { useIntl } from "react-intl";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +56,7 @@ export default function ApiKeys() {
 }
 
 function ApiKeysContent() {
+  const intl = useIntl();
   const currentUser = useQuery(api.testMode.getEffectiveUser, {});
   const client = useQuery(api.clients.getCurrentClient, {});
   const apiKeys = useQuery(
@@ -69,21 +71,25 @@ function ApiKeysContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">API Keys</h1>
+          <h1 className="text-3xl font-bold">
+            {intl.formatMessage({ id: "page.apiKeys.title" })}
+          </h1>
           <p className="text-muted-foreground">
-            Manage your API keys for programmatic access
+            {intl.formatMessage({ id: "page.apiKeys.subtitle" })}
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Create API Key
+              {intl.formatMessage({ id: "page.apiKeys.createApiKey" })}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New API Key</DialogTitle>
+              <DialogTitle>
+                {intl.formatMessage({ id: "page.apiKeys.createNewApiKey" })}
+              </DialogTitle>
             </DialogHeader>
             <CreateApiKeyForm
               clientId={client?._id}
@@ -99,11 +105,13 @@ function ApiKeysContent() {
       {newApiKey && (
         <Card className="border-primary">
           <CardHeader>
-            <CardTitle className="text-lg">New API Key Created</CardTitle>
+            <CardTitle className="text-lg">
+              {intl.formatMessage({ id: "page.apiKeys.newKeyCreated" })}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Make sure to copy your API key now. You won't be able to see it again!
+              {intl.formatMessage({ id: "page.apiKeys.copyWarning" })}
             </p>
             <div className="flex gap-2">
               <Input value={newApiKey} readOnly className="font-mono text-sm" />
@@ -111,7 +119,9 @@ function ApiKeysContent() {
                 variant="outline"
                 onClick={() => {
                   navigator.clipboard.writeText(newApiKey);
-                  toast.success("API key copied to clipboard");
+                  toast.success(
+                    intl.formatMessage({ id: "page.apiKeys.keyCopied" })
+                  );
                 }}
               >
                 <Copy className="h-4 w-4" />
@@ -122,7 +132,7 @@ function ApiKeysContent() {
               size="sm"
               onClick={() => setNewApiKey(null)}
             >
-              I've saved my API key
+              {intl.formatMessage({ id: "page.apiKeys.keySaved" })}
             </Button>
           </CardContent>
         </Card>
@@ -130,12 +140,14 @@ function ApiKeysContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Your API Keys</CardTitle>
+          <CardTitle>
+            {intl.formatMessage({ id: "page.apiKeys.yourKeys" })}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {!apiKeys || apiKeys.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              No API keys created yet
+              {intl.formatMessage({ id: "page.apiKeys.noKeys" })}
             </p>
           ) : (
             <ApiKeyList apiKeys={apiKeys} />
@@ -145,11 +157,15 @@ function ApiKeysContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle>API Documentation</CardTitle>
+          <CardTitle>
+            {intl.formatMessage({ id: "page.apiKeys.apiDoc" })}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <h3 className="font-semibold mb-2">Send SMS</h3>
+            <h3 className="font-semibold mb-2">
+              {intl.formatMessage({ id: "page.apiKeys.sendSms" })}
+            </h3>
             <code className="block bg-secondary p-3 rounded text-sm overflow-x-auto">
               POST /api/v1/sms/send
             </code>
@@ -162,15 +178,19 @@ function ApiKeysContent() {
             </pre>
           </div>
           <div>
-            <h3 className="font-semibold mb-2">Check Message Status</h3>
+            <h3 className="font-semibold mb-2">
+              {intl.formatMessage({ id: "page.apiKeys.checkStatus" })}
+            </h3>
             <code className="block bg-secondary p-3 rounded text-sm overflow-x-auto">
               GET /api/v1/sms/status/:messageId
             </code>
           </div>
           <div>
-            <h3 className="font-semibold mb-2">Authentication</h3>
+            <h3 className="font-semibold mb-2">
+              {intl.formatMessage({ id: "page.apiKeys.authentication" })}
+            </h3>
             <p className="text-sm text-muted-foreground mb-2">
-              Include your API key in the Authorization header:
+              {intl.formatMessage({ id: "page.apiKeys.authDesc" })}
             </p>
             <code className="block bg-secondary p-3 rounded text-sm">
               Authorization: Bearer YOUR_API_KEY
@@ -196,6 +216,7 @@ function ApiKeyList({ apiKeys }: { apiKeys: ApiKey[] }) {
 }
 
 function ApiKeyItem({ apiKey }: { apiKey: ApiKey }) {
+  const intl = useIntl();
   const toggleApiKey = useMutation(api.apiKeys.toggleApiKey);
   const deleteApiKey = useMutation(api.apiKeys.deleteApiKey);
 
@@ -206,7 +227,9 @@ function ApiKeyItem({ apiKey }: { apiKey: ApiKey }) {
         isActive: !apiKey.isActive,
       });
       toast.success(
-        apiKey.isActive ? "API key disabled" : "API key enabled"
+        intl.formatMessage({
+          id: apiKey.isActive ? "page.apiKeys.keyDisabled" : "page.apiKeys.keyEnabled"
+        })
       );
     } catch (error) {
       toast.error("Failed to update API key");
@@ -216,7 +239,9 @@ function ApiKeyItem({ apiKey }: { apiKey: ApiKey }) {
   const handleDelete = async () => {
     try {
       await deleteApiKey({ apiKeyId: apiKey._id });
-      toast.success("API key deleted");
+      toast.success(
+        intl.formatMessage({ id: "page.apiKeys.keyDeleted" })
+      );
     } catch (error) {
       toast.error("Failed to delete API key");
     }
@@ -228,7 +253,9 @@ function ApiKeyItem({ apiKey }: { apiKey: ApiKey }) {
         <div className="flex items-center gap-2">
           <p className="font-medium">{apiKey.name}</p>
           <Badge variant={apiKey.isActive ? "default" : "secondary"}>
-            {apiKey.isActive ? "Active" : "Disabled"}
+            {intl.formatMessage({
+              id: apiKey.isActive ? "page.apiKeys.enabled" : "page.apiKeys.disabled"
+            })}
           </Badge>
         </div>
         <div className="flex items-center gap-2">
@@ -250,19 +277,23 @@ function ApiKeyItem({ apiKey }: { apiKey: ApiKey }) {
         </div>
         {apiKey.lastUsedAt && (
           <p className="text-xs text-muted-foreground">
-            Last used: {format(new Date(apiKey.lastUsedAt), "PPp")}
+            {intl.formatMessage({ id: "page.apiKeys.lastUsed" })}
+            {" "}
+            {format(new Date(apiKey.lastUsedAt), "PPp")}
           </p>
         )}
         {apiKey.requestCount !== undefined && apiKey.requestCount > 0 && (
           <p className="text-xs text-muted-foreground">
-            Total requests: {apiKey.requestCount}
+            {intl.formatMessage({ id: "page.apiKeys.totalRequests" })}: {apiKey.requestCount}
           </p>
         )}
       </div>
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2">
           <Label htmlFor={`toggle-${apiKey._id}`} className="text-sm">
-            {apiKey.isActive ? "Enabled" : "Disabled"}
+            {intl.formatMessage({
+              id: apiKey.isActive ? "page.apiKeys.enabled" : "page.apiKeys.disabled"
+            })}
           </Label>
           <Switch
             id={`toggle-${apiKey._id}`}
@@ -278,15 +309,20 @@ function ApiKeyItem({ apiKey }: { apiKey: ApiKey }) {
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete API Key?</AlertDialogTitle>
+              <AlertDialogTitle>
+                {intl.formatMessage({ id: "page.apiKeys.deleteApiKey" })}
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. Applications using this key will
-                no longer be able to access the API.
+                {intl.formatMessage({ id: "page.apiKeys.deleteApiKeyDesc" })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+              <AlertDialogCancel>
+                {intl.formatMessage({ id: "buttons.cancel" })}
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete}>
+                {intl.formatMessage({ id: "buttons.delete" })}
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -302,6 +338,7 @@ function CreateApiKeyForm({
   clientId?: Id<"clients">;
   onSuccess: (key: string) => void;
 }) {
+  const intl = useIntl();
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const createApiKey = useAction(api.apiKeys.createApiKey);
@@ -319,7 +356,9 @@ function CreateApiKeyForm({
         name,
         clientId,
       });
-      toast.success("API key created successfully");
+      toast.success(
+        intl.formatMessage({ id: "page.apiKeys.keyCreated" })
+      );
       setName("");
       onSuccess(result.key);
     } catch (error) {
@@ -334,7 +373,9 @@ function CreateApiKeyForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">API Key Name</Label>
+        <Label htmlFor="name">
+          {intl.formatMessage({ id: "page.apiKeys.apiKeyName" })}
+        </Label>
         <Input
           id="name"
           placeholder="Production Server"
@@ -343,12 +384,14 @@ function CreateApiKeyForm({
           required
         />
         <p className="text-xs text-muted-foreground">
-          Give your API key a descriptive name for easy identification
+          {intl.formatMessage({ id: "page.apiKeys.apiKeyNameDesc" })}
         </p>
       </div>
       <div className="flex justify-end gap-2">
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Creating..." : "Create API Key"}
+          {isLoading
+            ? intl.formatMessage({ id: "buttons.creating" })
+            : intl.formatMessage({ id: "page.apiKeys.createApiKey" })}
         </Button>
       </div>
     </form>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useIntl } from "react-intl";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
@@ -45,6 +46,7 @@ import { usePagination } from "@/hooks/use-pagination.ts";
 import PaginationControls from "@/components/ui/pagination-controls.tsx";
 
 export default function AdminUsersPage() {
+  const intl = useIntl();
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [editRoleDialogOpen, setEditRoleDialogOpen] = useState(false);
   const [editDetailsDialogOpen, setEditDetailsDialogOpen] = useState(false);
@@ -193,14 +195,14 @@ export default function AdminUsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">User Management</h1>
+          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.adminUsers.title" })}</h1>
           <p className="text-muted-foreground">
-            Manage system users and client assignments
+            {intl.formatMessage({ id: "page.adminUsers.subtitle" })}
           </p>
         </div>
         <Button onClick={() => setAssignDialogOpen(true)}>
           <UserPlus className="mr-2 h-4 w-4" />
-          Assign User to Client
+          {intl.formatMessage({ id: "page.adminUsers.assignToClient" })}
         </Button>
       </div>
 
@@ -208,7 +210,7 @@ export default function AdminUsersPage() {
       <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.adminUsers.totalUsers" })}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -218,7 +220,7 @@ export default function AdminUsersPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Admins</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.adminUsers.admins" })}</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -228,7 +230,7 @@ export default function AdminUsersPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Client Users</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.adminUsers.clientUsers" })}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -238,7 +240,7 @@ export default function AdminUsersPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Viewers</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.adminUsers.viewers" })}</CardTitle>
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -248,7 +250,7 @@ export default function AdminUsersPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unassigned</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "common.unassigned" })}</CardTitle>
             <Mail className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -262,10 +264,10 @@ export default function AdminUsersPage() {
         <Card className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
           <CardHeader>
             <CardTitle className="text-orange-900 dark:text-orange-100">
-              Unassigned Users
+              {intl.formatMessage({ id: "page.adminUsers.unassignedUsers" })}
             </CardTitle>
             <CardDescription className="text-orange-700 dark:text-orange-300">
-              These users have signed in but haven't been assigned to a client yet
+              {intl.formatMessage({ id: "page.adminUsers.unassignedUsersDescription" })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -286,7 +288,7 @@ export default function AdminUsersPage() {
                       setAssignDialogOpen(true);
                     }}
                   >
-                    Assign to Client
+                    {intl.formatMessage({ id: "page.adminUsers.assignToClient" })}
                   </Button>
                 </div>
               ))}
@@ -298,28 +300,28 @@ export default function AdminUsersPage() {
       {/* All Users Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Users</CardTitle>
+          <CardTitle>{intl.formatMessage({ id: "page.adminUsers.allUsers" })}</CardTitle>
           <CardDescription>
-            Complete list of all system users
+            {intl.formatMessage({ id: "page.adminUsers.allUsersDescription" })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[80px]">Actions</TableHead>
+                <TableHead>{intl.formatMessage({ id: "common.name" })}</TableHead>
+                <TableHead>{intl.formatMessage({ id: "common.email" })}</TableHead>
+                <TableHead>{intl.formatMessage({ id: "common.role" })}</TableHead>
+                <TableHead>{intl.formatMessage({ id: "page.adminUsers.assignedClient" })}</TableHead>
+                <TableHead>{intl.formatMessage({ id: "common.status" })}</TableHead>
+                <TableHead className="w-[80px]">{intl.formatMessage({ id: "page.adminUsers.actions" })}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {usersPagination.paginatedItems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    No users found
+                    {intl.formatMessage({ id: "page.adminUsers.noUsers" })}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -334,28 +336,28 @@ export default function AdminUsersPage() {
                       <TableCell>{user.email || "No email"}</TableCell>
                       <TableCell>
                         {user.role === "admin" ? (
-                          <Badge variant="default">Admin</Badge>
+                          <Badge variant="default">{intl.formatMessage({ id: "common.roleAdmin" })}</Badge>
                         ) : user.role === "client" ? (
-                          <Badge variant="secondary">Client</Badge>
+                          <Badge variant="secondary">{intl.formatMessage({ id: "common.roleClient" })}</Badge>
                         ) : user.role === "viewer" ? (
                           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                             <Eye className="h-3 w-3 mr-1" />
-                            Viewer
+                            {intl.formatMessage({ id: "common.roleViewer" })}
                           </Badge>
                         ) : (
-                          <Badge variant="outline">Unassigned</Badge>
+                          <Badge variant="outline">{intl.formatMessage({ id: "common.unassigned" })}</Badge>
                         )}
                       </TableCell>
                       <TableCell>
-                        {client ? client.companyName : user.role === "admin" ? "N/A" : "-"}
+                        {client ? client.companyName : user.role === "admin" ? intl.formatMessage({ id: "common.na" }) : "-"}
                       </TableCell>
                       <TableCell>
                         {user.clientId || user.role === "admin" ? (
                           <Badge variant="default" className="bg-green-600">
-                            Active
+                            {intl.formatMessage({ id: "common.statusActive" })}
                           </Badge>
                         ) : (
-                          <Badge variant="secondary">Pending</Badge>
+                          <Badge variant="secondary">{intl.formatMessage({ id: "common.statusPending" })}</Badge>
                         )}
                       </TableCell>
                       <TableCell>
@@ -366,7 +368,7 @@ export default function AdminUsersPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuLabel>{intl.formatMessage({ id: "page.adminUsers.actions" })}</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => {
@@ -377,7 +379,7 @@ export default function AdminUsersPage() {
                               }}
                             >
                               <Edit className="h-4 w-4 mr-2" />
-                              Edit Details
+                              {intl.formatMessage({ id: "page.adminUsers.editDetails" })}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
@@ -388,7 +390,7 @@ export default function AdminUsersPage() {
                               }}
                             >
                               <Shield className="h-4 w-4 mr-2" />
-                              Edit Role & Client
+                              {intl.formatMessage({ id: "page.adminUsers.editRole" })}
                             </DropdownMenuItem>
                             {user.clientId && user.role !== "admin" && (
                               <>
@@ -397,7 +399,7 @@ export default function AdminUsersPage() {
                                   onClick={() => handleUnassignUser(user._id)}
                                 >
                                   <UserMinus className="h-4 w-4 mr-2" />
-                                  Unassign from Client
+                                  {intl.formatMessage({ id: "page.adminUsers.removeFromClient" })}
                                 </DropdownMenuItem>
                               </>
                             )}
@@ -410,7 +412,7 @@ export default function AdminUsersPage() {
                               }}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
-                              Delete User
+                              {intl.formatMessage({ id: "page.adminUsers.deleteUser" })}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -429,15 +431,15 @@ export default function AdminUsersPage() {
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Assign User to Client</DialogTitle>
+            <DialogTitle>{intl.formatMessage({ id: "page.adminUsers.assignToClient" })}</DialogTitle>
             <DialogDescription>
-              Assign a user to a client account. The user must have signed in at least once.
+              {intl.formatMessage({ id: "page.adminUsers.assignDialogDescription" })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="userEmail">User Email</Label>
+              <Label htmlFor="userEmail">{intl.formatMessage({ id: "common.email" })}</Label>
               <Input
                 id="userEmail"
                 type="email"
@@ -446,35 +448,35 @@ export default function AdminUsersPage() {
                 onChange={(e) => setUserEmail(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                The user must have signed in at least once
+                {intl.formatMessage({ id: "page.adminUsers.userSignedInNote" })}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="assignRole">Role</Label>
+              <Label htmlFor="assignRole">{intl.formatMessage({ id: "common.role" })}</Label>
               <Select
                 value={selectedRole}
                 onValueChange={(value) => setSelectedRole(value as "admin" | "client" | "viewer")}
               >
                 <SelectTrigger id="assignRole">
-                  <SelectValue placeholder="Select a role" />
+                  <SelectValue placeholder={intl.formatMessage({ id: "page.adminUsers.selectRole" })} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin - Full System Access</SelectItem>
-                  <SelectItem value="client">Client - Can Manage Account</SelectItem>
-                  <SelectItem value="viewer">Viewer - Read-Only Access</SelectItem>
+                  <SelectItem value="admin">{intl.formatMessage({ id: "page.adminUsers.roleAdminDescription" })}</SelectItem>
+                  <SelectItem value="client">{intl.formatMessage({ id: "page.adminUsers.roleClientDescription" })}</SelectItem>
+                  <SelectItem value="viewer">{intl.formatMessage({ id: "page.adminUsers.roleViewerDescription" })}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="client">Client</Label>
+              <Label htmlFor="client">{intl.formatMessage({ id: "page.adminUsers.assignedClient" })}</Label>
               <Select
                 value={selectedClientId}
                 onValueChange={(value) => setSelectedClientId(value as Id<"clients">)}
               >
                 <SelectTrigger id="client">
-                  <SelectValue placeholder="Select a client" />
+                  <SelectValue placeholder={intl.formatMessage({ id: "page.adminUsers.selectClient" })} />
                 </SelectTrigger>
                 <SelectContent>
                   {clients.map((client) => (
@@ -489,10 +491,10 @@ export default function AdminUsersPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
-              Cancel
+              {intl.formatMessage({ id: "buttons.cancel" })}
             </Button>
             <Button onClick={handleAssignUser}>
-              Assign User
+              {intl.formatMessage({ id: "page.adminUsers.assignToClient" })}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -502,15 +504,15 @@ export default function AdminUsersPage() {
       <Dialog open={editDetailsDialogOpen} onOpenChange={setEditDetailsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User Details</DialogTitle>
+            <DialogTitle>{intl.formatMessage({ id: "page.adminUsers.editDetails" })}</DialogTitle>
             <DialogDescription>
-              Update the user's name and email address.
+              {intl.formatMessage({ id: "page.adminUsers.editDetailsDescription" })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="editName">Name</Label>
+              <Label htmlFor="editName">{intl.formatMessage({ id: "common.name" })}</Label>
               <Input
                 id="editName"
                 value={userName}
@@ -520,7 +522,7 @@ export default function AdminUsersPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="editEmail">Email</Label>
+              <Label htmlFor="editEmail">{intl.formatMessage({ id: "common.email" })}</Label>
               <Input
                 id="editEmail"
                 type="email"
@@ -533,10 +535,10 @@ export default function AdminUsersPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDetailsDialogOpen(false)}>
-              Cancel
+              {intl.formatMessage({ id: "buttons.cancel" })}
             </Button>
             <Button onClick={handleUpdateDetails}>
-              Update Details
+              {intl.formatMessage({ id: "buttons.save" })}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -546,42 +548,42 @@ export default function AdminUsersPage() {
       <Dialog open={editRoleDialogOpen} onOpenChange={setEditRoleDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User Role & Client</DialogTitle>
+            <DialogTitle>{intl.formatMessage({ id: "page.adminUsers.editRole" })}</DialogTitle>
             <DialogDescription>
-              Change the user's role and client assignment. Admins have full system access, clients can manage their account, and viewers have read-only access.
+              {intl.formatMessage({ id: "page.adminUsers.editRoleDescription" })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role">{intl.formatMessage({ id: "common.role" })}</Label>
               <Select
                 value={selectedRole}
                 onValueChange={(value) => setSelectedRole(value as "admin" | "client" | "viewer")}
               >
                 <SelectTrigger id="role">
-                  <SelectValue placeholder="Select a role" />
+                  <SelectValue placeholder={intl.formatMessage({ id: "page.adminUsers.selectRole" })} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin - Full System Access</SelectItem>
-                  <SelectItem value="client">Client - Can Manage Account</SelectItem>
-                  <SelectItem value="viewer">Viewer - Read-Only Access</SelectItem>
+                  <SelectItem value="admin">{intl.formatMessage({ id: "page.adminUsers.roleAdminDescription" })}</SelectItem>
+                  <SelectItem value="client">{intl.formatMessage({ id: "page.adminUsers.roleClientDescription" })}</SelectItem>
+                  <SelectItem value="viewer">{intl.formatMessage({ id: "page.adminUsers.roleViewerDescription" })}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {(selectedRole === "client" || selectedRole === "viewer") && (
               <div className="space-y-2">
-                <Label htmlFor="editClient">Client</Label>
+                <Label htmlFor="editClient">{intl.formatMessage({ id: "page.adminUsers.assignedClient" })}</Label>
                 <Select
                   value={selectedClientId?.toString() || "none"}
                   onValueChange={(value) => setSelectedClientId(value === "none" ? "none" : value as Id<"clients">)}
                 >
                   <SelectTrigger id="editClient">
-                    <SelectValue placeholder="Select a client" />
+                    <SelectValue placeholder={intl.formatMessage({ id: "page.adminUsers.selectClient" })} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">None (Unassigned)</SelectItem>
+                    <SelectItem value="none">{intl.formatMessage({ id: "page.adminUsers.noneUnassigned" })}</SelectItem>
                     {clients?.map((client) => (
                       <SelectItem key={client._id} value={client._id}>
                         {client.companyName}
@@ -591,8 +593,8 @@ export default function AdminUsersPage() {
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   {selectedRole === "viewer" 
-                    ? "Select a client or leave unassigned. Viewers can only view their assigned client's data." 
-                    : "Select a client or leave unassigned."}
+                    ? intl.formatMessage({ id: "page.adminUsers.viewerClientNote" }) 
+                    : intl.formatMessage({ id: "page.adminUsers.clientSelectNote" })}
                 </p>
               </div>
             )}
@@ -600,10 +602,10 @@ export default function AdminUsersPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditRoleDialogOpen(false)}>
-              Cancel
+              {intl.formatMessage({ id: "buttons.cancel" })}
             </Button>
             <Button onClick={handleUpdateRole}>
-              Update Role
+              {intl.formatMessage({ id: "buttons.save" })}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -613,18 +615,18 @@ export default function AdminUsersPage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete User</DialogTitle>
+            <DialogTitle>{intl.formatMessage({ id: "page.adminUsers.deleteUser" })}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this user? This action cannot be undone.
+              {intl.formatMessage({ id: "page.adminUsers.deleteUserDescription" })}
             </DialogDescription>
           </DialogHeader>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
+              {intl.formatMessage({ id: "buttons.cancel" })}
             </Button>
             <Button variant="destructive" onClick={handleDeleteUser}>
-              Delete User
+              {intl.formatMessage({ id: "page.adminUsers.deleteUser" })}
             </Button>
           </DialogFooter>
         </DialogContent>

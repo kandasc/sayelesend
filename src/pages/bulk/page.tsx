@@ -1,3 +1,4 @@
+import { useIntl } from "react-intl";
 import { Authenticated } from "convex/react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
@@ -49,6 +50,7 @@ export default function BulkSMS() {
 }
 
 function BulkSMSContent() {
+  const intl = useIntl();
   const bulkMessages = useQuery(api.bulk.getBulkMessages, {});
   const currentUser = useQuery(api.testMode.getEffectiveUser, {});
   const client = useQuery(api.clients.getCurrentClient, {});
@@ -65,23 +67,23 @@ function BulkSMSContent() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Bulk Messaging</h1>
-            <p className="text-muted-foreground">Send messages to multiple recipients across SMS, WhatsApp, Telegram, and Facebook Messenger</p>
+            <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.bulk.title" })}</h1>
+            <p className="text-muted-foreground">{intl.formatMessage({ id: "page.bulk.subtitle" })}</p>
           </div>
           <UpdateBulkStatusButton />
         </div>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Send className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-lg font-medium text-center">Admin View</p>
+            <p className="text-lg font-medium text-center">{intl.formatMessage({ id: "page.bulk.adminView" })}</p>
             <p className="text-muted-foreground text-center">
-              Bulk SMS campaigns are managed by client users. You can view all campaigns below.
+              {intl.formatMessage({ id: "page.bulk.adminDesc" })}
             </p>
           </CardContent>
         </Card>
         {bulkMessages.length > 0 && (
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold">All Campaigns</h2>
+            <h2 className="text-xl font-semibold">{intl.formatMessage({ id: "page.bulk.allCampaigns" })}</h2>
             <CampaignList campaigns={bulkMessages} onViewDetails={setDetailsId} />
           </div>
         )}
@@ -89,7 +91,7 @@ function BulkSMSContent() {
           <Dialog open={!!detailsId} onOpenChange={() => setDetailsId(null)}>
             <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
               <DialogHeader>
-                <DialogTitle>Campaign Details</DialogTitle>
+                <DialogTitle>{intl.formatMessage({ id: "page.bulk.campaignDetails" })}</DialogTitle>
               </DialogHeader>
               <CampaignDetails bulkMessageId={detailsId} />
             </DialogContent>
@@ -103,16 +105,15 @@ function BulkSMSContent() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Bulk Messaging</h1>
-          <p className="text-muted-foreground">Send messages to multiple recipients across SMS, WhatsApp, Telegram, and Facebook Messenger</p>
+          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.bulk.title" })}</h1>
+          <p className="text-muted-foreground">{intl.formatMessage({ id: "page.bulk.subtitle" })}</p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Send className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-lg font-medium text-center">No Client Account</p>
+            <p className="text-lg font-medium text-center">{intl.formatMessage({ id: "page.bulk.noClientAccount" })}</p>
             <p className="text-muted-foreground text-center">
-              You need to be associated with a client account to send bulk messages.
-              Please contact your administrator.
+              {intl.formatMessage({ id: "page.bulk.noClientDesc" })}
             </p>
           </CardContent>
         </Card>
@@ -133,21 +134,21 @@ function BulkSMSContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Bulk Messaging</h1>
-          <p className="text-muted-foreground">Send messages to multiple recipients across SMS, WhatsApp, Telegram, and Facebook Messenger</p>
+          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.bulk.title" })}</h1>
+          <p className="text-muted-foreground">{intl.formatMessage({ id: "page.bulk.subtitle" })}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              New Campaign
+              {intl.formatMessage({ id: "page.bulk.newCampaign" })}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Create Bulk Messaging Campaign</DialogTitle>
+              <DialogTitle>{intl.formatMessage({ id: "page.bulk.createCampaign" })}</DialogTitle>
               <DialogDescription>
-                Available credits: <span className="font-semibold">{client.credits.toLocaleString()}</span>
+                {intl.formatMessage({ id: "page.bulk.availableCredits" })}: <span className="font-semibold">{client.credits.toLocaleString()}</span>
               </DialogDescription>
             </DialogHeader>
             <CreateBulkForm onSuccess={() => setCreateOpen(false)} />
@@ -157,15 +158,15 @@ function BulkSMSContent() {
 
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="all">All Campaigns</TabsTrigger>
+          <TabsTrigger value="all">{intl.formatMessage({ id: "page.bulk.allCampaigns" })}</TabsTrigger>
           <TabsTrigger value="active">
-            Active ({activeCampaigns.length})
+            {intl.formatMessage({ id: "page.bulk.activeCampaigns" })} ({activeCampaigns.length})
           </TabsTrigger>
           <TabsTrigger value="scheduled">
-            Scheduled ({scheduledCampaigns.length})
+            {intl.formatMessage({ id: "page.bulk.scheduledCampaigns" })} ({scheduledCampaigns.length})
           </TabsTrigger>
           <TabsTrigger value="completed">
-            Completed ({completedCampaigns.length})
+            {intl.formatMessage({ id: "page.bulk.completedCampaigns" })} ({completedCampaigns.length})
           </TabsTrigger>
         </TabsList>
 
@@ -190,7 +191,7 @@ function BulkSMSContent() {
         <Dialog open={!!detailsId} onOpenChange={() => setDetailsId(null)}>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
             <DialogHeader>
-              <DialogTitle>Campaign Details</DialogTitle>
+              <DialogTitle>{intl.formatMessage({ id: "page.bulk.campaignDetails" })}</DialogTitle>
             </DialogHeader>
             <CampaignDetails bulkMessageId={detailsId} />
           </DialogContent>
@@ -219,21 +220,22 @@ function CampaignList({
   }>;
   onViewDetails: (id: Id<"bulkMessages">) => void;
 }) {
+  const intl = useIntl();
+  const pagination = usePagination(campaigns, { pageSize: 10 });
+  
   if (campaigns.length === 0) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Send className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium text-center">No campaigns yet</p>
+          <p className="text-lg font-medium text-center">{intl.formatMessage({ id: "page.bulk.noCampaigns" })}</p>
           <p className="text-muted-foreground text-center">
-            Create your first bulk SMS campaign
+            {intl.formatMessage({ id: "page.bulk.createFirst" })}
           </p>
         </CardContent>
       </Card>
     );
   }
-
-  const pagination = usePagination(campaigns, { pageSize: 10 });
 
   return (
     <div className="space-y-4">
@@ -270,28 +272,28 @@ function CampaignList({
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Recipients</p>
+                  <p className="text-sm text-muted-foreground">{intl.formatMessage({ id: "common.recipients" })}</p>
                   <p className="font-semibold">{campaign.totalRecipients}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Send className="h-4 w-4 text-blue-500" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Sent</p>
+                  <p className="text-sm text-muted-foreground">{intl.formatMessage({ id: "common.sent" })}</p>
                   <p className="font-semibold">{campaign.sentCount}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Delivered</p>
+                  <p className="text-sm text-muted-foreground">{intl.formatMessage({ id: "common.delivered" })}</p>
                   <p className="font-semibold">{campaign.deliveredCount}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <XCircle className="h-4 w-4 text-destructive" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Failed</p>
+                  <p className="text-sm text-muted-foreground">{intl.formatMessage({ id: "common.failed" })}</p>
                   <p className="font-semibold">{campaign.failedCount}</p>
                 </div>
               </div>
@@ -299,7 +301,7 @@ function CampaignList({
 
             <div className="mt-3 pt-3 border-t flex justify-between items-center">
               <p className="text-sm text-muted-foreground">
-                Credits used: <span className="font-medium">{campaign.creditsUsed}</span>
+                {intl.formatMessage({ id: "common.creditsUsed" })}: <span className="font-medium">{campaign.creditsUsed}</span>
               </p>
               <Button
                 variant="ghost"
@@ -309,7 +311,7 @@ function CampaignList({
                   onViewDetails(campaign._id);
                 }}
               >
-                View Details
+                {intl.formatMessage({ id: "buttons.viewDetails" })}
               </Button>
             </div>
           </CardContent>
@@ -322,6 +324,7 @@ function CampaignList({
 }
 
 function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
+  const intl = useIntl();
   const createBulk = useMutation(api.bulk.createBulkMessage);
   const client = useQuery(api.clients.getCurrentClient, {});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -495,12 +498,12 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
       {/* Scrollable content area */}
       <div className="flex-1 overflow-y-auto space-y-4 pr-2">
         <div className="space-y-2">
-          <Label htmlFor="name">Campaign Name</Label>
+          <Label htmlFor="name">{intl.formatMessage({ id: "page.bulk.campaignName" })}</Label>
           <Input id="name" name="name" placeholder="Spring Sale 2025" required />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="channel">Channel</Label>
+          <Label htmlFor="channel">{intl.formatMessage({ id: "common.channel" })}</Label>
           <Select value={channel} onValueChange={(v) => setChannel(v as typeof channel)}>
             <SelectTrigger>
               <SelectValue />
@@ -516,7 +519,7 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
 
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <Label htmlFor="message">Message</Label>
+            <Label htmlFor="message">{intl.formatMessage({ id: "common.message" })}</Label>
             <div className="flex gap-2">
               <AIBulkGenerator 
                 channel={channel}
@@ -544,7 +547,7 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
           />
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
-              {message.length} characters
+              {message.length} {intl.formatMessage({ id: "common.characters" })}
               {channel === "sms" && " (max 160)"}
             </p>
             <AIImprover 
@@ -555,16 +558,16 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="from">Sender ID (Optional)</Label>
+          <Label htmlFor="from">{intl.formatMessage({ id: "page.bulk.senderID" })}</Label>
           <Input id="from" name="from" placeholder="SAYELE" />
         </div>
 
         <div className="space-y-4 p-4 border rounded-lg">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="schedule">Schedule for Later</Label>
+              <Label htmlFor="schedule">{intl.formatMessage({ id: "page.bulk.scheduleForLater" })}</Label>
               <p className="text-xs text-muted-foreground">
-                Send this campaign at a specific date and time
+                {intl.formatMessage({ id: "page.bulk.scheduleDesc" })}
               </p>
             </div>
             <Switch
@@ -577,7 +580,7 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
           {isScheduled && (
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div className="space-y-2">
-                <Label>Date</Label>
+                <Label>{intl.formatMessage({ id: "common.date" })}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -588,7 +591,7 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                      {selectedDate ? format(selectedDate, "PPP") : intl.formatMessage({ id: "page.bulk.pickDate" })}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -604,7 +607,7 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="time">Time</Label>
+                <Label htmlFor="time">{intl.formatMessage({ id: "common.time" })}</Label>
                 <Input
                   id="time"
                   type="time"
@@ -618,7 +621,7 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="recipients">Recipients</Label>
+            <Label htmlFor="recipients">{intl.formatMessage({ id: "common.recipients" })}</Label>
             <div className="flex gap-2">
               <input
                 ref={fileInputRef}
@@ -634,7 +637,7 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="h-4 w-4 mr-2" />
-                Upload CSV
+                {intl.formatMessage({ id: "page.bulk.uploadCSV" })}
               </Button>
             </div>
           </div>
@@ -651,7 +654,7 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
               {recipientCount} recipient{recipientCount !== 1 ? "s" : ""}
             </p>
             <p className="text-muted-foreground">
-              Estimated cost: <span className="font-medium">{estimatedCost} credits</span>
+              {intl.formatMessage({ id: "page.bulk.estimatedCost" })}: <span className="font-medium">{estimatedCost} credits</span>
             </p>
           </div>
           <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg">
@@ -688,7 +691,7 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
               (isScheduled && !selectedDate)
             }
           >
-            {isSubmitting ? "Creating..." : isScheduled ? "Schedule Campaign" : "Create Campaign"}
+            {isSubmitting ? intl.formatMessage({ id: "buttons.creating" }) : isScheduled ? intl.formatMessage({ id: "page.bulk.scheduleCampaign" }) : intl.formatMessage({ id: "page.bulk.createCampaignBtn" })}
           </Button>
         </div>
       </div>
@@ -697,6 +700,7 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
 }
 
 function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> }) {
+  const intl = useIntl();
   const details = useQuery(api.bulk.getBulkMessageDetails, { bulkMessageId });
   const resendCampaign = useMutation(api.bulk.resendBulkMessage);
   const checkDlr = useAction(api.sms.send.checkBulkDlr);
@@ -824,7 +828,7 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
               size="sm"
             >
               <Activity className={cn("h-4 w-4 mr-2", isCheckingDlr && "animate-pulse")} />
-              {isCheckingDlr ? "Checking..." : "Check DLR"}
+              {isCheckingDlr ? intl.formatMessage({ id: "page.bulk.checking" }) : intl.formatMessage({ id: "page.bulk.checkDLR" })}
             </Button>
           )}
           {canResend && (
@@ -835,7 +839,7 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
               size="sm"
             >
               <RefreshCw className={cn("h-4 w-4 mr-2", isResending && "animate-spin")} />
-              {isResending ? "Resending..." : "Resend Campaign"}
+              {isResending ? intl.formatMessage({ id: "page.bulk.resending" }) : intl.formatMessage({ id: "page.bulk.resendCampaign" })}
             </Button>
           )}
         </div>
@@ -844,7 +848,7 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
       <div className="grid grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Recipients</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.bulk.totalRecipients" })}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{bulkMessage.totalRecipients}</p>
@@ -852,7 +856,7 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Sent</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "common.sent" })}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{bulkMessage.sentCount}</p>
@@ -860,7 +864,7 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Delivered</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "common.delivered" })}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-green-600">{bulkMessage.deliveredCount}</p>
@@ -868,7 +872,7 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Failed</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "common.failed" })}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-destructive">{bulkMessage.failedCount}</p>
@@ -877,12 +881,12 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
       </div>
 
       <div>
-        <h4 className="font-semibold mb-3">Recipients ({recipients.length})</h4>
+        <h4 className="font-semibold mb-3">{intl.formatMessage({ id: "common.recipients" })} ({recipients.length})</h4>
         <div className="border rounded-lg max-h-96 overflow-auto">
           <table className="w-full">
             <thead className="bg-muted sticky top-0">
               <tr>
-                <th className="text-left p-3 text-sm font-medium">Phone Number</th>
+                <th className="text-left p-3 text-sm font-medium">{intl.formatMessage({ id: "page.bulk.phoneNumberColumn" })}</th>
                 <th className="text-left p-3 text-sm font-medium">Status</th>
               </tr>
             </thead>
@@ -943,6 +947,7 @@ function getStatusVariant(
 }
 
 function UpdateBulkStatusButton() {
+  const intl = useIntl();
   const triggerUpdate = useMutation(api.messages.triggerBulkRecipientsMarkDelivered);
   const [loading, setLoading] = useState(false);
 
@@ -966,7 +971,7 @@ function UpdateBulkStatusButton() {
       disabled={loading}
     >
       {loading ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Activity className="h-4 w-4 mr-2" />}
-      Update Bulk Status
+      {intl.formatMessage({ id: "page.bulk.updateBulkStatus" })}
     </Button>
   );
 }

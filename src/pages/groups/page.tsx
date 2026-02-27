@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useIntl } from "react-intl";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -89,6 +90,7 @@ export default function GroupsPage() {
 }
 
 function GroupsPageInner() {
+  const intl = useIntl();
   const [searchInput, setSearchInput] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -107,11 +109,11 @@ function GroupsPageInner() {
   const deleteGroup = useMutation(api.contactGroups.deleteGroup);
 
   const handleDelete = async (groupId: Id<"contactGroups">) => {
-    if (!confirm("Are you sure you want to delete this group?")) return;
+    if (!confirm(intl.formatMessage({ id: "page.groups.deleteConfirm" }))) return;
 
     try {
       await deleteGroup({ groupId });
-      toast.success("Group deleted successfully");
+      toast.success(intl.formatMessage({ id: "page.groups.groupDeleted" }));
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to delete group"
@@ -139,14 +141,14 @@ function GroupsPageInner() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Contact Groups</h1>
+          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.groups.title" })}</h1>
           <p className="text-muted-foreground mt-1">
-            Organize contacts into groups for targeted messaging
+            {intl.formatMessage({ id: "page.groups.subtitle" })}
           </p>
         </div>
         <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
           <FolderPlus className="h-4 w-4 mr-2" />
-          Create Group
+          {intl.formatMessage({ id: "page.groups.createGroup" })}
         </Button>
       </div>
 
@@ -154,7 +156,7 @@ function GroupsPageInner() {
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search groups..."
+          placeholder={intl.formatMessage({ id: "page.groups.searchPlaceholder" })}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="pl-10"
@@ -174,18 +176,18 @@ function GroupsPageInner() {
             <EmptyMedia variant="icon">
               <Folders />
             </EmptyMedia>
-            <EmptyTitle>No groups found</EmptyTitle>
+            <EmptyTitle>{intl.formatMessage({ id: "page.groups.noGroups" })}</EmptyTitle>
             <EmptyDescription>
               {searchInput
-                ? "No groups match your search"
-                : "Create your first group to organize contacts"}
+                ? intl.formatMessage({ id: "page.groups.searchPlaceholder" })
+                : intl.formatMessage({ id: "page.groups.noGroupsDesc" })}
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             {!searchInput && (
               <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
                 <FolderPlus className="h-4 w-4 mr-2" />
-                Create Group
+                {intl.formatMessage({ id: "page.groups.createGroup" })}
               </Button>
             )}
           </EmptyContent>
@@ -214,22 +216,22 @@ function GroupsPageInner() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleViewMembers(group._id)}>
                         <Users className="h-4 w-4 mr-2" />
-                        View Members
+                        {intl.formatMessage({ id: "page.groups.members" })}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleAddMembers(group._id)}>
                         <UserPlus className="h-4 w-4 mr-2" />
-                        Add Members
+                        {intl.formatMessage({ id: "page.groups.addMembers" })}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleEdit(group._id)}>
                         <Pencil className="h-4 w-4 mr-2" />
-                        Edit
+                        {intl.formatMessage({ id: "page.groups.editGroup" })}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleDelete(group._id)}
                         className="text-destructive"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
+                        {intl.formatMessage({ id: "buttons.delete" })}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -238,7 +240,7 @@ function GroupsPageInner() {
               <CardContent>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Users className="h-4 w-4" />
-                  <span>{group.contactCount} contacts</span>
+                  <span>{group.contactCount} {intl.formatMessage({ id: "common.contacts" })}</span>
                 </div>
               </CardContent>
             </Card>
@@ -291,6 +293,7 @@ function CreateGroupDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const intl = useIntl();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
@@ -305,7 +308,7 @@ function CreateGroupDialog({
         description: description || undefined,
       });
 
-      toast.success("Group created successfully");
+      toast.success(intl.formatMessage({ id: "page.groups.groupCreated" }));
       onOpenChange(false);
 
       // Reset form
@@ -322,13 +325,13 @@ function CreateGroupDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create Group</DialogTitle>
-          <DialogDescription>Create a new contact group</DialogDescription>
+          <DialogTitle>{intl.formatMessage({ id: "page.groups.createGroup" })}</DialogTitle>
+          <DialogDescription>{intl.formatMessage({ id: "page.groups.createGroup" })}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="name">Group Name *</Label>
+              <Label htmlFor="name">{intl.formatMessage({ id: "page.groups.groupName" })} *</Label>
               <Input
                 id="name"
                 value={name}
@@ -338,7 +341,7 @@ function CreateGroupDialog({
               />
             </div>
             <div>
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{intl.formatMessage({ id: "common.description" })}</Label>
               <Textarea
                 id="description"
                 value={description}
@@ -350,9 +353,9 @@ function CreateGroupDialog({
           </div>
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {intl.formatMessage({ id: "buttons.cancel" })}
             </Button>
-            <Button type="submit">Create Group</Button>
+            <Button type="submit">{intl.formatMessage({ id: "page.groups.createGroup" })}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -369,6 +372,7 @@ function EditGroupDialog({
   onOpenChange: (open: boolean) => void;
   groupId: Id<"contactGroups">;
 }) {
+  const intl = useIntl();
   const group = useQuery(api.contactGroups.getGroup, { groupId });
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -393,7 +397,7 @@ function EditGroupDialog({
         description: description || undefined,
       });
 
-      toast.success("Group updated successfully");
+      toast.success(intl.formatMessage({ id: "page.groups.groupUpdated" }));
       onOpenChange(false);
     } catch (error) {
       toast.error(
@@ -410,13 +414,13 @@ function EditGroupDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Group</DialogTitle>
-          <DialogDescription>Update group information</DialogDescription>
+          <DialogTitle>{intl.formatMessage({ id: "page.groups.editGroup" })}</DialogTitle>
+          <DialogDescription>{intl.formatMessage({ id: "page.groups.editGroup" })}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="name">Group Name *</Label>
+              <Label htmlFor="name">{intl.formatMessage({ id: "page.groups.groupName" })} *</Label>
               <Input
                 id="name"
                 value={name}
@@ -426,7 +430,7 @@ function EditGroupDialog({
               />
             </div>
             <div>
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{intl.formatMessage({ id: "common.description" })}</Label>
               <Textarea
                 id="description"
                 value={description}
@@ -438,9 +442,9 @@ function EditGroupDialog({
           </div>
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {intl.formatMessage({ id: "buttons.cancel" })}
             </Button>
-            <Button type="submit">Update Group</Button>
+            <Button type="submit">{intl.formatMessage({ id: "buttons.save" })}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -457,16 +461,17 @@ function ViewMembersDialog({
   onOpenChange: (open: boolean) => void;
   groupId: Id<"contactGroups">;
 }) {
+  const intl = useIntl();
   const group = useQuery(api.contactGroups.getGroup, { groupId });
   const members = useQuery(api.contactGroups.getGroupMembers, { groupId });
   const removeContact = useMutation(api.contactGroups.removeContactFromGroup);
 
   const handleRemove = async (contactId: Id<"contacts">) => {
-    if (!confirm("Remove this contact from the group?")) return;
+    if (!confirm(intl.formatMessage({ id: "page.groups.removeFromGroup" }))) return;
 
     try {
       await removeContact({ groupId, contactId });
-      toast.success("Contact removed from group");
+      toast.success(intl.formatMessage({ id: "page.groups.members" }));
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to remove contact"
@@ -478,9 +483,9 @@ function ViewMembersDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{group?.name} Members</DialogTitle>
+          <DialogTitle>{group?.name} {intl.formatMessage({ id: "page.groups.members" })}</DialogTitle>
           <DialogDescription>
-            {members?.length || 0} contacts in this group
+            {members?.length || 0} {intl.formatMessage({ id: "common.contacts" })} {intl.formatMessage({ id: "page.groups.noMembers" }).toLowerCase()}
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-96 overflow-y-auto">
@@ -492,9 +497,9 @@ function ViewMembersDialog({
                 <EmptyMedia variant="icon">
                   <Users />
                 </EmptyMedia>
-                <EmptyTitle>No members</EmptyTitle>
+                <EmptyTitle>{intl.formatMessage({ id: "page.groups.noMembers" })}</EmptyTitle>
                 <EmptyDescription>
-                  This group doesn't have any contacts yet
+                  {intl.formatMessage({ id: "page.groups.noMembers" })}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
@@ -502,9 +507,9 @@ function ViewMembersDialog({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead>{intl.formatMessage({ id: "common.name" })}</TableHead>
+                  <TableHead>{intl.formatMessage({ id: "common.phone" })}</TableHead>
+                  <TableHead>{intl.formatMessage({ id: "common.email" })}</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -547,6 +552,7 @@ function AddMembersDialog({
   onOpenChange: (open: boolean) => void;
   groupId: Id<"contactGroups">;
 }) {
+  const intl = useIntl();
   const [searchInput, setSearchInput] = useState("");
   const [selectedContacts, setSelectedContacts] = useState<Set<Id<"contacts">>>(
     new Set()
@@ -584,7 +590,7 @@ function AddMembersDialog({
         contactIds: Array.from(selectedContacts),
       });
 
-      toast.success(`Added ${result.added} contacts to group`);
+      toast.success(`Added ${result.added} ${intl.formatMessage({ id: "common.contacts" })} to group`);
       onOpenChange(false);
       setSelectedContacts(new Set());
       setSearchInput("");
@@ -599,16 +605,16 @@ function AddMembersDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Add Members</DialogTitle>
+          <DialogTitle>{intl.formatMessage({ id: "page.groups.addMembers" })}</DialogTitle>
           <DialogDescription>
-            Select contacts to add to this group
+            {intl.formatMessage({ id: "page.groups.selectContacts" })}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search contacts..."
+              placeholder={intl.formatMessage({ id: "common.searchContacts" })}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="pl-10"
@@ -625,9 +631,9 @@ function AddMembersDialog({
                   <EmptyMedia variant="icon">
                     <Users />
                   </EmptyMedia>
-                  <EmptyTitle>No contacts available</EmptyTitle>
+                  <EmptyTitle>{intl.formatMessage({ id: "common.noContactsAvailable" })}</EmptyTitle>
                   <EmptyDescription>
-                    All active contacts are already in this group
+                    {intl.formatMessage({ id: "common.allContactsInGroup" })}
                   </EmptyDescription>
                 </EmptyHeader>
               </Empty>
@@ -636,9 +642,9 @@ function AddMembersDialog({
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12"></TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Tags</TableHead>
+                    <TableHead>{intl.formatMessage({ id: "common.name" })}</TableHead>
+                    <TableHead>{intl.formatMessage({ id: "common.phone" })}</TableHead>
+                    <TableHead>{intl.formatMessage({ id: "common.tags" })}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -678,20 +684,20 @@ function AddMembersDialog({
           </div>
           {selectedContacts.size > 0 && (
             <div className="text-sm text-muted-foreground">
-              {selectedContacts.size} contact{selectedContacts.size !== 1 ? "s" : ""}{" "}
-              selected
+              {selectedContacts.size} {intl.formatMessage({ id: "common.contact" })}{selectedContacts.size !== 1 ? "s" : ""}{" "}
+              {intl.formatMessage({ id: "common.selected" })}
             </div>
           )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {intl.formatMessage({ id: "buttons.cancel" })}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={selectedContacts.size === 0}
           >
-            Add {selectedContacts.size > 0 && `(${selectedContacts.size})`}
+            {intl.formatMessage({ id: "page.groups.addMembers" })} {selectedContacts.size > 0 && `(${selectedContacts.size})`}
           </Button>
         </DialogFooter>
       </DialogContent>

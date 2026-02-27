@@ -2,6 +2,7 @@ import { Authenticated } from "convex/react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
+import { useIntl } from "react-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -45,6 +46,7 @@ export default function Templates() {
 }
 
 function TemplatesContent() {
+  const intl = useIntl();
   const templates = useQuery(api.templates.listTemplates);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch] = useDebounce(searchQuery, 300);
@@ -60,9 +62,9 @@ function TemplatesContent() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">SMS Templates</h1>
+          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.templates.title" })}</h1>
           <p className="text-muted-foreground">
-            Create and manage reusable message templates
+            {intl.formatMessage({ id: "page.templates.subtitle" })}
           </p>
         </div>
         <div className="space-y-4">
@@ -78,9 +80,9 @@ function TemplatesContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">SMS Templates</h1>
+          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.templates.title" })}</h1>
           <p className="text-muted-foreground">
-            Create and manage reusable message templates
+            {intl.formatMessage({ id: "page.templates.subtitle" })}
           </p>
         </div>
         <CreateTemplateDialog />
@@ -92,7 +94,7 @@ function TemplatesContent() {
             <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div className="space-y-2 text-sm">
               <p className="font-medium text-blue-900 dark:text-blue-100">
-                Using Variables in Templates
+                {intl.formatMessage({ id: "page.templates.usingVariables" })}
               </p>
               <p className="text-blue-800 dark:text-blue-200">
                 Add variables to your templates using curly braces like <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900 rounded">{"{name}"}</code>, <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900 rounded">{"{code}"}</code>, or <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900 rounded">{"{amount}"}</code>. These will be automatically detected and can be replaced with actual values when sending messages.
@@ -105,7 +107,7 @@ function TemplatesContent() {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search templates..."
+          placeholder={intl.formatMessage({ id: "page.templates.searchPlaceholder" })}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9"
@@ -119,12 +121,14 @@ function TemplatesContent() {
               <FileText />
             </EmptyMedia>
             <EmptyTitle>
-              {searchQuery ? "No templates found" : "No templates yet"}
+              {searchQuery
+                ? intl.formatMessage({ id: "page.templates.noTemplatesSearch" })
+                : intl.formatMessage({ id: "page.templates.noTemplates" })}
             </EmptyTitle>
             <EmptyDescription>
               {searchQuery
-                ? "Try adjusting your search"
-                : "Create your first template to get started"}
+                ? intl.formatMessage({ id: "page.templates.tryAdjusting" })
+                : intl.formatMessage({ id: "page.templates.noTemplatesDesc" })}
             </EmptyDescription>
           </EmptyHeader>
           {!searchQuery && (
@@ -148,13 +152,14 @@ function TemplatesContent() {
 }
 
 function TemplateCard({ template }: { template: { _id: Id<"templates">; name: string; message: string; variables: string[] } }) {
+  const intl = useIntl();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const deleteTemplate = useMutation(api.templates.deleteTemplate);
 
   const handleDelete = async () => {
     try {
       await deleteTemplate({ templateId: template._id });
-      toast.success("Template deleted successfully");
+      toast.success(intl.formatMessage({ id: "page.templates.templateDeleted" }));
       setDeleteDialogOpen(false);
     } catch (error) {
       toast.error("Failed to delete template");
@@ -187,7 +192,7 @@ function TemplateCard({ template }: { template: { _id: Id<"templates">; name: st
         {template.variables.length > 0 && (
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              <span className="text-sm text-muted-foreground">Variables:</span>
+              <span className="text-sm text-muted-foreground">{intl.formatMessage({ id: "page.templates.variables" })}</span>
               {template.variables.map((variable) => (
                 <Badge key={variable} variant="secondary">
                   {"{" + variable + "}"}
@@ -201,15 +206,14 @@ function TemplateCard({ template }: { template: { _id: Id<"templates">; name: st
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Template</AlertDialogTitle>
+            <AlertDialogTitle>{intl.formatMessage({ id: "page.templates.deleteTemplate" })}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{template.name}"? This action
-              cannot be undone.
+              {intl.formatMessage({ id: "page.templates.deleteConfirm" }, { name: template.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+            <AlertDialogCancel>{intl.formatMessage({ id: "buttons.cancel" })}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{intl.formatMessage({ id: "page.templates.deleteTemplate" })}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -218,6 +222,7 @@ function TemplateCard({ template }: { template: { _id: Id<"templates">; name: st
 }
 
 function CreateTemplateDialog() {
+  const intl = useIntl();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
@@ -228,7 +233,7 @@ function CreateTemplateDialog() {
     e.preventDefault();
     
     if (!name.trim() || !message.trim()) {
-      toast.error("Please fill in all fields");
+      toast.error(intl.formatMessage({ id: "page.templates.fillAllFields" }));
       return;
     }
 
@@ -238,7 +243,7 @@ function CreateTemplateDialog() {
         message: message.trim(),
         variables: variables || [],
       });
-      toast.success("Template created successfully");
+      toast.success(intl.formatMessage({ id: "page.templates.templateCreated" }));
       setOpen(false);
       setName("");
       setMessage("");
@@ -252,20 +257,20 @@ function CreateTemplateDialog() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Create Template
+          {intl.formatMessage({ id: "page.templates.createTemplate" })}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create Template</DialogTitle>
+            <DialogTitle>{intl.formatMessage({ id: "page.templates.createTemplate" })}</DialogTitle>
             <DialogDescription>
-              Create a reusable message template with variables
+              {intl.formatMessage({ id: "page.templates.createReusable" })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Template Name</Label>
+              <Label htmlFor="name">{intl.formatMessage({ id: "page.templates.templateName" })}</Label>
               <Input
                 id="name"
                 placeholder="Welcome Message"
@@ -288,7 +293,7 @@ function CreateTemplateDialog() {
             </div>
             {variables && variables.length > 0 && (
               <div className="space-y-2">
-                <Label>Detected Variables</Label>
+                <Label>{intl.formatMessage({ id: "page.templates.detectedVariables" })}</Label>
                 <div className="flex flex-wrap gap-2">
                   {variables.map((variable) => (
                     <Badge key={variable} variant="secondary">
@@ -301,9 +306,9 @@ function CreateTemplateDialog() {
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
+              {intl.formatMessage({ id: "buttons.cancel" })}
             </Button>
-            <Button type="submit">Create Template</Button>
+            <Button type="submit">{intl.formatMessage({ id: "page.templates.createTemplate" })}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -312,6 +317,7 @@ function CreateTemplateDialog() {
 }
 
 function EditTemplateDialog({ template }: { template: { _id: Id<"templates">; name: string; message: string; variables: string[] } }) {
+  const intl = useIntl();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(template.name);
   const [message, setMessage] = useState(template.message);
@@ -322,7 +328,7 @@ function EditTemplateDialog({ template }: { template: { _id: Id<"templates">; na
     e.preventDefault();
     
     if (!name.trim() || !message.trim()) {
-      toast.error("Please fill in all fields");
+      toast.error(intl.formatMessage({ id: "page.templates.fillAllFields" }));
       return;
     }
 
@@ -333,7 +339,7 @@ function EditTemplateDialog({ template }: { template: { _id: Id<"templates">; na
         message: message.trim(),
         variables: variables || [],
       });
-      toast.success("Template updated successfully");
+      toast.success(intl.formatMessage({ id: "page.templates.templateUpdated" }));
       setOpen(false);
     } catch (error) {
       toast.error("Failed to update template");
@@ -350,14 +356,14 @@ function EditTemplateDialog({ template }: { template: { _id: Id<"templates">; na
       <DialogContent className="max-w-2xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Edit Template</DialogTitle>
+            <DialogTitle>{intl.formatMessage({ id: "page.templates.editTemplate" })}</DialogTitle>
             <DialogDescription>
-              Update your message template
+              {intl.formatMessage({ id: "page.templates.updateTemplate" })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Template Name</Label>
+              <Label htmlFor="edit-name">{intl.formatMessage({ id: "page.templates.templateName" })}</Label>
               <Input
                 id="edit-name"
                 placeholder="Welcome Message"
@@ -380,7 +386,7 @@ function EditTemplateDialog({ template }: { template: { _id: Id<"templates">; na
             </div>
             {variables && variables.length > 0 && (
               <div className="space-y-2">
-                <Label>Detected Variables</Label>
+                <Label>{intl.formatMessage({ id: "page.templates.detectedVariables" })}</Label>
                 <div className="flex flex-wrap gap-2">
                   {variables.map((variable) => (
                     <Badge key={variable} variant="secondary">
@@ -393,9 +399,9 @@ function EditTemplateDialog({ template }: { template: { _id: Id<"templates">; na
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
+              {intl.formatMessage({ id: "buttons.cancel" })}
             </Button>
-            <Button type="submit">Update Template</Button>
+            <Button type="submit">{intl.formatMessage({ id: "page.templates.editTemplate" })}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

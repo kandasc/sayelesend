@@ -19,6 +19,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useIntl } from "react-intl";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import PaginationControls from "@/components/ui/pagination-controls.tsx";
 
@@ -31,6 +32,7 @@ export default function Webhooks() {
 }
 
 function WebhooksContent() {
+  const intl = useIntl();
   const events = useQuery(api.webhookEvents.listWebhookEvents, { limit: 100 });
   const stats = useQuery(api.webhookEvents.getWebhookStats);
   const client = useQuery(api.clients.getCurrentClient);
@@ -59,9 +61,11 @@ function WebhooksContent() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Webhook Events</h1>
+          <h1 className="text-3xl font-bold">
+            {intl.formatMessage({ id: "page.webhooks.title" })}
+          </h1>
           <p className="text-muted-foreground">
-            View and manage webhook delivery logs
+            {intl.formatMessage({ id: "page.webhooks.subtitle" })}
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-4">
@@ -82,15 +86,19 @@ function WebhooksContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Webhook Events</h1>
+          <h1 className="text-3xl font-bold">
+            {intl.formatMessage({ id: "page.webhooks.title" })}
+          </h1>
           <p className="text-muted-foreground">
-            View and manage webhook delivery logs
+            {intl.formatMessage({ id: "page.webhooks.subtitle" })}
           </p>
         </div>
         {client?.webhookUrl && (
           <Button onClick={handleTestWebhook} disabled={testing}>
             <Send className="h-4 w-4 mr-2" />
-            {testing ? "Testing..." : "Test Webhook"}
+            {testing
+              ? intl.formatMessage({ id: "page.webhooks.testing" })
+              : intl.formatMessage({ id: "page.webhooks.testWebhook" })}
           </Button>
         )}
       </div>
@@ -102,10 +110,10 @@ function WebhooksContent() {
               <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium text-amber-900 dark:text-amber-100">
-                  No Webhook URL Configured
+                  {intl.formatMessage({ id: "page.webhooks.noWebhookUrl" })}
                 </p>
                 <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
-                  Configure a webhook URL in your settings to receive event notifications
+                  {intl.formatMessage({ id: "page.webhooks.noWebhookUrlDesc" })}
                 </p>
               </div>
             </div>
@@ -116,7 +124,9 @@ function WebhooksContent() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Total Events</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {intl.formatMessage({ id: "page.webhooks.totalEvents" })}
+            </CardTitle>
             <Webhook className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -126,7 +136,9 @@ function WebhooksContent() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Success</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {intl.formatMessage({ id: "page.webhooks.success" })}
+            </CardTitle>
             <CheckCircle2 className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -136,7 +148,9 @@ function WebhooksContent() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {intl.formatMessage({ id: "common.pending" })}
+            </CardTitle>
             <Clock className="h-4 w-4 text-amber-600" />
           </CardHeader>
           <CardContent>
@@ -146,7 +160,9 @@ function WebhooksContent() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Failed</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {intl.formatMessage({ id: "common.failed" })}
+            </CardTitle>
             <XCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
@@ -161,9 +177,11 @@ function WebhooksContent() {
             <EmptyMedia variant="icon">
               <Webhook />
             </EmptyMedia>
-            <EmptyTitle>No webhook events yet</EmptyTitle>
+            <EmptyTitle>
+              {intl.formatMessage({ id: "page.webhooks.noEvents" })}
+            </EmptyTitle>
             <EmptyDescription>
-              Webhook events will appear here when messages are sent or received
+              {intl.formatMessage({ id: "page.webhooks.noEventsDesc" })}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -192,6 +210,7 @@ type WebhookEvent = {
 };
 
 function WebhookEventCard({ event }: { event: WebhookEvent }) {
+  const intl = useIntl();
   const retryWebhook = useMutation(api.webhookEvents.retryWebhookEvent);
   const [retrying, setRetrying] = useState(false);
 
@@ -199,7 +218,7 @@ function WebhookEventCard({ event }: { event: WebhookEvent }) {
     setRetrying(true);
     try {
       await retryWebhook({ eventId: event._id });
-      toast.success("Webhook event queued for retry");
+      toast.success(intl.formatMessage({ id: "page.webhooks.retryQueued" }));
     } catch (error) {
       toast.error("Failed to queue retry");
     } finally {
@@ -221,24 +240,36 @@ function WebhookEventCard({ event }: { event: WebhookEvent }) {
   const getStatusBadge = () => {
     switch (event.status) {
       case "success":
-        return <Badge className="bg-green-600">Success</Badge>;
+        return (
+          <Badge className="bg-green-600">
+            {intl.formatMessage({ id: "page.webhooks.success" })}
+          </Badge>
+        );
       case "failed":
-        return <Badge variant="destructive">Failed</Badge>;
+        return (
+          <Badge variant="destructive">
+            {intl.formatMessage({ id: "common.failed" })}
+          </Badge>
+        );
       case "pending":
-        return <Badge variant="secondary">Pending</Badge>;
+        return (
+          <Badge variant="secondary">
+            {intl.formatMessage({ id: "common.pending" })}
+          </Badge>
+        );
     }
   };
 
   const getEventTypeLabel = () => {
     switch (event.eventType) {
       case "message.sent":
-        return "Message Sent";
+        return intl.formatMessage({ id: "page.webhooks.messageSent" });
       case "message.delivered":
-        return "Message Delivered";
+        return intl.formatMessage({ id: "page.webhooks.messageDelivered" });
       case "message.failed":
-        return "Message Failed";
+        return intl.formatMessage({ id: "page.webhooks.messageFailed" });
       case "message.received":
-        return "Message Received";
+        return intl.formatMessage({ id: "page.webhooks.messageReceived" });
     }
   };
 
@@ -267,7 +298,7 @@ function WebhookEventCard({ event }: { event: WebhookEvent }) {
               disabled={retrying}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
+              {intl.formatMessage({ id: "buttons.retry" })}
             </Button>
           )}
         </div>
@@ -275,7 +306,9 @@ function WebhookEventCard({ event }: { event: WebhookEvent }) {
       {event.errorMessage && (
         <CardContent>
           <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
-            <p className="font-medium">Error:</p>
+            <p className="font-medium">
+              {intl.formatMessage({ id: "page.webhooks.error" })}
+            </p>
             <p>{event.errorMessage}</p>
           </div>
         </CardContent>

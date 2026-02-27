@@ -26,6 +26,7 @@ import { Switch } from "@/components/ui/switch.tsx";
 import { Plus, Edit, Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useIntl } from "react-intl";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import PaginationControls from "@/components/ui/pagination-controls.tsx";
@@ -108,6 +109,7 @@ export default function AdminProviders() {
 }
 
 function ProvidersContent() {
+  const intl = useIntl();
   const providers = useQuery(api.providers.listProviders, {});
   const providersPagination = usePagination(providers ?? [], { pageSize: 10 });
   const [createOpen, setCreateOpen] = useState(false);
@@ -131,7 +133,7 @@ function ProvidersContent() {
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Add Provider
+              {intl.formatMessage({ id: "page.adminProviders.addProvider" })}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -152,7 +154,9 @@ function ProvidersContent() {
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-xl font-semibold">{provider.name}</h3>
                     <Badge variant={provider.isActive ? "default" : "secondary"}>
-                      {provider.isActive ? "Active" : "Inactive"}
+                      {provider.isActive
+                        ? intl.formatMessage({ id: "common.active" })
+                        : intl.formatMessage({ id: "common.inactive" })}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground capitalize">
@@ -198,7 +202,7 @@ function ProvidersContent() {
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Provider</DialogTitle>
+              <DialogTitle>{intl.formatMessage({ id: "page.adminProviders.editProvider" })}</DialogTitle>
             </DialogHeader>
             <EditProviderForm
               providerId={selectedProvider}
@@ -212,6 +216,7 @@ function ProvidersContent() {
 }
 
 function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
+  const intl = useIntl();
   const createProvider = useMutation(api.providers.createProvider);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [providerType, setProviderType] = useState<string>("twilio");
@@ -278,7 +283,7 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
         isActive: formData.get("isActive") === "on",
         config,
       });
-      toast.success("Provider created successfully");
+      toast.success(intl.formatMessage({ id: "page.adminProviders.providerCreated" }));
       onSuccess();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create provider");
@@ -291,7 +296,7 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="name">Provider Name</Label>
+          <Label htmlFor="name">{intl.formatMessage({ id: "page.adminProviders.providerName" })}</Label>
           <Input id="name" name="name" placeholder="My Twilio Account" required />
         </div>
         <div className="space-y-2">
@@ -322,7 +327,7 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
         <div className="space-y-2 flex items-end pb-2">
           <div className="flex items-center space-x-2">
             <Switch id="isActive" name="isActive" defaultChecked />
-            <Label htmlFor="isActive">Active</Label>
+            <Label htmlFor="isActive">{intl.formatMessage({ id: "common.active" })}</Label>
           </div>
         </div>
       </div>
@@ -643,6 +648,7 @@ function EditProviderForm({
   providerId: Id<"smsProviders">;
   onSuccess: () => void;
 }) {
+  const intl = useIntl();
   const provider = useQuery(api.providers.getProvider, { providerId });
   const updateProvider = useMutation(api.providers.updateProvider);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -692,7 +698,7 @@ function EditProviderForm({
         isActive: formData.get("isActive") === "on",
         config,
       });
-      toast.success("Provider updated successfully");
+      toast.success(intl.formatMessage({ id: "page.adminProviders.providerUpdated" }));
       onSuccess();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update provider");
@@ -705,7 +711,7 @@ function EditProviderForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="name">Provider Name</Label>
+          <Label htmlFor="name">{intl.formatMessage({ id: "page.adminProviders.providerName" })}</Label>
           <Input id="name" name="name" defaultValue={provider.name} required />
         </div>
         <div className="space-y-2">
@@ -730,7 +736,7 @@ function EditProviderForm({
         <div className="space-y-2 flex items-end pb-2">
           <div className="flex items-center space-x-2">
             <Switch id="isActive" name="isActive" defaultChecked={provider.isActive} />
-            <Label htmlFor="isActive">Active</Label>
+            <Label htmlFor="isActive">{intl.formatMessage({ id: "common.active" })}</Label>
           </div>
         </div>
       </div>

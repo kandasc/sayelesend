@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useIntl } from "react-intl";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { ConvexError } from "convex/values";
@@ -68,6 +69,7 @@ import {
 // ─── Stats Cards ────────────────────────────────────────────
 
 function StatsOverview() {
+  const intl = useIntl();
   const stats = useQuery(api.compliance.getComplianceStats, {});
 
   if (!stats) {
@@ -86,7 +88,7 @@ function StatsOverview() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Opted Out</p>
+              <p className="text-sm text-muted-foreground">{intl.formatMessage({ id: "page.compliance.optedOut" })}</p>
               <p className="text-2xl font-bold">{stats.optedOut}</p>
             </div>
             <div className="rounded-full bg-destructive/10 p-3">
@@ -94,7 +96,7 @@ function StatsOverview() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            {stats.optOutRate}% opt-out rate
+            {intl.formatMessage({ id: "page.compliance.optOutRate" }, { rate: stats.optOutRate })}
           </p>
         </CardContent>
       </Card>
@@ -103,7 +105,7 @@ function StatsOverview() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Active Contacts</p>
+              <p className="text-sm text-muted-foreground">{intl.formatMessage({ id: "page.compliance.activeContacts" })}</p>
               <p className="text-2xl font-bold">{stats.active}</p>
             </div>
             <div className="rounded-full bg-green-500/10 p-3">
@@ -111,7 +113,7 @@ function StatsOverview() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            of {stats.totalContacts} total contacts
+            {intl.formatMessage({ id: "page.compliance.ofTotalContacts" }, { total: stats.totalContacts })}
           </p>
         </CardContent>
       </Card>
@@ -120,14 +122,14 @@ function StatsOverview() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Recent Opt-outs</p>
+              <p className="text-sm text-muted-foreground">{intl.formatMessage({ id: "page.compliance.recentOptOuts" })}</p>
               <p className="text-2xl font-bold">{stats.recentOptOuts}</p>
             </div>
             <div className="rounded-full bg-orange-500/10 p-3">
               <TrendingDown className="h-5 w-5 text-orange-500" />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">Last 30 days</p>
+          <p className="text-xs text-muted-foreground mt-2">{intl.formatMessage({ id: "page.compliance.last30Days" })}</p>
         </CardContent>
       </Card>
 
@@ -135,14 +137,14 @@ function StatsOverview() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Re-subscribed</p>
+              <p className="text-sm text-muted-foreground">{intl.formatMessage({ id: "page.compliance.reSubscribed" })}</p>
               <p className="text-2xl font-bold">{stats.recentOptIns}</p>
             </div>
             <div className="rounded-full bg-blue-500/10 p-3">
               <TrendingUp className="h-5 w-5 text-blue-500" />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">Last 30 days</p>
+          <p className="text-xs text-muted-foreground mt-2">{intl.formatMessage({ id: "page.compliance.last30Days" })}</p>
         </CardContent>
       </Card>
     </div>
@@ -152,6 +154,7 @@ function StatsOverview() {
 // ─── Suppression List Tab ───────────────────────────────────
 
 function SuppressionList() {
+  const intl = useIntl();
   const [search, setSearch] = useState("");
   const suppressedContacts = useQuery(api.compliance.getSuppressionList, {
     searchQuery: search || undefined,
@@ -163,7 +166,7 @@ function SuppressionList() {
     if (!confirmId) return;
     try {
       await optIn({ contactId: confirmId, note: "Manual re-subscribe from compliance page" });
-      toast.success("Contact re-subscribed successfully");
+      toast.success(intl.formatMessage({ id: "page.compliance.reSubscribeSuccess" }));
       setConfirmId(null);
     } catch (error) {
       if (error instanceof ConvexError) {
@@ -193,7 +196,7 @@ function SuppressionList() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by phone, name..."
+            placeholder={intl.formatMessage({ id: "page.compliance.searchByPhone" })}
             className="pl-10"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -208,9 +211,9 @@ function SuppressionList() {
             <EmptyMedia variant="icon">
               <ShieldCheck />
             </EmptyMedia>
-            <EmptyTitle>Suppression list is empty</EmptyTitle>
+            <EmptyTitle>{intl.formatMessage({ id: "page.compliance.emptySuppressionTitle" })}</EmptyTitle>
             <EmptyDescription>
-              No contacts are currently opted out. Contacts who reply STOP will appear here automatically.
+              {intl.formatMessage({ id: "page.compliance.emptySuppressionDesc" })}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -220,10 +223,10 @@ function SuppressionList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Phone Number</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Opted Out</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+                <TableHead>{intl.formatMessage({ id: "common.phoneNumber" })}</TableHead>
+                <TableHead>{intl.formatMessage({ id: "common.name" })}</TableHead>
+                <TableHead>{intl.formatMessage({ id: "page.compliance.optedOutColumn" })}</TableHead>
+                <TableHead className="text-right">{intl.formatMessage({ id: "page.compliance.actionColumn" })}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -247,7 +250,7 @@ function SuppressionList() {
                       onClick={() => setConfirmId(contact._id)}
                     >
                       <RotateCcw className="h-4 w-4 mr-1" />
-                      Re-subscribe
+                      {intl.formatMessage({ id: "page.compliance.reSubscribe" })}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -263,18 +266,18 @@ function SuppressionList() {
       <Dialog open={!!confirmId} onOpenChange={() => setConfirmId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Re-subscribe Contact</DialogTitle>
+            <DialogTitle>{intl.formatMessage({ id: "page.compliance.reSubscribeTitle" })}</DialogTitle>
             <DialogDescription>
-              This will remove the contact from the suppression list and allow messages to be sent to them again. Are you sure?
+              {intl.formatMessage({ id: "page.compliance.reSubscribeDesc" })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirmId(null)}>
-              Cancel
+              {intl.formatMessage({ id: "buttons.cancel" })}
             </Button>
             <Button onClick={handleOptIn}>
               <UserCheck className="h-4 w-4 mr-2" />
-              Re-subscribe
+              {intl.formatMessage({ id: "page.compliance.reSubscribe" })}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -286,6 +289,7 @@ function SuppressionList() {
 // ─── Add to Suppression Dialog ──────────────────────────────
 
 function AddToSuppressionDialog() {
+  const intl = useIntl();
   const [open, setOpen] = useState(false);
   const [phone, setPhone] = useState("");
   const [channel, setChannel] = useState<"sms" | "whatsapp" | "telegram" | "facebook_messenger">("sms");
@@ -303,7 +307,7 @@ function AddToSuppressionDialog() {
         channel,
         note: note || undefined,
       });
-      toast.success("Number added to suppression list");
+      toast.success(intl.formatMessage({ id: "page.compliance.numberAdded" }));
       setPhone("");
       setNote("");
       setOpen(false);
@@ -321,19 +325,19 @@ function AddToSuppressionDialog() {
     <>
       <Button onClick={() => setOpen(true)}>
         <Plus className="h-4 w-4 mr-2" />
-        Add Number
+        {intl.formatMessage({ id: "page.compliance.addNumber" })}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add to Suppression List</DialogTitle>
+            <DialogTitle>{intl.formatMessage({ id: "page.compliance.addToSuppression" })}</DialogTitle>
             <DialogDescription>
-              Manually opt out a phone number from receiving messages.
+              {intl.formatMessage({ id: "page.compliance.addToSuppressionDesc" })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Phone Number</Label>
+              <Label>{intl.formatMessage({ id: "common.phoneNumber" })}</Label>
               <Input
                 placeholder="+225XXXXXXXXXX"
                 value={phone}
@@ -341,7 +345,7 @@ function AddToSuppressionDialog() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Channel</Label>
+              <Label>{intl.formatMessage({ id: "common.channel" })}</Label>
               <Select value={channel} onValueChange={(v) => setChannel(v as typeof channel)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -355,9 +359,9 @@ function AddToSuppressionDialog() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Note (optional)</Label>
+              <Label>{intl.formatMessage({ id: "page.compliance.noteOptional" })}</Label>
               <Input
-                placeholder="Reason for opt-out"
+                placeholder={intl.formatMessage({ id: "page.compliance.reasonForOptOut" })}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
               />
@@ -365,11 +369,11 @@ function AddToSuppressionDialog() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
+              {intl.formatMessage({ id: "buttons.cancel" })}
             </Button>
             <Button onClick={handleSubmit}>
               <Ban className="h-4 w-4 mr-2" />
-              Add to Suppression
+              {intl.formatMessage({ id: "page.compliance.addToSuppressionBtn" })}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -381,6 +385,7 @@ function AddToSuppressionDialog() {
 // ─── Activity Log Tab ───────────────────────────────────────
 
 function ActivityLog() {
+  const intl = useIntl();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "opt_out" | "opt_in">("all");
   const logs = useQuery(api.compliance.getOptOutLog, {
@@ -404,7 +409,7 @@ function ActivityLog() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by phone number..."
+            placeholder={intl.formatMessage({ id: "page.compliance.searchByPhoneLog" })}
             className="pl-10"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -415,9 +420,9 @@ function ActivityLog() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Events</SelectItem>
-            <SelectItem value="opt_out">Opt-outs</SelectItem>
-            <SelectItem value="opt_in">Opt-ins</SelectItem>
+            <SelectItem value="all">{intl.formatMessage({ id: "page.compliance.allEvents" })}</SelectItem>
+            <SelectItem value="opt_out">{intl.formatMessage({ id: "page.compliance.optOuts" })}</SelectItem>
+            <SelectItem value="opt_in">{intl.formatMessage({ id: "page.compliance.optIns" })}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -428,9 +433,9 @@ function ActivityLog() {
             <EmptyMedia variant="icon">
               <Activity />
             </EmptyMedia>
-            <EmptyTitle>No activity yet</EmptyTitle>
+            <EmptyTitle>{intl.formatMessage({ id: "page.compliance.noActivity" })}</EmptyTitle>
             <EmptyDescription>
-              Opt-out and opt-in events will be logged here as they occur.
+              {intl.formatMessage({ id: "page.compliance.noActivityDesc" })}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -439,12 +444,12 @@ function ActivityLog() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Channel</TableHead>
-                <TableHead>Details</TableHead>
+                <TableHead>{intl.formatMessage({ id: "common.date" })}</TableHead>
+                <TableHead>{intl.formatMessage({ id: "common.phone" })}</TableHead>
+                <TableHead>{intl.formatMessage({ id: "page.compliance.actionColumn" })}</TableHead>
+                <TableHead>{intl.formatMessage({ id: "page.compliance.source" })}</TableHead>
+                <TableHead>{intl.formatMessage({ id: "common.channel" })}</TableHead>
+                <TableHead>{intl.formatMessage({ id: "page.compliance.details" })}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -458,12 +463,12 @@ function ActivityLog() {
                     {log.action === "opt_out" ? (
                       <Badge variant="destructive" className="text-xs">
                         <Ban className="h-3 w-3 mr-1" />
-                        Opt-out
+                        {intl.formatMessage({ id: "page.compliance.optOuts" })}
                       </Badge>
                     ) : (
                       <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
                         <UserCheck className="h-3 w-3 mr-1" />
-                        Opt-in
+                        {intl.formatMessage({ id: "page.compliance.optIns" })}
                       </Badge>
                     )}
                   </TableCell>
@@ -491,6 +496,7 @@ function ActivityLog() {
 // ─── Settings Tab ───────────────────────────────────────────
 
 function ComplianceSettingsTab() {
+  const intl = useIntl();
   const settings = useQuery(api.compliance.getComplianceSettings, {});
   const saveSettings = useMutation(api.compliance.saveComplianceSettings);
 
@@ -541,7 +547,7 @@ function ComplianceSettingsTab() {
         addUnsubscribeFooter,
         unsubscribeFooterText: unsubscribeFooterText || undefined,
       });
-      toast.success("Compliance settings saved");
+      toast.success(intl.formatMessage({ id: "page.compliance.settingsSaved" }));
     } catch (error) {
       if (error instanceof ConvexError) {
         const data = error.data as { message: string };
@@ -584,34 +590,34 @@ function ComplianceSettingsTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <ShieldAlert className="h-5 w-5" />
-            Blocking & Enforcement
+            {intl.formatMessage({ id: "page.compliance.blockingEnforcement" })}
           </CardTitle>
           <CardDescription>
-            Control how opted-out contacts are handled when sending messages.
+            {intl.formatMessage({ id: "page.compliance.blockingDesc" })}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">Block sending to opted-out contacts</p>
+              <p className="text-sm font-medium">{intl.formatMessage({ id: "page.compliance.blockSending" })}</p>
               <p className="text-xs text-muted-foreground">
-                Prevent any messages from being sent to contacts on the suppression list
+                {intl.formatMessage({ id: "page.compliance.blockSendingDesc" })}
               </p>
             </div>
             <Switch checked={blockOptedOut} onCheckedChange={setBlockOptedOut} />
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">Add unsubscribe footer</p>
+              <p className="text-sm font-medium">{intl.formatMessage({ id: "page.compliance.addUnsubFooter" })}</p>
               <p className="text-xs text-muted-foreground">
-                Append an opt-out instruction to outgoing messages
+                {intl.formatMessage({ id: "page.compliance.addUnsubFooterDesc" })}
               </p>
             </div>
             <Switch checked={addUnsubscribeFooter} onCheckedChange={setAddUnsubscribeFooter} />
           </div>
           {addUnsubscribeFooter && (
             <div className="space-y-2 pl-4 border-l-2 border-muted">
-              <Label>Footer Text</Label>
+              <Label>{intl.formatMessage({ id: "page.compliance.footerText" })}</Label>
               <Input
                 placeholder="Reply STOP to unsubscribe"
                 value={unsubscribeFooterText}
@@ -627,10 +633,10 @@ function ComplianceSettingsTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
-            Opt-out Keywords
+            {intl.formatMessage({ id: "page.compliance.optOutKeywords" })}
           </CardTitle>
           <CardDescription>
-            When a recipient sends one of these keywords, they will be automatically opted out.
+            {intl.formatMessage({ id: "page.compliance.optOutKeywordsDesc" })}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -649,7 +655,7 @@ function ComplianceSettingsTab() {
           </div>
           <div className="flex gap-2">
             <Input
-              placeholder="Add keyword..."
+              placeholder={intl.formatMessage({ id: "page.compliance.addKeyword" })}
               value={newOptOutKeyword}
               onChange={(e) => setNewOptOutKeyword(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") addKeyword("optOut"); }}
@@ -666,10 +672,10 @@ function ComplianceSettingsTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <UserCheck className="h-5 w-5" />
-            Opt-in Keywords
+            {intl.formatMessage({ id: "page.compliance.optInKeywords" })}
           </CardTitle>
           <CardDescription>
-            When a recipient sends one of these keywords, they will be re-subscribed.
+            {intl.formatMessage({ id: "page.compliance.optInKeywordsDesc" })}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -688,7 +694,7 @@ function ComplianceSettingsTab() {
           </div>
           <div className="flex gap-2">
             <Input
-              placeholder="Add keyword..."
+              placeholder={intl.formatMessage({ id: "page.compliance.addKeyword" })}
               value={newOptInKeyword}
               onChange={(e) => setNewOptInKeyword(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") addKeyword("optIn"); }}
@@ -705,18 +711,18 @@ function ComplianceSettingsTab() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Auto-reply Messages
+            {intl.formatMessage({ id: "page.compliance.autoReplyMessages" })}
           </CardTitle>
           <CardDescription>
-            Automatically send confirmation messages when contacts opt out or opt in.
+            {intl.formatMessage({ id: "page.compliance.autoReplyDesc" })}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">Enable auto-replies</p>
+              <p className="text-sm font-medium">{intl.formatMessage({ id: "page.compliance.enableAutoReplies" })}</p>
               <p className="text-xs text-muted-foreground">
-                Send a confirmation message after opt-out/opt-in
+                {intl.formatMessage({ id: "page.compliance.enableAutoRepliesDesc" })}
               </p>
             </div>
             <Switch checked={autoReplyEnabled} onCheckedChange={setAutoReplyEnabled} />
@@ -724,7 +730,7 @@ function ComplianceSettingsTab() {
           {autoReplyEnabled && (
             <>
               <div className="space-y-2">
-                <Label>Opt-out confirmation message</Label>
+                <Label>{intl.formatMessage({ id: "page.compliance.optOutConfirmation" })}</Label>
                 <Textarea
                   placeholder="You have been unsubscribed. Reply START to resubscribe."
                   value={optOutAutoReply}
@@ -733,7 +739,7 @@ function ComplianceSettingsTab() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Opt-in confirmation message</Label>
+                <Label>{intl.formatMessage({ id: "page.compliance.optInConfirmation" })}</Label>
                 <Textarea
                   placeholder="Welcome back! You have been resubscribed."
                   value={optInAutoReply}
@@ -750,7 +756,7 @@ function ComplianceSettingsTab() {
       <div className="flex justify-end">
         <Button onClick={handleSave} size="lg">
           <Save className="h-4 w-4 mr-2" />
-          Save Settings
+          {intl.formatMessage({ id: "page.compliance.saveSettings" })}
         </Button>
       </div>
     </div>
@@ -760,15 +766,17 @@ function ComplianceSettingsTab() {
 // ─── Main Page ──────────────────────────────────────────────
 
 export default function CompliancePage() {
+  const intl = useIntl();
+  
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <ShieldCheck className="h-6 w-6" />
-          Opt-out & Compliance
+          {intl.formatMessage({ id: "page.compliance.title" })}
         </h1>
         <p className="text-muted-foreground mt-1">
-          Manage opt-out preferences, suppression lists, and messaging compliance.
+          {intl.formatMessage({ id: "page.compliance.subtitle" })}
         </p>
       </div>
 
@@ -778,15 +786,15 @@ export default function CompliancePage() {
         <TabsList>
           <TabsTrigger value="suppression" className="gap-2">
             <Ban className="h-4 w-4" />
-            Suppression List
+            {intl.formatMessage({ id: "page.compliance.suppressionList" })}
           </TabsTrigger>
           <TabsTrigger value="activity" className="gap-2">
             <Activity className="h-4 w-4" />
-            Activity Log
+            {intl.formatMessage({ id: "page.compliance.activityLog" })}
           </TabsTrigger>
           <TabsTrigger value="settings" className="gap-2">
             <Settings2 className="h-4 w-4" />
-            Settings
+            {intl.formatMessage({ id: "page.compliance.settings" })}
           </TabsTrigger>
         </TabsList>
 

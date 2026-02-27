@@ -1,5 +1,6 @@
 import { Authenticated } from "convex/react";
 import { useQuery } from "convex/react";
+import { useIntl } from "react-intl";
 import { api } from "@/convex/_generated/api.js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
@@ -13,38 +14,39 @@ export default function Settings() {
 }
 
 function SettingsContent() {
+  const intl = useIntl();
   const currentUser = useQuery(api.testMode.getEffectiveUser, {});
   const client = useQuery(api.clients.getCurrentClient, {});
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your account settings</p>
+        <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.settings.title" })}</h1>
+        <p className="text-muted-foreground">{intl.formatMessage({ id: "page.settings.subtitle" })}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Account Information</CardTitle>
+          <CardTitle>{intl.formatMessage({ id: "page.settings.accountInfo" })}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {currentUser && (
             <>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-sm font-medium text-muted-foreground">
-                  Name
+                  {intl.formatMessage({ id: "common.name" })}
                 </div>
-                <div className="col-span-2">{currentUser.name || "Not set"}</div>
+                <div className="col-span-2">{currentUser.name || intl.formatMessage({ id: "page.settings.notSet" })}</div>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-sm font-medium text-muted-foreground">
-                  Email
+                  {intl.formatMessage({ id: "common.email" })}
                 </div>
-                <div className="col-span-2">{currentUser.email || "Not set"}</div>
+                <div className="col-span-2">{currentUser.email || intl.formatMessage({ id: "page.settings.notSet" })}</div>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-sm font-medium text-muted-foreground">
-                  Role
+                  {intl.formatMessage({ id: "page.settings.role" })}
                 </div>
                 <div className="col-span-2">
                   <Badge>{currentUser.role}</Badge>
@@ -58,30 +60,30 @@ function SettingsContent() {
       {client && currentUser?.role === "client" && (
         <Card>
           <CardHeader>
-            <CardTitle>Client Details</CardTitle>
+            <CardTitle>{intl.formatMessage({ id: "page.settings.clientDetails" })}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="text-sm font-medium text-muted-foreground">
-                Company Name
+                {intl.formatMessage({ id: "page.settings.companyName" })}
               </div>
               <div className="col-span-2">{client.companyName}</div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-sm font-medium text-muted-foreground">
-                Contact Name
+                {intl.formatMessage({ id: "page.settings.contactName" })}
               </div>
               <div className="col-span-2">{client.contactName}</div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-sm font-medium text-muted-foreground">
-                Phone
+                {intl.formatMessage({ id: "common.phone" })}
               </div>
               <div className="col-span-2">{client.phone}</div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-sm font-medium text-muted-foreground">
-                Status
+                {intl.formatMessage({ id: "common.status" })}
               </div>
               <div className="col-span-2">
                 <Badge
@@ -93,7 +95,7 @@ function SettingsContent() {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-sm font-medium text-muted-foreground">
-                Available Credits
+                {intl.formatMessage({ id: "page.settings.availableCredits" })}
               </div>
               <div className="col-span-2 font-semibold">
                 {client.credits.toLocaleString()}
@@ -102,7 +104,7 @@ function SettingsContent() {
             {client.webhookUrl && (
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-sm font-medium text-muted-foreground">
-                  Webhook URL
+                  {intl.formatMessage({ id: "page.settings.webhookUrl" })}
                 </div>
                 <div className="col-span-2 font-mono text-sm break-all">
                   {client.webhookUrl}

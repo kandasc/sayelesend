@@ -25,6 +25,7 @@ import {
 import { Plus, Edit, DollarSign, Users as UsersIcon, MailOpen } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useIntl } from "react-intl";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ConvexError } from "convex/values";
@@ -60,6 +61,7 @@ type PrefillData = {
 };
 
 function ClientsContent() {
+  const intl = useIntl();
   const clients = useQuery(api.clients.listClients, {});
   const providers = useQuery(api.providers.listProviders, {});
   const [createOpen, setCreateOpen] = useState(false);
@@ -92,8 +94,8 @@ function ClientsContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Client Management</h1>
-          <p className="text-muted-foreground">Manage client accounts and access</p>
+          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.adminClients.title" })}</h1>
+          <p className="text-muted-foreground">{intl.formatMessage({ id: "page.adminClients.subtitle" })}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={(open) => {
           setCreateOpen(open);
@@ -102,12 +104,12 @@ function ClientsContent() {
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Create Client
+              {intl.formatMessage({ id: "page.adminClients.createClient" })}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create New Client</DialogTitle>
+              <DialogTitle>{intl.formatMessage({ id: "page.adminClients.createClient" })}</DialogTitle>
             </DialogHeader>
             <CreateClientForm
               providers={providers}
@@ -145,7 +147,7 @@ function ClientsContent() {
                       {client.emailAssistantEnabled && (
                         <Badge variant="secondary" className="gap-1">
                           <MailOpen className="h-3 w-3" />
-                          Email AI
+                          {intl.formatMessage({ id: "page.adminClients.emailAI" })}
                         </Badge>
                       )}
                     </div>
@@ -155,7 +157,7 @@ function ClientsContent() {
                         <p className="font-medium">{client.contactName}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Email</p>
+                        <p className="text-muted-foreground">{intl.formatMessage({ id: "common.email" })}</p>
                         <p className="font-medium">{client.email}</p>
                       </div>
                       <div>
@@ -175,7 +177,7 @@ function ClientsContent() {
                         </div>
                       )}
                       <div>
-                        <p className="text-muted-foreground">Credits</p>
+                        <p className="text-muted-foreground">{intl.formatMessage({ id: "common.credits" })}</p>
                         <p className="font-medium text-lg">{client.credits.toLocaleString()}</p>
                       </div>
                       {client.whatsappProviderId && (
@@ -235,7 +237,7 @@ function ClientsContent() {
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Client</DialogTitle>
+              <DialogTitle>{intl.formatMessage({ id: "page.adminClients.editClient" })}</DialogTitle>
             </DialogHeader>
             <EditClientForm
               clientId={selectedClient}
@@ -258,6 +260,7 @@ function CreateClientForm({
   prefill?: PrefillData | null;
   onSuccess: () => void;
 }) {
+  const intl = useIntl();
   const createClient = useMutation(api.admin.createClientWithAdmin);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -287,7 +290,7 @@ function CreateClientForm({
         adminEmail: formData.get("adminEmail") as string,
         adminName: formData.get("adminName") as string,
       });
-      toast.success(result.message);
+      toast.success(intl.formatMessage({ id: "page.adminClients.clientCreated" }));
       onSuccess();
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to create client"));
@@ -300,18 +303,18 @@ function CreateClientForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="companyName">Company Name</Label>
+          <Label htmlFor="companyName">{intl.formatMessage({ id: "page.adminClients.companyName" })}</Label>
           <Input id="companyName" name="companyName" defaultValue={prefill?.companyName} required />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="contactName">Contact Name</Label>
+          <Label htmlFor="contactName">{intl.formatMessage({ id: "page.adminClients.contactName" })}</Label>
           <Input id="contactName" name="contactName" defaultValue={prefill?.contactName} required />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Company Email</Label>
+          <Label htmlFor="email">{intl.formatMessage({ id: "common.email" })}</Label>
           <Input id="email" name="email" type="email" defaultValue={prefill?.email} required />
         </div>
         <div className="space-y-2">
@@ -321,7 +324,7 @@ function CreateClientForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="credits">Initial Credits</Label>
+        <Label htmlFor="credits">{intl.formatMessage({ id: "page.adminClients.initialCredits" })}</Label>
         <Input id="credits" name="credits" type="number" min="0" defaultValue="100" required />
       </div>
 
@@ -329,7 +332,7 @@ function CreateClientForm({
         <h3 className="font-semibold mb-4">Channel Providers</h3>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="providerId">SMS Provider *</Label>
+            <Label htmlFor="providerId">{intl.formatMessage({ id: "page.adminClients.provider" })}</Label>
             <Select name="providerId" required>
               <SelectTrigger>
                 <SelectValue placeholder="Select SMS provider" />
@@ -395,7 +398,7 @@ function CreateClientForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="webhookUrl">Webhook URL (Optional)</Label>
+        <Label htmlFor="webhookUrl">{intl.formatMessage({ id: "page.adminClients.webhookUrl" })}</Label>
         <Input id="webhookUrl" name="webhookUrl" type="url" placeholder="https://example.com/webhook" />
       </div>
 
@@ -435,7 +438,7 @@ function CreateClientForm({
 
       <DialogFooter>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Creating..." : "Create Client"}
+          {isSubmitting ? "Creating..." : intl.formatMessage({ id: "page.adminClients.createClient" })}
         </Button>
       </DialogFooter>
     </form>
@@ -451,6 +454,7 @@ function EditClientForm({
   providers: Array<{ _id: Id<"smsProviders">; name: string; channel?: "sms" | "whatsapp" | "telegram" | "facebook_messenger" }>;
   onSuccess: () => void;
 }) {
+  const intl = useIntl();
   const client = useQuery(api.clients.getClient, { clientId });
   const updateClient = useMutation(api.clients.updateClient);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -495,7 +499,7 @@ function EditClientForm({
         remoteId: (formData.get("remoteId") as string) || undefined,
         emailAssistantEnabled,
       });
-      toast.success("Client updated successfully");
+      toast.success(intl.formatMessage({ id: "page.adminClients.clientUpdated" }));
       onSuccess();
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to update client"));
@@ -508,18 +512,18 @@ function EditClientForm({
     <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="companyName">Company Name</Label>
+            <Label htmlFor="companyName">{intl.formatMessage({ id: "page.adminClients.companyName" })}</Label>
             <Input id="companyName" name="companyName" defaultValue={client.companyName} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="contactName">Contact Name</Label>
+            <Label htmlFor="contactName">{intl.formatMessage({ id: "page.adminClients.contactName" })}</Label>
             <Input id="contactName" name="contactName" defaultValue={client.contactName} required />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{intl.formatMessage({ id: "common.email" })}</Label>
             <Input id="email" name="email" type="email" defaultValue={client.email} required />
           </div>
           <div className="space-y-2">
@@ -529,15 +533,15 @@ function EditClientForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
+          <Label htmlFor="status">{intl.formatMessage({ id: "common.status" })}</Label>
           <Select name="status" defaultValue={client.status} required>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="active">{intl.formatMessage({ id: "common.active" })}</SelectItem>
               <SelectItem value="suspended">Suspended</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="inactive">{intl.formatMessage({ id: "common.inactive" })}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -546,7 +550,7 @@ function EditClientForm({
           <h3 className="font-semibold mb-4">SMS Providers</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="providerId">Single SMS Provider *</Label>
+              <Label htmlFor="providerId">{intl.formatMessage({ id: "page.adminClients.provider" })}</Label>
               <Select name="providerId" defaultValue={client.smsProviderId} required>
                 <SelectTrigger>
                   <SelectValue />
@@ -636,7 +640,7 @@ function EditClientForm({
         </div>
 
         <div className="border-t pt-4">
-          <h3 className="font-semibold mb-4">Add-on Features</h3>
+          <h3 className="font-semibold mb-4">{intl.formatMessage({ id: "page.adminClients.features" })}</h3>
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
@@ -656,7 +660,7 @@ function EditClientForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="webhookUrl">Webhook URL</Label>
+          <Label htmlFor="webhookUrl">{intl.formatMessage({ id: "page.adminClients.webhookUrl" })}</Label>
           <Input
             id="webhookUrl"
             name="webhookUrl"
@@ -703,6 +707,7 @@ function EditClientForm({
 }
 
 function AddCreditsDialog({ clientId }: { clientId: Id<"clients"> }) {
+  const intl = useIntl();
   const addCredits = useMutation(api.clients.addCredits);
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -736,7 +741,7 @@ function AddCreditsDialog({ clientId }: { clientId: Id<"clients"> }) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Credits</DialogTitle>
+          <DialogTitle>{intl.formatMessage({ id: "page.adminClients.addCredits" })}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -752,7 +757,7 @@ function AddCreditsDialog({ clientId }: { clientId: Id<"clients"> }) {
           </div>
           <DialogFooter>
             <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? "Adding..." : "Add Credits"}
+              {isSubmitting ? "Adding..." : intl.formatMessage({ id: "page.adminClients.addCredits" })}
             </Button>
           </DialogFooter>
         </div>
