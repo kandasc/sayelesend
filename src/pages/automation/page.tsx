@@ -67,6 +67,8 @@ export default function AutomationPage() {
   const deleteRule = useMutation(api.automation.deleteAutomationRule);
   const toggleRule = useMutation(api.automation.toggleAutomationRule);
 
+  const pagination = usePagination(rules ?? [], { pageSize: 15 });
+
   const handleCreateRule = async (data: Parameters<typeof createRule>[0]) => {
     try {
       await createRule(data);
@@ -119,8 +121,6 @@ export default function AutomationPage() {
       </div>
     );
   }
-
-  const pagination = usePagination(rules, { pageSize: 15 });
 
   return (
     <div className="space-y-6">
