@@ -38,6 +38,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
+import { useIntl } from "react-intl";
 import { useDebounce } from "@/hooks/use-debounce.ts";
 import { cn } from "@/lib/utils.ts";
 
@@ -52,6 +53,7 @@ export default function Inbox() {
 type Channel = "sms" | "whatsapp" | "telegram" | "facebook_messenger";
 
 function InboxContent() {
+  const intl = useIntl();
   const client = useQuery(api.clients.getCurrentClient, {});
   const [selectedId, setSelectedId] = useState<Id<"conversations"> | null>(null);
   const [channelFilter, setChannelFilter] = useState<Channel | "all">("all");
@@ -97,9 +99,9 @@ function InboxContent() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Inbox</h1>
+          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.inbox.title" })}</h1>
           <p className="text-muted-foreground">
-            All your conversations in one place
+            {intl.formatMessage({ id: "page.inbox.subtitle" })}
             {totalUnread ? ` — ${totalUnread} unread` : ""}
           </p>
         </div>
@@ -121,7 +123,7 @@ function InboxContent() {
                 }
               }}
             >
-              {buildingHistory ? "Building..." : "Sync History"}
+              {buildingHistory ? intl.formatMessage({ id: "page.inbox.building" }) : intl.formatMessage({ id: "page.inbox.syncHistory" })}
             </Button>
           )}
           <Button
@@ -135,12 +137,12 @@ function InboxContent() {
             {showArchived ? (
               <>
                 <MessageSquare className="h-4 w-4 mr-2" />
-                Active
+                {intl.formatMessage({ id: "common.active" })}
               </>
             ) : (
               <>
                 <Archive className="h-4 w-4 mr-2" />
-                Archived
+                {intl.formatMessage({ id: "page.inbox.archived" })}
               </>
             )}
           </Button>
@@ -154,7 +156,7 @@ function InboxContent() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search contacts..."
+                placeholder={intl.formatMessage({ id: "page.contacts.searchPlaceholder" })}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 h-9"
@@ -168,7 +170,7 @@ function InboxContent() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All channels</SelectItem>
+                <SelectItem value="all">{intl.formatMessage({ id: "page.inbox.allChannels" })}</SelectItem>
                 <SelectItem value="sms">SMS</SelectItem>
                 <SelectItem value="whatsapp">WhatsApp</SelectItem>
                 <SelectItem value="telegram">Telegram</SelectItem>
@@ -187,10 +189,10 @@ function InboxContent() {
             ) : conversations.length === 0 ? (
               <div className="p-6 text-center text-sm text-muted-foreground">
                 {searchQuery
-                  ? "No conversations found"
+                  ? intl.formatMessage({ id: "page.inbox.noConversations" })
                   : showArchived
-                    ? "No archived conversations"
-                    : "No conversations yet"}
+                    ? intl.formatMessage({ id: "page.inbox.noArchivedConversations" })
+                    : intl.formatMessage({ id: "page.inbox.noConversationsYet" })}
               </div>
             ) : (
               conversations.map((conv) => (
@@ -220,9 +222,9 @@ function InboxContent() {
                   <EmptyMedia variant="icon">
                     <MessageSquare />
                   </EmptyMedia>
-                  <EmptyTitle>Select a conversation</EmptyTitle>
+                  <EmptyTitle>{intl.formatMessage({ id: "page.inbox.selectConversation" })}</EmptyTitle>
                   <EmptyDescription>
-                    Choose a conversation from the left to view the message thread
+                    {intl.formatMessage({ id: "page.inbox.selectDesc" })}
                   </EmptyDescription>
                 </EmptyHeader>
               </Empty>
@@ -254,13 +256,14 @@ function ConversationItem({
   isSelected: boolean;
   onClick: () => void;
 }) {
+  const intl = useIntl();
   const displayName = conversation.contactName || conversation.contactPhone;
   const lastDate = new Date(conversation.lastMessageAt);
 
   const timeLabel = isToday(lastDate)
     ? format(lastDate, "HH:mm")
     : isYesterday(lastDate)
-      ? "Yesterday"
+      ? intl.formatMessage({ id: "common.yesterday" })
       : format(lastDate, "MMM d");
 
   return (
@@ -364,6 +367,7 @@ function ConversationThread({
   clientId: Id<"clients">;
   onBack: () => void;
 }) {
+  const intl = useIntl();
   const conversation = useQuery(api.conversations.getConversation, { conversationId });
   const messages = useQuery(api.conversations.getConversationMessages, {
     conversationId,
@@ -383,7 +387,7 @@ function ConversationThread({
     if (conversation && conversation.unreadCount > 0) {
       void markAsRead({ conversationId });
     }
-  }, [conversationId, conversation?.unreadCount]);
+  }, [conversationId, conversation, markAsRead]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -460,7 +464,7 @@ function ConversationThread({
             size="sm"
             onClick={async () => {
               await archiveConversation({ conversationId });
-              toast.success("Conversation archived");
+              toast.success(intl.formatMessage({ id: "page.inbox.conversationArchived" }));
               onBack();
             }}
           >
@@ -472,7 +476,7 @@ function ConversationThread({
             size="sm"
             onClick={async () => {
               await unarchiveConversation({ conversationId });
-              toast.success("Conversation restored");
+              toast.success(intl.formatMessage({ id: "page.inbox.conversationRestored" }));
             }}
           >
             <ArchiveRestore className="h-4 w-4" />
@@ -484,7 +488,7 @@ function ConversationThread({
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-            No messages in this conversation yet
+            {intl.formatMessage({ id: "page.inbox.noMessagesYet" })}
           </div>
         ) : (
           <>
@@ -502,9 +506,9 @@ function ConversationThread({
                     <div className="flex items-center justify-center my-3">
                       <span className="text-[10px] text-muted-foreground bg-muted px-3 py-1 rounded-full">
                         {isToday(new Date(msg.timestamp))
-                          ? "Today"
+                          ? intl.formatMessage({ id: "common.today" })
                           : isYesterday(new Date(msg.timestamp))
-                            ? "Yesterday"
+                            ? intl.formatMessage({ id: "common.yesterday" })
                             : format(new Date(msg.timestamp), "MMMM d, yyyy")}
                       </span>
                     </div>
@@ -522,7 +526,7 @@ function ConversationThread({
       <div className="p-3 border-t bg-card">
         <div className="flex gap-2 items-end">
           <Textarea
-            placeholder="Type a message..."
+            placeholder={intl.formatMessage({ id: "page.inbox.typeMessage" })}
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -539,7 +543,7 @@ function ConversationThread({
           </Button>
         </div>
         <p className="text-[10px] text-muted-foreground mt-1">
-          Press Enter to send, Shift+Enter for new line
+          {intl.formatMessage({ id: "page.inbox.pressEnter" })}
         </p>
       </div>
     </>

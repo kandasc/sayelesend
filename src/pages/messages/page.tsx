@@ -11,6 +11,7 @@ import { Plus, Search, Download, Calendar as CalendarIcon, FileText, RefreshCw }
 import { useState } from "react";
 import { toast } from "sonner";
 import { format, startOfDay, endOfDay } from "date-fns";
+import { useIntl } from "react-intl";
 import {
   Dialog,
   DialogContent,
@@ -49,6 +50,7 @@ export default function Messages() {
 }
 
 function MessagesContent() {
+  const intl = useIntl();
   const currentUser = useQuery(api.testMode.getEffectiveUser, {});
   const client = useQuery(api.clients.getCurrentClient, {});
   const messages = useQuery(
@@ -95,7 +97,7 @@ function MessagesContent() {
 
   const handleExportCSV = () => {
     if (!filteredMessages || filteredMessages.length === 0) {
-      toast.error("No messages to export");
+      toast.error(intl.formatMessage({ id: "page.messages.noExportData" }));
       return;
     }
 
@@ -139,16 +141,16 @@ function MessagesContent() {
       link.click();
       document.body.removeChild(link);
 
-      toast.success("CSV exported successfully");
+      toast.success(intl.formatMessage({ id: "page.messages.csvExported" }));
     } catch (error) {
       console.error("Export error:", error);
-      toast.error("Failed to export CSV");
+      toast.error(intl.formatMessage({ id: "page.messages.csvExportFailed" }));
     }
   };
 
   const handleExportPDF = async () => {
     if (!filteredMessages || filteredMessages.length === 0) {
-      toast.error("No messages to export");
+      toast.error(intl.formatMessage({ id: "page.messages.noExportData" }));
       return;
     }
 
@@ -289,10 +291,10 @@ function MessagesContent() {
       doc.text("Made by SAYELE", pageWidth / 2, pageHeight - 10, { align: "center" });
       
       doc.save(`outgoing_messages_${format(new Date(), "yyyy-MM-dd")}.pdf`);
-      toast.success("PDF exported successfully");
+      toast.success(intl.formatMessage({ id: "page.messages.pdfExported" }));
     } catch (error) {
       console.error("PDF export error:", error);
-      toast.error("Failed to export PDF");
+      toast.error(intl.formatMessage({ id: "page.messages.pdfExportFailed" }));
     }
   };
 
@@ -300,8 +302,8 @@ function MessagesContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Outgoing Messages</h1>
-          <p className="text-muted-foreground">Send messages via SMS, WhatsApp, Telegram, and Facebook Messenger</p>
+          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.messages.title" })}</h1>
+          <p className="text-muted-foreground">{intl.formatMessage({ id: "page.messages.subtitle" })}</p>
         </div>
         {currentUser?.role === "admin" && (
           <Button
@@ -321,19 +323,19 @@ function MessagesContent() {
             }}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${cleanupRunning ? "animate-spin" : ""}`} />
-            Update Old Status
+            {intl.formatMessage({ id: "page.messages.updateOldStatus" })}
           </Button>
         )}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Send Message
+              {intl.formatMessage({ id: "page.messages.sendMessage" })}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Send New Message</DialogTitle>
+              <DialogTitle>{intl.formatMessage({ id: "page.messages.sendNewMessage" })}</DialogTitle>
             </DialogHeader>
             <SendMessageForm
               clientId={client?._id}
@@ -346,7 +348,7 @@ function MessagesContent() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>All Messages</CardTitle>
+            <CardTitle>{intl.formatMessage({ id: "page.messages.allMessages" })}</CardTitle>
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -374,7 +376,7 @@ function MessagesContent() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by recipient or message content..."
+                placeholder={intl.formatMessage({ id: "page.messages.searchPlaceholder" })}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -393,7 +395,7 @@ function MessagesContent() {
                       format(dateRange.from, "MMM dd, yyyy")
                     )
                   ) : (
-                    <span>Pick a date range</span>
+                    <span>{intl.formatMessage({ id: "page.messages.pickDateRange" })}</span>
                   )}
                 </Button>
               </PopoverTrigger>
@@ -413,7 +415,7 @@ function MessagesContent() {
                       className="w-full"
                       onClick={() => setDateRange(undefined)}
                     >
-                      Clear dates
+                      {intl.formatMessage({ id: "buttons.clearDates" })}
                     </Button>
                   </div>
                 )}
@@ -423,7 +425,9 @@ function MessagesContent() {
 
           {!filteredMessages || filteredMessages.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              {searchQuery ? "No messages found matching your search" : "No messages found"}
+              {searchQuery 
+                ? intl.formatMessage({ id: "page.messages.noMessagesSearch" })
+                : intl.formatMessage({ id: "page.messages.noMessages" })}
             </p>
           ) : (
             <>
@@ -470,17 +474,17 @@ function MessagesContent() {
       <Dialog open={!!selectedMessage} onOpenChange={(open) => !open && setSelectedMessage(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Message Details</DialogTitle>
+            <DialogTitle>{intl.formatMessage({ id: "page.messages.messageDetails" })}</DialogTitle>
           </DialogHeader>
           {selectedMessage && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Recipient</Label>
+                  <Label className="text-xs text-muted-foreground">{intl.formatMessage({ id: "common.recipient" })}</Label>
                   <p className="font-medium">{selectedMessage.to}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <Label className="text-xs text-muted-foreground">{intl.formatMessage({ id: "common.status" })}</Label>
                   <div className="mt-1">
                     <Badge variant={getStatusVariant(selectedMessage.status)}>
                       {selectedMessage.status}
@@ -488,24 +492,24 @@ function MessagesContent() {
                   </div>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Channel</Label>
+                  <Label className="text-xs text-muted-foreground">{intl.formatMessage({ id: "common.channel" })}</Label>
                   <p className="font-medium capitalize">
                     {selectedMessage.channel === "facebook_messenger" ? "Facebook Messenger" : 
                      selectedMessage.channel || "SMS"}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Credits Used</Label>
+                  <Label className="text-xs text-muted-foreground">{intl.formatMessage({ id: "common.creditsUsed" })}</Label>
                   <p className="font-medium">{selectedMessage.creditsUsed}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Sent At</Label>
+                  <Label className="text-xs text-muted-foreground">{intl.formatMessage({ id: "common.sentAt" })}</Label>
                   <p className="font-medium">{format(new Date(selectedMessage._creationTime), "PPpp")}</p>
                 </div>
               </div>
               
               <div>
-                <Label className="text-xs text-muted-foreground">Message</Label>
+                <Label className="text-xs text-muted-foreground">{intl.formatMessage({ id: "common.message" })}</Label>
                 <div className="mt-2 p-4 bg-muted rounded-lg">
                   <p className="text-sm whitespace-pre-wrap">{selectedMessage.message}</p>
                 </div>
@@ -525,6 +529,7 @@ function SendMessageForm({
   clientId?: Id<"clients">;
   onSuccess: () => void;
 }) {
+  const intl = useIntl();
   const [to, setTo] = useState("");
   const [message, setMessage] = useState("");
   const [channel, setChannel] = useState<"sms" | "whatsapp" | "telegram" | "facebook_messenger">("sms");
@@ -564,7 +569,7 @@ function SendMessageForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="channel">Channel</Label>
+        <Label htmlFor="channel">{intl.formatMessage({ id: "common.channel" })}</Label>
         <Select value={channel} onValueChange={(v) => setChannel(v as typeof channel)}>
           <SelectTrigger>
             <SelectValue />
@@ -580,7 +585,9 @@ function SendMessageForm({
       
       <div className="space-y-2">
         <Label htmlFor="to">
-          {channel === "telegram" ? "Username or Chat ID" : "Recipient Phone Number"}
+          {channel === "telegram" 
+            ? intl.formatMessage({ id: "page.messages.usernameOrChatId" })
+            : intl.formatMessage({ id: "page.messages.recipientPhone" })}
         </Label>
         <Input
           id="to"
@@ -593,7 +600,7 @@ function SendMessageForm({
       
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="message">Message</Label>
+          <Label htmlFor="message">{intl.formatMessage({ id: "common.message" })}</Label>
           <AIAssistant 
             channel={channel}
             onMessageGenerated={(msg) => setMessage(msg)}
@@ -601,7 +608,7 @@ function SendMessageForm({
         </div>
         <Textarea
           id="message"
-          placeholder="Enter your message here..."
+          placeholder={intl.formatMessage({ id: "page.messages.enterMessage" })}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={4}
@@ -609,7 +616,7 @@ function SendMessageForm({
         />
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
-            {message.length} characters
+            {message.length} {intl.formatMessage({ id: "common.characters" })}
           </p>
           <AIImprover 
             message={message}
@@ -620,7 +627,7 @@ function SendMessageForm({
       
       <div className="flex justify-end gap-2">
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Sending..." : "Send Message"}
+          {isLoading ? intl.formatMessage({ id: "buttons.sending" }) : intl.formatMessage({ id: "page.messages.sendMessage" })}
         </Button>
       </div>
     </form>

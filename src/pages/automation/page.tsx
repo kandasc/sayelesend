@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { usePagination } from "@/hooks/use-pagination.ts";
+import { useIntl } from "react-intl";
 import PaginationControls from "@/components/ui/pagination-controls.tsx";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +55,7 @@ import { toast } from "sonner";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 
 export default function AutomationPage() {
+  const intl = useIntl();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<Id<"automationRules"> | null>(null);
 
@@ -73,9 +75,9 @@ export default function AutomationPage() {
     try {
       await createRule(data);
       setIsCreateDialogOpen(false);
-      toast.success("Automation rule created");
+      toast.success(intl.formatMessage({ id: "page.automation.ruleCreated" }));
     } catch (error) {
-      toast.error("Failed to create rule");
+      toast.error(intl.formatMessage({ id: "page.automation.createRuleFailed" }));
       console.error(error);
     }
   };
@@ -84,21 +86,21 @@ export default function AutomationPage() {
     try {
       await updateRule({ ruleId, ...data });
       setEditingRuleId(null);
-      toast.success("Rule updated");
+      toast.success(intl.formatMessage({ id: "page.automation.ruleUpdated" }));
     } catch (error) {
-      toast.error("Failed to update rule");
+      toast.error(intl.formatMessage({ id: "page.automation.updateRuleFailed" }));
       console.error(error);
     }
   };
 
   const handleDeleteRule = async (ruleId: Id<"automationRules">) => {
-    if (!confirm("Are you sure you want to delete this automation rule?")) return;
+    if (!confirm(intl.formatMessage({ id: "page.automation.deleteConfirm" }))) return;
     
     try {
       await deleteRule({ ruleId });
-      toast.success("Rule deleted");
+      toast.success(intl.formatMessage({ id: "page.automation.ruleDeleted" }));
     } catch (error) {
-      toast.error("Failed to delete rule");
+      toast.error(intl.formatMessage({ id: "page.automation.deleteRuleFailed" }));
       console.error(error);
     }
   };
@@ -106,9 +108,9 @@ export default function AutomationPage() {
   const handleToggleRule = async (ruleId: Id<"automationRules">) => {
     try {
       await toggleRule({ ruleId });
-      toast.success("Rule status updated");
+      toast.success(intl.formatMessage({ id: "page.automation.ruleStatusUpdated" }));
     } catch (error) {
-      toast.error("Failed to update rule");
+      toast.error(intl.formatMessage({ id: "page.automation.updateRuleFailed" }));
       console.error(error);
     }
   };
@@ -127,23 +129,23 @@ export default function AutomationPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Automation</h1>
+          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.automation.title" })}</h1>
           <p className="text-muted-foreground mt-1">
-            Set up automated responses and workflows
+            {intl.formatMessage({ id: "page.automation.subtitle" })}
           </p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Create Rule
+              {intl.formatMessage({ id: "page.automation.createRule" })}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create Automation Rule</DialogTitle>
+              <DialogTitle>{intl.formatMessage({ id: "page.automation.createRuleTitle" })}</DialogTitle>
               <DialogDescription>
-                Automatically respond to incoming messages based on triggers
+                {intl.formatMessage({ id: "page.automation.createRuleDesc" })}
               </DialogDescription>
             </DialogHeader>
             <AutomationRuleForm
@@ -160,7 +162,7 @@ export default function AutomationPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Rules</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.automation.totalRules" })}</CardTitle>
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -169,7 +171,7 @@ export default function AutomationPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Rules</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.automation.activeRules" })}</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -178,7 +180,7 @@ export default function AutomationPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Triggers</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.automation.totalTriggers" })}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -190,18 +192,18 @@ export default function AutomationPage() {
       {/* Rules List */}
       <Card>
         <CardHeader>
-          <CardTitle>Automation Rules</CardTitle>
+          <CardTitle>{intl.formatMessage({ id: "page.automation.automationRules" })}</CardTitle>
           <CardDescription>
-            Manage your automated message workflows
+            {intl.formatMessage({ id: "page.automation.manageRules" })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {rules.length === 0 ? (
             <div className="text-center py-12">
               <Zap className="mx-auto h-12 w-12 text-muted-foreground/50" />
-              <h3 className="mt-4 text-lg font-semibold">No automation rules yet</h3>
+              <h3 className="mt-4 text-lg font-semibold">{intl.formatMessage({ id: "page.automation.noRules" })}</h3>
               <p className="text-muted-foreground mt-2">
-                Create your first rule to automate message responses
+                {intl.formatMessage({ id: "page.automation.noRulesDesc" })}
               </p>
               <Button
                 onClick={() => setIsCreateDialogOpen(true)}
@@ -209,7 +211,7 @@ export default function AutomationPage() {
                 variant="outline"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Create Rule
+                {intl.formatMessage({ id: "page.automation.createRule" })}
               </Button>
             </div>
           ) : (
@@ -223,7 +225,9 @@ export default function AutomationPage() {
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold">{rule.name}</h3>
                       <Badge variant={rule.isActive ? "default" : "secondary"}>
-                        {rule.isActive ? "Active" : "Inactive"}
+                        {rule.isActive 
+                          ? intl.formatMessage({ id: "common.active" })
+                          : intl.formatMessage({ id: "common.inactive" })}
                       </Badge>
                       {rule.channel && (
                         <Badge variant="outline">{rule.channel}</Badge>
@@ -236,13 +240,13 @@ export default function AutomationPage() {
                     )}
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span>
-                        Trigger: {formatTriggerType(rule.triggerType)}
+                        Trigger: {formatTriggerType(rule.triggerType, intl)}
                         {rule.keywords && rule.keywords.length > 0 && (
                           <> ({rule.keywords.join(", ")})</>
                         )}
                       </span>
-                      <span>Action: {formatActionType(rule.actionType)}</span>
-                      <span>Triggered: {rule.triggerCount}x</span>
+                      <span>Action: {formatActionType(rule.actionType, intl)}</span>
+                      <span>{intl.formatMessage({ id: "page.automation.triggered" })}: {rule.triggerCount}x</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -261,14 +265,14 @@ export default function AutomationPage() {
                           onClick={() => setEditingRuleId(rule._id)}
                         >
                           <Edit className="mr-2 h-4 w-4" />
-                          Edit
+                          {intl.formatMessage({ id: "buttons.edit" })}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleDeleteRule(rule._id)}
                           className="text-red-600"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
+                          {intl.formatMessage({ id: "buttons.delete" })}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -289,9 +293,9 @@ export default function AutomationPage() {
         >
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Automation Rule</DialogTitle>
+              <DialogTitle>{intl.formatMessage({ id: "page.automation.editRule" })}</DialogTitle>
               <DialogDescription>
-                Update your automation rule settings
+                {intl.formatMessage({ id: "page.automation.updateRuleDesc" })}
               </DialogDescription>
             </DialogHeader>
             <AutomationRuleForm
@@ -322,6 +326,7 @@ function AutomationRuleForm({
   onSubmit: (data: any) => void;
   onCancel: () => void;
 }) {
+  const intl = useIntl();
   const existingRule = useQuery(
     api.automation.getAutomationRule,
     ruleId ? { ruleId } : "skip"
@@ -392,7 +397,7 @@ function AutomationRuleForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">Rule Name*</Label>
+        <Label htmlFor="name">{intl.formatMessage({ id: "page.automation.ruleName" })}</Label>
         <Input
           id="name"
           value={name}
@@ -403,7 +408,7 @@ function AutomationRuleForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">{intl.formatMessage({ id: "common.description" })}</Label>
         <Textarea
           id="description"
           value={description}
@@ -415,7 +420,7 @@ function AutomationRuleForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="channel">Channel</Label>
+          <Label htmlFor="channel">{intl.formatMessage({ id: "common.channel" })}</Label>
           <Select
             value={channel}
             onValueChange={(v) =>
@@ -437,15 +442,15 @@ function AutomationRuleForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="triggerType">Trigger Type*</Label>
+          <Label htmlFor="triggerType">{intl.formatMessage({ id: "page.automation.triggerType" })}</Label>
           <Select value={triggerType} onValueChange={setTriggerType}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="keyword">Keyword Match</SelectItem>
-              <SelectItem value="any_message">Any Message</SelectItem>
-              <SelectItem value="first_message">First Message</SelectItem>
+              <SelectItem value="keyword">{intl.formatMessage({ id: "page.automation.keywordMatch" })}</SelectItem>
+              <SelectItem value="any_message">{intl.formatMessage({ id: "page.automation.anyMessage" })}</SelectItem>
+              <SelectItem value="first_message">{intl.formatMessage({ id: "page.automation.firstMessage" })}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -454,7 +459,7 @@ function AutomationRuleForm({
       {triggerType === "keyword" && (
         <>
           <div className="space-y-2">
-            <Label htmlFor="keywords">Keywords (comma-separated)*</Label>
+            <Label htmlFor="keywords">{intl.formatMessage({ id: "page.automation.keywords" })}</Label>
             <Input
               id="keywords"
               value={keywords}
@@ -465,7 +470,7 @@ function AutomationRuleForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="matchType">Match Type</Label>
+            <Label htmlFor="matchType">{intl.formatMessage({ id: "page.automation.matchType" })}</Label>
             <Select
               value={matchType}
               onValueChange={(v) =>
@@ -478,10 +483,10 @@ function AutomationRuleForm({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="contains">Contains</SelectItem>
-                <SelectItem value="exact">Exact Match</SelectItem>
-                <SelectItem value="starts_with">Starts With</SelectItem>
-                <SelectItem value="ends_with">Ends With</SelectItem>
+                <SelectItem value="contains">{intl.formatMessage({ id: "page.automation.contains" })}</SelectItem>
+                <SelectItem value="exact">{intl.formatMessage({ id: "page.automation.exactMatch" })}</SelectItem>
+                <SelectItem value="starts_with">{intl.formatMessage({ id: "page.automation.startsWith" })}</SelectItem>
+                <SelectItem value="ends_with">{intl.formatMessage({ id: "page.automation.endsWith" })}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -489,7 +494,7 @@ function AutomationRuleForm({
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="actionType">Action*</Label>
+        <Label htmlFor="actionType">{intl.formatMessage({ id: "page.automation.actionType" })}</Label>
         <Select
           value={actionType}
           onValueChange={(v) =>
@@ -506,10 +511,10 @@ function AutomationRuleForm({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="send_reply">Send Auto-Reply</SelectItem>
-            <SelectItem value="forward_to_human">Forward to Human</SelectItem>
-            <SelectItem value="add_to_group">Add to Group</SelectItem>
-            <SelectItem value="tag_contact">Tag Contact</SelectItem>
+            <SelectItem value="send_reply">{intl.formatMessage({ id: "page.automation.sendReply" })}</SelectItem>
+            <SelectItem value="forward_to_human">{intl.formatMessage({ id: "page.automation.forwardHuman" })}</SelectItem>
+            <SelectItem value="add_to_group">{intl.formatMessage({ id: "page.automation.addToGroup" })}</SelectItem>
+            <SelectItem value="tag_contact">{intl.formatMessage({ id: "page.automation.tagContact" })}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -518,7 +523,7 @@ function AutomationRuleForm({
         <>
           {templates.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="template">Use Template (optional)</Label>
+              <Label htmlFor="template">{intl.formatMessage({ id: "page.automation.useTemplate" })}</Label>
               <Select value={replyTemplateId} onValueChange={setReplyTemplateId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select template" />
@@ -537,7 +542,7 @@ function AutomationRuleForm({
 
           {!replyTemplateId && (
             <div className="space-y-2">
-              <Label htmlFor="replyMessage">Reply Message*</Label>
+              <Label htmlFor="replyMessage">{intl.formatMessage({ id: "page.automation.replyMessage" })}</Label>
               <Textarea
                 id="replyMessage"
                 value={replyMessage}
@@ -554,7 +559,7 @@ function AutomationRuleForm({
       {actionType === "forward_to_human" && (
         <div className="space-y-2">
           <Label htmlFor="forwardNumbers">
-            Forward to Numbers (comma-separated)*
+            {intl.formatMessage({ id: "page.automation.forwardNumbers" })}
           </Label>
           <Input
             id="forwardNumbers"
@@ -568,7 +573,7 @@ function AutomationRuleForm({
 
       {actionType === "add_to_group" && (
         <div className="space-y-2">
-          <Label htmlFor="addToGroupId">Add to Group*</Label>
+          <Label htmlFor="addToGroupId">{intl.formatMessage({ id: "page.automation.addToGroup" })}</Label>
           <Select value={addToGroupId} onValueChange={setAddToGroupId}>
             <SelectTrigger>
               <SelectValue placeholder="Select group" />
@@ -586,7 +591,7 @@ function AutomationRuleForm({
 
       {actionType === "tag_contact" && (
         <div className="space-y-2">
-          <Label htmlFor="addTags">Tags (comma-separated)*</Label>
+          <Label htmlFor="addTags">{intl.formatMessage({ id: "page.automation.tagsComma" })}</Label>
           <Input
             id="addTags"
             value={addTags}
@@ -599,24 +604,26 @@ function AutomationRuleForm({
 
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
+          {intl.formatMessage({ id: "buttons.cancel" })}
         </Button>
         <Button type="submit">
-          {ruleId ? "Update Rule" : "Create Rule"}
+          {ruleId 
+            ? intl.formatMessage({ id: "page.automation.updateRule" })
+            : intl.formatMessage({ id: "page.automation.createRule" })}
         </Button>
       </div>
     </form>
   );
 }
 
-function formatTriggerType(type: string): string {
+function formatTriggerType(type: string, intl: ReturnType<typeof useIntl>): string {
   switch (type) {
     case "keyword":
-      return "Keyword Match";
+      return intl.formatMessage({ id: "page.automation.keywordMatch" });
     case "any_message":
-      return "Any Message";
+      return intl.formatMessage({ id: "page.automation.anyMessage" });
     case "first_message":
-      return "First Message";
+      return intl.formatMessage({ id: "page.automation.firstMessage" });
     case "time_based":
       return "Time-Based";
     default:
@@ -624,16 +631,16 @@ function formatTriggerType(type: string): string {
   }
 }
 
-function formatActionType(type: string): string {
+function formatActionType(type: string, intl: ReturnType<typeof useIntl>): string {
   switch (type) {
     case "send_reply":
-      return "Send Auto-Reply";
+      return intl.formatMessage({ id: "page.automation.sendReply" });
     case "forward_to_human":
-      return "Forward to Human";
+      return intl.formatMessage({ id: "page.automation.forwardHuman" });
     case "add_to_group":
-      return "Add to Group";
+      return intl.formatMessage({ id: "page.automation.addToGroup" });
     case "tag_contact":
-      return "Tag Contact";
+      return intl.formatMessage({ id: "page.automation.tagContact" });
     default:
       return type;
   }

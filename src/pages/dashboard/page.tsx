@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useIntl } from "react-intl";
 
 export default function Dashboard() {
   return (
@@ -20,6 +21,7 @@ export default function Dashboard() {
 }
 
 function DashboardContent() {
+  const intl = useIntl();
   const { lng } = useParams();
   const currentUser = useQuery(api.testMode.getEffectiveUser, {});
   const client = useQuery(api.clients.getCurrentClient, {});
@@ -50,22 +52,27 @@ function DashboardContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-3xl font-bold">
+            {intl.formatMessage({ id: "page.dashboard.title" })}
+          </h1>
           <p className="text-muted-foreground">
-            Welcome back, {currentUser.name || "User"}
+            {intl.formatMessage(
+              { id: "page.dashboard.welcome" },
+              { name: currentUser.name || "User" }
+            )}
           </p>
         </div>
         <div className="flex gap-2">
           <Link to={`/${lng}/messages`}>
             <Button variant="outline">
               <MessageSquare className="h-4 w-4 mr-2" />
-              Send Message
+              {intl.formatMessage({ id: "page.dashboard.sendMessage" })}
             </Button>
           </Link>
           <Link to={`/${lng}/bulk`}>
             <Button>
               <Send className="h-4 w-4 mr-2" />
-              Bulk Message
+              {intl.formatMessage({ id: "page.dashboard.bulkMessage" })}
             </Button>
           </Link>
         </div>
@@ -73,22 +80,22 @@ function DashboardContent() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Available Credits"
+          title={intl.formatMessage({ id: "page.dashboard.availableCredits" })}
           value={client.credits.toLocaleString()}
           icon={<Coins className="h-5 w-5 text-muted-foreground" />}
         />
         <StatCard
-          title="Total Sent"
+          title={intl.formatMessage({ id: "page.dashboard.totalSent" })}
           value={stats.totalSent.toLocaleString()}
           icon={<MessageSquare className="h-5 w-5 text-muted-foreground" />}
         />
         <StatCard
-          title="Delivered"
+          title={intl.formatMessage({ id: "common.delivered" })}
           value={stats.totalDelivered.toLocaleString()}
           icon={<CheckCircle className="h-5 w-5 text-green-500" />}
         />
         <StatCard
-          title="Failed"
+          title={intl.formatMessage({ id: "common.failed" })}
           value={stats.totalFailed.toLocaleString()}
           icon={<XCircle className="h-5 w-5 text-destructive" />}
         />
@@ -103,16 +110,29 @@ function DashboardContent() {
             </div>
             <div className="flex-1">
               <p className="font-semibold text-destructive">
-                {client.credits === 0 ? "No credits remaining" : "Critical balance"}
+                {client.credits === 0
+                  ? intl.formatMessage({ id: "page.dashboard.noCredits" })
+                  : intl.formatMessage({
+                      id: "page.dashboard.criticalBalance",
+                    })}
               </p>
               <p className="text-sm text-muted-foreground">
                 {client.credits === 0
-                  ? "Purchase credits to continue sending messages."
-                  : `Only ${client.credits.toLocaleString()} credits left. Top up to avoid service interruption.`}
+                  ? intl.formatMessage({
+                      id: "page.dashboard.purchaseCredits",
+                    })
+                  : intl.formatMessage(
+                      {
+                        id: "page.dashboard.lowCriticalMessage",
+                      },
+                      { credits: client.credits.toLocaleString() }
+                    )}
               </p>
             </div>
             <Link to={`/${lng}/payments`}>
-              <Button size="sm">Buy Credits</Button>
+              <Button size="sm">
+                {intl.formatMessage({ id: "page.dashboard.buyCredits" })}
+              </Button>
             </Link>
           </CardContent>
         </Card>
@@ -124,9 +144,16 @@ function DashboardContent() {
               <AlertTriangle className="h-5 w-5 text-orange-500" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-orange-600">Low balance</p>
+              <p className="font-semibold text-orange-600">
+                {intl.formatMessage({ id: "page.dashboard.lowBalance" })}
+              </p>
               <p className="text-sm text-muted-foreground">
-                Your credits are running low ({client.credits.toLocaleString()} remaining). Consider topping up soon.
+                {intl.formatMessage(
+                  {
+                    id: "page.dashboard.lowBalanceMessage",
+                  },
+                  { credits: client.credits.toLocaleString() }
+                )}
               </p>
             </div>
           </CardContent>
@@ -136,18 +163,22 @@ function DashboardContent() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Messages</CardTitle>
+            <CardTitle>
+              {intl.formatMessage({ id: "page.dashboard.recentMessages" })}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {!recentMessages || recentMessages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8">
                 <MessageSquare className="h-12 w-12 text-muted-foreground mb-2" />
                 <p className="text-center text-muted-foreground">
-                  No messages sent yet
+                  {intl.formatMessage({ id: "page.dashboard.noMessages" })}
                 </p>
                 <Link to={`/${lng}/messages`}>
                   <Button size="sm" className="mt-4">
-                    Send Your First SMS
+                    {intl.formatMessage({
+                      id: "page.dashboard.sendFirstSms",
+                    })}
                   </Button>
                 </Link>
               </div>
@@ -181,31 +212,35 @@ function DashboardContent() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle>
+              {intl.formatMessage({ id: "page.dashboard.quickActions" })}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <Link to={`/${lng}/messages`} className="block">
               <Button variant="outline" className="w-full justify-start">
                 <MessageSquare className="h-4 w-4 mr-2" />
-                Send Single SMS
+                {intl.formatMessage({ id: "page.dashboard.sendSingleSms" })}
               </Button>
             </Link>
             <Link to={`/${lng}/bulk`} className="block">
               <Button variant="outline" className="w-full justify-start">
                 <Send className="h-4 w-4 mr-2" />
-                Create Bulk Campaign
+                {intl.formatMessage({
+                  id: "page.dashboard.createBulkCampaign",
+                })}
               </Button>
             </Link>
             <Link to={`/${lng}/templates`} className="block">
               <Button variant="outline" className="w-full justify-start">
                 <Plus className="h-4 w-4 mr-2" />
-                Create Template
+                {intl.formatMessage({ id: "page.dashboard.createTemplate" })}
               </Button>
             </Link>
             <Link to={`/${lng}/api-keys`} className="block">
               <Button variant="outline" className="w-full justify-start">
                 <Coins className="h-4 w-4 mr-2" />
-                View API Keys
+                {intl.formatMessage({ id: "page.dashboard.viewApiKeys" })}
               </Button>
             </Link>
           </CardContent>
@@ -216,6 +251,7 @@ function DashboardContent() {
 }
 
 function AdminDashboard() {
+  const intl = useIntl();
   const { lng } = useParams();
   const allClients = useQuery(api.clients.listClients, {});
   const systemStats = useQuery(api.admin.getSystemStats, {});
@@ -274,8 +310,14 @@ function AdminDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground">System overview and management</p>
+          <h1 className="text-3xl font-bold">
+            {intl.formatMessage({ id: "page.dashboard.admin.title" })}
+          </h1>
+          <p className="text-muted-foreground">
+            {intl.formatMessage({
+              id: "page.dashboard.admin.subtitle",
+            })}
+          </p>
         </div>
         <div className="flex gap-2">
           {singlePendingCount > 0 && (
@@ -289,7 +331,9 @@ function AdminDashboard() {
               ) : (
                 <Clock className="h-4 w-4 mr-2" />
               )}
-              Retry Single ({singlePendingCount})
+              {intl.formatMessage({
+                id: "page.dashboard.admin.retrySingle",
+              })} ({singlePendingCount})
             </Button>
           )}
           {bulkPendingCount > 0 && (
@@ -303,13 +347,15 @@ function AdminDashboard() {
               ) : (
                 <XCircle className="h-4 w-4 mr-2" />
               )}
-              Cleanup Bulk ({bulkPendingCount})
+              {intl.formatMessage({
+                id: "page.dashboard.admin.cleanupBulk",
+              })} ({bulkPendingCount})
             </Button>
           )}
           <Link to={`/${lng}/admin/clients`}>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              New Client
+              {intl.formatMessage({ id: "page.dashboard.admin.newClient" })}
             </Button>
           </Link>
         </div>
@@ -317,22 +363,30 @@ function AdminDashboard() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Clients"
+          title={intl.formatMessage({
+            id: "page.dashboard.admin.totalClients",
+          })}
           value={allClients.length.toString()}
           icon={<MessageSquare className="h-5 w-5 text-muted-foreground" />}
         />
         <StatCard
-          title="Active Clients"
+          title={intl.formatMessage({
+            id: "page.dashboard.admin.activeClients",
+          })}
           value={activeClients.toString()}
           icon={<CheckCircle className="h-5 w-5 text-green-500" />}
         />
         <StatCard
-          title="Total Credits"
+          title={intl.formatMessage({
+            id: "page.dashboard.admin.totalCredits",
+          })}
           value={totalCredits.toLocaleString()}
           icon={<Coins className="h-5 w-5 text-muted-foreground" />}
         />
         <StatCard
-          title="Messages Sent"
+          title={intl.formatMessage({
+            id: "page.dashboard.admin.messagesSent",
+          })}
           value={systemStats.totalSent.toLocaleString()}
           icon={<Send className="h-5 w-5 text-blue-500" />}
         />
@@ -341,7 +395,11 @@ function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Clients</CardTitle>
+            <CardTitle>
+              {intl.formatMessage({
+                id: "page.dashboard.admin.recentClients",
+              })}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -356,7 +414,8 @@ function AdminDashboard() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-muted-foreground">
-                      {client.credits} credits
+                      {client.credits}{" "}
+                      {intl.formatMessage({ id: "common.credits" })}
                     </span>
                     <Badge variant={client.status === "active" ? "default" : "secondary"}>
                       {client.status}
@@ -370,19 +429,37 @@ function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>System Stats</CardTitle>
+            <CardTitle>
+              {intl.formatMessage({
+                id: "page.dashboard.admin.systemStats",
+              })}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Total Messages</span>
-              <span className="text-lg font-semibold">{systemStats.totalMessages.toLocaleString()}</span>
+              <span className="text-sm text-muted-foreground">
+                {intl.formatMessage({
+                  id: "page.dashboard.admin.totalMessages",
+                })}
+              </span>
+              <span className="text-lg font-semibold">
+                {systemStats.totalMessages.toLocaleString()}
+              </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Delivered</span>
-              <span className="text-lg font-semibold text-green-600">{systemStats.totalDelivered.toLocaleString()}</span>
+              <span className="text-sm text-muted-foreground">
+                {intl.formatMessage({ id: "common.delivered" })}
+              </span>
+              <span className="text-lg font-semibold text-green-600">
+                {systemStats.totalDelivered.toLocaleString()}
+              </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Delivery Rate</span>
+              <span className="text-sm text-muted-foreground">
+                {intl.formatMessage({
+                  id: "page.dashboard.admin.deliveryRate",
+                })}
+              </span>
               <span className="text-lg font-semibold">
                 {systemStats.totalMessages > 0
                   ? ((systemStats.totalDelivered / systemStats.totalMessages) * 100).toFixed(1)

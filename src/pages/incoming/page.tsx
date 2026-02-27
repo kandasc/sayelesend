@@ -11,6 +11,7 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/
 import { MessageSquare, Search, Check, Clock, Download, Calendar as CalendarIcon, FileText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useIntl } from "react-intl";
 import { useDebounce } from "@/hooks/use-debounce.ts";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import PaginationControls from "@/components/ui/pagination-controls.tsx";
@@ -40,6 +41,7 @@ export default function IncomingMessages() {
 }
 
 function IncomingMessagesContent() {
+  const intl = useIntl();
   const messages = useQuery(api.incomingMessages.listIncomingMessages);
   const stats = useQuery(api.incomingMessages.getIncomingStats);
   const client = useQuery(api.clients.getCurrentClient, {});
@@ -80,7 +82,7 @@ function IncomingMessagesContent() {
 
   const handleExportCSV = () => {
     if (!filteredMessages || filteredMessages.length === 0) {
-      toast.error("No messages to export");
+      toast.error(intl.formatMessage({ id: "page.messages.noExportData" }));
       return;
     }
 
@@ -123,7 +125,7 @@ function IncomingMessagesContent() {
       link.click();
       document.body.removeChild(link);
 
-      toast.success("CSV exported successfully");
+      toast.success(intl.formatMessage({ id: "page.messages.csvExported" }));
     } catch (error) {
       console.error("Export error:", error);
       toast.error("Failed to export CSV");
@@ -132,7 +134,7 @@ function IncomingMessagesContent() {
 
   const handleExportPDF = async () => {
     if (!filteredMessages || filteredMessages.length === 0) {
-      toast.error("No messages to export");
+      toast.error(intl.formatMessage({ id: "page.messages.noExportData" }));
       return;
     }
 
@@ -275,7 +277,7 @@ function IncomingMessagesContent() {
       doc.text("Made by SAYELE", pageWidth / 2, pageHeight - 10, { align: "center" });
       
       doc.save(`incoming_messages_${format(new Date(), "yyyy-MM-dd")}.pdf`);
-      toast.success("PDF exported successfully");
+      toast.success(intl.formatMessage({ id: "page.messages.pdfExported" }));
     } catch (error) {
       console.error("PDF export error:", error);
       toast.error("Failed to export PDF");
@@ -309,9 +311,9 @@ function IncomingMessagesContent() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Incoming Messages</h1>
+          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.incoming.title" })}</h1>
           <p className="text-muted-foreground">
-            View and manage incoming SMS messages
+            {intl.formatMessage({ id: "page.incoming.subtitle" })}
           </p>
         </div>
         <div className="flex gap-2">
@@ -339,7 +341,7 @@ function IncomingMessagesContent() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Total Received</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.incoming.totalReceived" })}</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -349,7 +351,7 @@ function IncomingMessagesContent() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Today</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "common.today" })}</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -359,7 +361,7 @@ function IncomingMessagesContent() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Unprocessed</CardTitle>
+            <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "common.unprocessed" })}</CardTitle>
             <Check className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -372,7 +374,7 @@ function IncomingMessagesContent() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search messages..."
+            placeholder={intl.formatMessage({ id: "page.incoming.searchPlaceholder" })}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -391,7 +393,7 @@ function IncomingMessagesContent() {
                   format(dateRange.from, "MMM dd, yyyy")
                 )
               ) : (
-                <span>Pick a date range</span>
+                <span>{intl.formatMessage({ id: "page.messages.pickDateRange" })}</span>
               )}
             </Button>
           </PopoverTrigger>
@@ -411,7 +413,7 @@ function IncomingMessagesContent() {
                   className="w-full"
                   onClick={() => setDateRange(undefined)}
                 >
-                  Clear dates
+                  {intl.formatMessage({ id: "buttons.clearDates" })}
                 </Button>
               </div>
             )}
@@ -426,12 +428,12 @@ function IncomingMessagesContent() {
               <MessageSquare />
             </EmptyMedia>
             <EmptyTitle>
-              {searchQuery ? "No messages found" : "No incoming messages yet"}
+              {searchQuery ? intl.formatMessage({ id: "page.incoming.noMessagesSearch" }) : intl.formatMessage({ id: "page.incoming.noMessages" })}
             </EmptyTitle>
             <EmptyDescription>
               {searchQuery
-                ? "Try adjusting your search"
-                : "Incoming SMS messages will appear here"}
+                ? intl.formatMessage({ id: "page.incoming.tryAdjusting" })
+                : intl.formatMessage({ id: "page.incoming.willAppearHere" })}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -454,35 +456,35 @@ function IncomingMessagesContent() {
       <Dialog open={!!selectedMessage} onOpenChange={(open) => !open && setSelectedMessage(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Incoming Message Details</DialogTitle>
+            <DialogTitle>{intl.formatMessage({ id: "page.incoming.messageDetails" })}</DialogTitle>
           </DialogHeader>
           {selectedMessage && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-xs text-muted-foreground">From</Label>
+                  <Label className="text-xs text-muted-foreground">{intl.formatMessage({ id: "common.from" })}</Label>
                   <p className="font-medium">{selectedMessage.from}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">To</Label>
+                  <Label className="text-xs text-muted-foreground">{intl.formatMessage({ id: "common.to" })}</Label>
                   <p className="font-medium">{selectedMessage.to}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <Label className="text-xs text-muted-foreground">{intl.formatMessage({ id: "common.status" })}</Label>
                   <div className="mt-1">
                     <Badge variant={selectedMessage.processed ? "default" : "secondary"}>
-                      {selectedMessage.processed ? "Processed" : "Unprocessed"}
+                      {selectedMessage.processed ? intl.formatMessage({ id: "common.processed" }) : intl.formatMessage({ id: "common.unprocessed" })}
                     </Badge>
                   </div>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Received At</Label>
+                  <Label className="text-xs text-muted-foreground">{intl.formatMessage({ id: "common.receivedAt" })}</Label>
                   <p className="font-medium">{format(new Date(selectedMessage.receivedAt), "PPpp")}</p>
                 </div>
               </div>
               
               <div>
-                <Label className="text-xs text-muted-foreground">Message</Label>
+                <Label className="text-xs text-muted-foreground">{intl.formatMessage({ id: "common.message" })}</Label>
                 <div className="mt-2 p-4 bg-muted rounded-lg">
                   <p className="text-sm whitespace-pre-wrap">{selectedMessage.message}</p>
                 </div>
@@ -511,13 +513,14 @@ function IncomingMessageCard({
   getTruncatedMessage: (text: string) => string;
   onClick: () => void;
 }) {
+  const intl = useIntl();
   const markAsProcessed = useMutation(api.incomingMessages.markAsProcessed);
 
   const handleMarkAsProcessed = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click
     try {
       await markAsProcessed({ messageId: message._id });
-      toast.success("Message marked as processed");
+      toast.success(intl.formatMessage({ id: "page.incoming.markProcessedSuccess" }));
     } catch (error) {
       toast.error("Failed to mark as processed");
     }
@@ -531,7 +534,7 @@ function IncomingMessageCard({
             <div className="flex items-center gap-2">
               <CardTitle className="text-lg">From: {message.from}</CardTitle>
               {!message.processed && (
-                <Badge variant="secondary">Unprocessed</Badge>
+                <Badge variant="secondary">{intl.formatMessage({ id: "common.unprocessed" })}</Badge>
               )}
             </div>
             <CardDescription>
@@ -545,7 +548,7 @@ function IncomingMessageCard({
               onClick={handleMarkAsProcessed}
             >
               <Check className="h-4 w-4 mr-2" />
-              Mark Processed
+              {intl.formatMessage({ id: "page.incoming.markProcessed" })}
             </Button>
           )}
         </div>
