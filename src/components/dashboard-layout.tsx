@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button.tsx";
 import Logo from "@/components/logo.tsx";
 import { LanguageSwitcher } from "@/components/language-switcher.tsx";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
+import { useIntl } from "react-intl";
   import {
   Home,
   MessageSquare,
@@ -116,6 +117,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const location = useLocation();
   const { lng } = useParams();
   const lang = lng || "en";
+  const intl = useIntl();
   
   const realUser = useQuery(api.users.getCurrentUser, {});
   const effectiveUser = useQuery(api.testMode.getEffectiveUser, {});
@@ -150,68 +152,68 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Top-level standalone items
   const topItems: NavItem[] = [
-    { path: `/${lang}/dashboard`, label: "Dashboard", icon: <Home className="h-5 w-5" /> },
+    { path: `/${lang}/dashboard`, label: intl.formatMessage({ id: "nav.dashboard" }), icon: <Home className="h-5 w-5" /> },
   ];
 
   // Messaging group
   const messagingGroup: NavGroup = {
-    label: "Messaging",
+    label: intl.formatMessage({ id: "nav.group.messaging" }),
     icon: <Mail className="h-5 w-5" />,
     defaultOpen: true,
     items: [
-      { path: `/${lang}/inbox`, label: "Inbox", icon: <MessagesSquare className="h-4 w-4" /> },
-      { path: `/${lang}/messages`, label: "Outgoing", icon: <SendHorizontal className="h-4 w-4" /> },
-      { path: `/${lang}/incoming`, label: "Incoming", icon: <Inbox className="h-4 w-4" /> },
-      { path: `/${lang}/bulk`, label: "Bulk SMS", icon: <Send className="h-4 w-4" /> },
-      { path: `/${lang}/templates`, label: "Templates", icon: <FileText className="h-4 w-4" /> },
+      { path: `/${lang}/inbox`, label: intl.formatMessage({ id: "nav.inbox" }), icon: <MessagesSquare className="h-4 w-4" /> },
+      { path: `/${lang}/messages`, label: intl.formatMessage({ id: "nav.outgoing" }), icon: <SendHorizontal className="h-4 w-4" /> },
+      { path: `/${lang}/incoming`, label: intl.formatMessage({ id: "nav.incoming" }), icon: <Inbox className="h-4 w-4" /> },
+      { path: `/${lang}/bulk`, label: intl.formatMessage({ id: "nav.bulk" }), icon: <Send className="h-4 w-4" /> },
+      { path: `/${lang}/templates`, label: intl.formatMessage({ id: "nav.templates" }), icon: <FileText className="h-4 w-4" /> },
     ],
   };
 
   // Contacts & Automation group
   const contactsGroup: NavGroup = {
-    label: "Contacts & Automation",
+    label: intl.formatMessage({ id: "nav.group.contactsAutomation" }),
     icon: <UserPlus className="h-5 w-5" />,
     items: [
-      { path: `/${lang}/contacts`, label: "Contacts", icon: <UserPlus className="h-4 w-4" /> },
-      { path: `/${lang}/groups`, label: "Groups", icon: <Folders className="h-4 w-4" /> },
-      { path: `/${lang}/automation`, label: "Automation", icon: <Zap className="h-4 w-4" /> },
-      { path: `/${lang}/compliance`, label: "Compliance", icon: <ShieldCheck className="h-4 w-4" /> },
+      { path: `/${lang}/contacts`, label: intl.formatMessage({ id: "nav.contacts" }), icon: <UserPlus className="h-4 w-4" /> },
+      { path: `/${lang}/groups`, label: intl.formatMessage({ id: "nav.groups" }), icon: <Folders className="h-4 w-4" /> },
+      { path: `/${lang}/automation`, label: intl.formatMessage({ id: "nav.automation" }), icon: <Zap className="h-4 w-4" /> },
+      { path: `/${lang}/compliance`, label: intl.formatMessage({ id: "nav.compliance" }), icon: <ShieldCheck className="h-4 w-4" /> },
     ],
   };
 
   // Developer group
   const developerGroup: NavGroup = {
-    label: "Developer",
+    label: intl.formatMessage({ id: "nav.group.developer" }),
     icon: <Code className="h-5 w-5" />,
     items: [
-      { path: `/${lang}/webhooks`, label: "Webhooks", icon: <Webhook className="h-4 w-4" /> },
-      { path: `/${lang}/api-keys`, label: "API Keys", icon: <Key className="h-4 w-4" /> },
-      { path: `/${lang}/api-docs`, label: "API Docs", icon: <BookOpen className="h-4 w-4" /> },
+      { path: `/${lang}/webhooks`, label: intl.formatMessage({ id: "nav.webhooks" }), icon: <Webhook className="h-4 w-4" /> },
+      { path: `/${lang}/api-keys`, label: intl.formatMessage({ id: "nav.apiKeys" }), icon: <Key className="h-4 w-4" /> },
+      { path: `/${lang}/api-docs`, label: intl.formatMessage({ id: "nav.apiDocs" }), icon: <BookOpen className="h-4 w-4" /> },
     ],
   };
 
   // Bottom standalone items
   const bottomItems: NavItem[] = [
-    { path: `/${lang}/reports`, label: "Reports", icon: <BarChart3 className="h-5 w-5" /> },
-    ...(!isSuperAdmin ? [{ path: `/${lang}/ai-assistants`, label: "AI Assistants", icon: <Bot className="h-5 w-5" /> }] : []),
-    ...(hasEmailAssistant ? [{ path: `/${lang}/email-assistant`, label: "Email Assistant", icon: <MailOpen className="h-5 w-5" /> }] : []),
-    { path: `/${lang}/payments`, label: "Credits & Billing", icon: <CreditCard className="h-5 w-5" /> },
-    { path: `/${lang}/settings`, label: "Settings", icon: <Settings className="h-5 w-5" /> },
+    { path: `/${lang}/reports`, label: intl.formatMessage({ id: "nav.reports" }), icon: <BarChart3 className="h-5 w-5" /> },
+    ...(!isSuperAdmin ? [{ path: `/${lang}/ai-assistants`, label: intl.formatMessage({ id: "nav.aiAssistants" }), icon: <Bot className="h-5 w-5" /> }] : []),
+    ...(hasEmailAssistant ? [{ path: `/${lang}/email-assistant`, label: intl.formatMessage({ id: "nav.emailAssistant" }), icon: <MailOpen className="h-5 w-5" /> }] : []),
+    { path: `/${lang}/payments`, label: intl.formatMessage({ id: "nav.creditsBilling" }), icon: <CreditCard className="h-5 w-5" /> },
+    { path: `/${lang}/settings`, label: intl.formatMessage({ id: "nav.settings" }), icon: <Settings className="h-5 w-5" /> },
   ];
 
   // Admin group
   const adminGroup: NavGroup = {
-    label: "Administration",
+    label: intl.formatMessage({ id: "nav.group.administration" }),
     icon: <Shield className="h-5 w-5" />,
     items: [
-      { path: `/${lang}/admin/analytics`, label: "Analytics", icon: <BarChart3 className="h-4 w-4" /> },
-      { path: `/${lang}/admin/clients`, label: "Clients", icon: <Users className="h-4 w-4" /> },
-      { path: `/${lang}/admin/users`, label: "Users", icon: <Users className="h-4 w-4" /> },
-      { path: `/${lang}/admin/providers`, label: "Providers", icon: <Server className="h-4 w-4" /> },
-      { path: `/${lang}/admin/credits`, label: "Credits", icon: <Coins className="h-4 w-4" /> },
-      { path: `/${lang}/admin/submissions`, label: "Submissions", icon: <FileText className="h-4 w-4" /> },
-      { path: `/${lang}/ai-assistants`, label: "AI Assistants", icon: <Bot className="h-4 w-4" /> },
-      { path: `/${lang}/admin/ai-assistant`, label: "AI Assistant", icon: <Sparkles className="h-4 w-4" /> },
+      { path: `/${lang}/admin/analytics`, label: intl.formatMessage({ id: "nav.analytics" }), icon: <BarChart3 className="h-4 w-4" /> },
+      { path: `/${lang}/admin/clients`, label: intl.formatMessage({ id: "nav.clients" }), icon: <Users className="h-4 w-4" /> },
+      { path: `/${lang}/admin/users`, label: intl.formatMessage({ id: "nav.users" }), icon: <Users className="h-4 w-4" /> },
+      { path: `/${lang}/admin/providers`, label: intl.formatMessage({ id: "nav.providers" }), icon: <Server className="h-4 w-4" /> },
+      { path: `/${lang}/admin/credits`, label: intl.formatMessage({ id: "nav.credits" }), icon: <Coins className="h-4 w-4" /> },
+      { path: `/${lang}/admin/submissions`, label: intl.formatMessage({ id: "nav.submissions" }), icon: <FileText className="h-4 w-4" /> },
+      { path: `/${lang}/ai-assistants`, label: intl.formatMessage({ id: "nav.aiAssistants" }), icon: <Bot className="h-4 w-4" /> },
+      { path: `/${lang}/admin/ai-assistant`, label: intl.formatMessage({ id: "nav.aiAssistant" }), icon: <Sparkles className="h-4 w-4" /> },
     ],
   };
 
@@ -232,10 +234,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <TestTube2 className="h-4 w-4 text-orange-500" />
-                  <Badge variant="outline" className="text-xs">Test Mode</Badge>
+                  <Badge variant="outline" className="text-xs">{intl.formatMessage({ id: "dashboard.testMode" })}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Viewing as client admin
+                  {intl.formatMessage({ id: "dashboard.viewingAsClient" })}
                 </p>
                 <Button
                   variant="secondary"
@@ -243,12 +245,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   className="w-full"
                   onClick={() => setTestMode({ clientId: null })}
                 >
-                  Exit Test Mode
+                  {intl.formatMessage({ id: "dashboard.exitTestMode" })}
                 </Button>
               </div>
             ) : (
               <div className="space-y-2">
-                <label className="text-xs font-medium">Test as Client</label>
+                <label className="text-xs font-medium">{intl.formatMessage({ id: "dashboard.testAsClient" })}</label>
                 <Select
                   onValueChange={(value) => {
                     if (value && value !== "none") {
@@ -257,10 +259,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   }}
                 >
                   <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Select client" />
+                    <SelectValue placeholder={intl.formatMessage({ id: "dashboard.selectClient" })} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Select a client</SelectItem>
+                    <SelectItem value="none">{intl.formatMessage({ id: "dashboard.selectClient" })}</SelectItem>
                     {clients?.map((client) => (
                       <SelectItem key={client._id} value={client._id}>
                         {client.companyName}
@@ -358,7 +360,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }}
           >
             <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
+            {intl.formatMessage({ id: "buttons.signOut" })}
           </Button>
           <div className="mt-4 pt-4 border-t text-center">
             <a
@@ -367,7 +369,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               rel="noopener noreferrer"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
             >
-              Developed by <span className="font-semibold text-primary">SAYELE</span>
+              {intl.formatMessage({ id: "footer.developedBy" })} <span className="font-semibold text-primary">SAYELE</span>
             </a>
           </div>
         </div>

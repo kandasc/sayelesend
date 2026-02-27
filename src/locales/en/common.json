@@ -1,9 +1,11 @@
 {
   "app.name": "Sayele Message",
   "app.tagline": "Multi-Channel Messaging Platform",
+
   "nav.dashboard": "Dashboard",
   "nav.outgoing": "Outgoing",
   "nav.incoming": "Incoming",
+  "nav.inbox": "Inbox",
   "nav.bulk": "Bulk SMS",
   "nav.contacts": "Contacts",
   "nav.groups": "Groups",
@@ -19,8 +21,28 @@
   "nav.users": "Users",
   "nav.providers": "Providers",
   "nav.aiAssistant": "AI Assistant",
+  "nav.aiAssistants": "AI Assistants",
+  "nav.emailAssistant": "Email Assistant",
+  "nav.automation": "Automation",
+  "nav.compliance": "Compliance",
+  "nav.credits": "Credits",
+  "nav.creditsBilling": "Credits & Billing",
+  "nav.submissions": "Submissions",
+
+  "nav.group.messaging": "Messaging",
+  "nav.group.contactsAutomation": "Contacts & Automation",
+  "nav.group.developer": "Developer",
+  "nav.group.administration": "Administration",
+
+  "dashboard.testMode": "Test Mode",
+  "dashboard.viewingAsClient": "Viewing as client admin",
+  "dashboard.exitTestMode": "Exit Test Mode",
+  "dashboard.testAsClient": "Test as Client",
+  "dashboard.selectClient": "Select client",
+
   "buttons.getStarted": "Get Started",
   "buttons.apiDocumentation": "API Documentation",
   "buttons.signOut": "Sign Out",
+
   "footer.developedBy": "Developed by"
 }
