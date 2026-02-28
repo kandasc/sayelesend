@@ -652,11 +652,13 @@ print(data["response"])`;
   var isHandedOver = false;
   var welcomeShown = false;
   var hasMessages = false;
+  var autoSpeak = false; // TTS auto-play disabled by default
 
   // SVG icons
   var micSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
   var sendSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>';
   var speakerSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
+  var speakerOffSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>';
   var userSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
   var closeSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
   var chatSvg = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>';
@@ -699,7 +701,10 @@ print(data["response"])`;
             '<div style="font-size:11px;opacity:0.85;">Online</div>' +
           '</div>' +
         '</div>' +
-        '<button id="sc-close" style="background:rgba(255,255,255,0.15);border:none;color:white;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background 0.2s;">' + closeSvg + '</button>' +
+        '<div style="display:flex;align-items:center;gap:4px;">' +
+          '<button id="sc-auto-speak" title="Auto-speak OFF (click to enable)" style="background:rgba(255,255,255,0.15);border:none;color:white;cursor:pointer;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background 0.2s;">' + speakerOffSvg + '</button>' +
+          '<button id="sc-close" style="background:rgba(255,255,255,0.15);border:none;color:white;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background 0.2s;">' + closeSvg + '</button>' +
+        '</div>' +
       '</div>' +
 
       '<div id="sc-messages" style="flex:1;overflow-y:auto;padding:16px;font-size:14px;background:#fafafa;">' +
@@ -738,6 +743,17 @@ print(data["response"])`;
   toggle.addEventListener("click", openChat);
   scClose.addEventListener("click", closeChat);
 
+  // ── Auto-speak toggle ──
+  var scAutoSpeak = document.getElementById("sc-auto-speak");
+  scAutoSpeak.addEventListener("click", function() {
+    autoSpeak = !autoSpeak;
+    scAutoSpeak.innerHTML = autoSpeak ? speakerSvg : speakerOffSvg;
+    scAutoSpeak.style.background = autoSpeak ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.15)";
+    scAutoSpeak.title = autoSpeak ? "Auto-speak ON (click to disable)" : "Auto-speak OFF (click to enable)";
+  });
+  scAutoSpeak.onmouseenter = function() { scAutoSpeak.style.background = autoSpeak ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.25)"; };
+  scAutoSpeak.onmouseleave = function() { scAutoSpeak.style.background = autoSpeak ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.15)"; };
+
   var SpeechRecog = window.SpeechRecognition || window.webkitSpeechRecognition;
   var recognition = SpeechRecog ? new SpeechRecog() : null;
   if (recognition) { recognition.continuous = false; recognition.interimResults = false; }
@@ -766,7 +782,7 @@ print(data["response"])`;
       hideTyping();
       var reply = data.response || "Sorry, something went wrong.";
       addMessage(reply, "bot");
-      if (window.speechSynthesis) { var u = new SpeechSynthesisUtterance(reply); u.rate = 1; u.pitch = 1; window.speechSynthesis.speak(u); }
+      if (autoSpeak && window.speechSynthesis) { var u = new SpeechSynthesisUtterance(reply); u.rate = 1; u.pitch = 1; window.speechSynthesis.speak(u); }
       sessionId = data.sessionId || sessionId;
       hasMessages = true;
       document.getElementById("sc-handover").style.display = "flex";

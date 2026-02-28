@@ -386,7 +386,15 @@ async function runChatCore(
     internalSessionId = session._id;
   }
 
-  // 3. Save user message + fetch context in parallel
+  // 3. Save user message first, then fetch context in parallel
+  // IMPORTANT: Save must complete before fetching history to avoid race conditions
+  // where the AI doesn't see the current user message.
+  await ctx.runMutation(internal.aiAssistants.addChatMessage, {
+    sessionId: internalSessionId,
+    role: "user",
+    content: args.message,
+  });
+
   const chatMsgFn = args.useInternal
     ? internal.aiAssistants.getChatMessagesInternal
     : api.aiAssistants.getChatMessages;
@@ -397,12 +405,7 @@ async function runChatCore(
     ? internal.aiAssistants.getActiveTasksInternalQuery
     : api.aiAssistants.getActiveTasksInternal;
 
-  const [, history, knowledgeBase, activeTasks] = await Promise.all([
-    ctx.runMutation(internal.aiAssistants.addChatMessage, {
-      sessionId: internalSessionId,
-      role: "user",
-      content: args.message,
-    }),
+  const [history, knowledgeBase, activeTasks] = await Promise.all([
     ctx.runQuery(chatMsgFn, { sessionId: internalSessionId }),
     ctx.runQuery(kbFn, { assistantId: args.assistantId }),
     ctx.runQuery(taskFn, { assistantId: args.assistantId }),
