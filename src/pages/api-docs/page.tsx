@@ -94,9 +94,10 @@ export default function ApiDocsPage() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="send">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="send">Send Message</TabsTrigger>
               <TabsTrigger value="status">Check Status</TabsTrigger>
+              <TabsTrigger value="ai-chat">AI Chat</TabsTrigger>
             </TabsList>
 
             {/* Send Message */}
@@ -466,6 +467,244 @@ else:
   "deliveredAt": 1700000001234
 }`}</code>
                   </pre>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* AI Chat */}
+            <TabsContent value="ai-chat" className="space-y-6">
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Badge className="bg-green-500 hover:bg-green-500">POST</Badge>
+                  <code className="text-sm">/api/v1/ai/chat</code>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Send a message to an AI assistant and receive a response. Supports JSON or plain text response format.
+                </p>
+              </div>
+
+              {/* Request Parameters */}
+              <div>
+                <h3 className="font-semibold mb-3">Request Body</h3>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-3 gap-4 p-3 bg-muted/50 rounded-lg text-sm">
+                    <div className="font-medium">Parameter</div>
+                    <div className="font-medium">Type</div>
+                    <div className="font-medium">Description</div>
+                  </div>
+                  {[
+                    { name: "assistantId", type: "string", desc: "ID of the AI assistant to chat with", required: true },
+                    { name: "message", type: "string", desc: "The user message to send", required: true },
+                    { name: "sessionId", type: "string", desc: "Session ID for conversation continuity (auto-generated if omitted)", required: false },
+                    { name: "channel", type: "string", desc: "Channel: 'web', 'sms', 'whatsapp', or 'api' (default: 'api')", required: false },
+                    { name: "format", type: "string", desc: "'json' (default) or 'text' — when 'text', returns the AI response as plain text only", required: false },
+                    { name: "visitorName", type: "string", desc: "Visitor display name", required: false },
+                    { name: "visitorEmail", type: "string", desc: "Visitor email address", required: false },
+                    { name: "visitorPhone", type: "string", desc: "Visitor phone number", required: false },
+                  ].map((param) => (
+                    <div key={param.name} className="grid grid-cols-3 gap-4 p-3 border-b text-sm">
+                      <div>
+                        <code className="text-primary">{param.name}</code>
+                        {param.required && <span className="text-red-500 ml-1">*</span>}
+                      </div>
+                      <div className="text-muted-foreground">{param.type}</div>
+                      <div className="text-muted-foreground">{param.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Format Note */}
+              <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <div className="text-sm">
+                  <strong className="text-blue-600 dark:text-blue-400">Plain text format:</strong>{" "}
+                  Set <code className="bg-muted px-1 rounded">{"\"format\": \"text\""}</code> in the body,
+                  or send the header <code className="bg-muted px-1 rounded">Accept: text/plain</code>.
+                  The response will be the raw AI text with <code className="bg-muted px-1 rounded">Content-Type: text/plain</code>.
+                  The session ID is returned in the <code className="bg-muted px-1 rounded">X-Session-Id</code> header.
+                </div>
+              </div>
+
+              {/* Code Examples */}
+              <div>
+                <h3 className="font-semibold mb-3">Code Examples</h3>
+                <Tabs defaultValue="curl-json" className="w-full">
+                  <TabsList>
+                    <TabsTrigger value="curl-json">cURL (JSON)</TabsTrigger>
+                    <TabsTrigger value="curl-text">cURL (Plain Text)</TabsTrigger>
+                    <TabsTrigger value="js-chat">JavaScript</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="curl-json">
+                    <div className="relative">
+                      <pre className="p-4 bg-muted rounded-lg overflow-x-auto text-sm">
+                        <code>{`curl -X POST ${apiBaseUrl}/api/v1/ai/chat \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "assistantId": "YOUR_ASSISTANT_ID",
+    "message": "Hello, how can you help me?"
+  }'`}</code>
+                      </pre>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="absolute top-2 right-2"
+                        onClick={() => copyToClipboard(`curl -X POST ${apiBaseUrl}/api/v1/ai/chat \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "assistantId": "YOUR_ASSISTANT_ID",
+    "message": "Hello, how can you help me?"
+  }'`, "ai-curl-json")}
+                      >
+                        {copiedSection === "ai-curl-json" ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="curl-text">
+                    <div className="relative">
+                      <pre className="p-4 bg-muted rounded-lg overflow-x-auto text-sm">
+                        <code>{`curl -X POST ${apiBaseUrl}/api/v1/ai/chat \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "assistantId": "YOUR_ASSISTANT_ID",
+    "message": "Hello, how can you help me?",
+    "format": "text"
+  }'`}</code>
+                      </pre>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="absolute top-2 right-2"
+                        onClick={() => copyToClipboard(`curl -X POST ${apiBaseUrl}/api/v1/ai/chat \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "assistantId": "YOUR_ASSISTANT_ID",
+    "message": "Hello, how can you help me?",
+    "format": "text"
+  }'`, "ai-curl-text")}
+                      >
+                        {copiedSection === "ai-curl-text" ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="js-chat">
+                    <div className="relative">
+                      <pre className="p-4 bg-muted rounded-lg overflow-x-auto text-sm">
+                        <code>{`const url = '${apiBaseUrl}/api/v1/ai/chat';
+
+// JSON response (default)
+const jsonRes = await fetch(url, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    assistantId: 'YOUR_ASSISTANT_ID',
+    message: 'Hello!'
+  })
+});
+const data = await jsonRes.json();
+console.log(data.response); // AI text
+console.log(data.sessionId); // session for continuity
+
+// Plain text response
+const textRes = await fetch(url, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    assistantId: 'YOUR_ASSISTANT_ID',
+    message: 'Hello!',
+    format: 'text'
+  })
+});
+const text = await textRes.text();
+console.log(text); // raw AI response
+const sessionId = textRes.headers.get('X-Session-Id');`}</code>
+                      </pre>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="absolute top-2 right-2"
+                        onClick={() => copyToClipboard(`const url = '${apiBaseUrl}/api/v1/ai/chat';
+
+// JSON response (default)
+const jsonRes = await fetch(url, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    assistantId: 'YOUR_ASSISTANT_ID',
+    message: 'Hello!'
+  })
+});
+const data = await jsonRes.json();
+console.log(data.response);
+console.log(data.sessionId);
+
+// Plain text response
+const textRes = await fetch(url, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    assistantId: 'YOUR_ASSISTANT_ID',
+    message: 'Hello!',
+    format: 'text'
+  })
+});
+const text = await textRes.text();
+console.log(text);
+const sessionId = textRes.headers.get('X-Session-Id');`, "ai-js")}
+                      >
+                        {copiedSection === "ai-js" ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+
+              {/* JSON Response */}
+              <div>
+                <h3 className="font-semibold mb-3">JSON Response (default)</h3>
+                <div className="p-4 bg-muted rounded-lg">
+                  <pre className="text-sm overflow-x-auto">
+                    <code>{`{
+  "success": true,
+  "response": "Hello! I'm here to help. How can I assist you today?",
+  "sessionId": "api_1700000000000_a1b2c3d4"
+}`}</code>
+                  </pre>
+                </div>
+              </div>
+
+              {/* Plain Text Response */}
+              <div>
+                <h3 className="font-semibold mb-3">Plain Text Response (format: text)</h3>
+                <div className="p-4 bg-muted rounded-lg">
+                  <pre className="text-sm overflow-x-auto">
+                    <code>{`Hello! I'm here to help. How can I assist you today?`}</code>
+                  </pre>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Session ID returned via <code>X-Session-Id</code> response header
+                  </p>
+                </div>
+              </div>
+
+              {/* No Auth Note */}
+              <div className="flex items-start gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                <div className="text-sm">
+                  <strong className="text-yellow-600 dark:text-yellow-400">Note:</strong>{" "}
+                  The AI Chat endpoint does not require an API key. It is public so it can be embedded in websites and widgets.
                 </div>
               </div>
             </TabsContent>

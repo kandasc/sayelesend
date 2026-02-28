@@ -566,20 +566,39 @@ http.route({
 });
 
 // POST /api/v1/ai/chat - Send a message to an AI assistant (public, no auth)
+// Supports "format" body field: "json" (default) or "text" (plain text response)
+// Also respects Accept header: "text/plain" returns plain text
 http.route({
   path: "/api/v1/ai/chat",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
     const origin = request.headers.get("Origin");
-    const headers = getCorsHeaders(origin);
+    const jsonHeaders = getCorsHeaders(origin);
+    const acceptHeader = request.headers.get("Accept") || "";
 
     try {
       const body = await request.json();
 
+      // Determine response format: body.format takes priority, then Accept header
+      const wantPlainText =
+        body.format === "text" ||
+        (acceptHeader.includes("text/plain") && body.format !== "json");
+
+      const plainHeaders: Record<string, string> = {
+        ...jsonHeaders,
+        "Content-Type": "text/plain; charset=utf-8",
+      };
+
       if (!body.assistantId || !body.message) {
+        if (wantPlainText) {
+          return new Response("Error: Missing required fields: assistantId, message", {
+            status: 400,
+            headers: plainHeaders,
+          });
+        }
         return new Response(
           JSON.stringify({ error: "Missing required fields: assistantId, message" }),
-          { status: 400, headers }
+          { status: 400, headers: jsonHeaders }
         );
       }
 
@@ -590,9 +609,15 @@ http.route({
       // Validate channel
       const validChannels = ["web", "sms", "whatsapp", "api"];
       if (!validChannels.includes(channel)) {
+        if (wantPlainText) {
+          return new Response("Error: Invalid channel. Must be: web, sms, whatsapp, or api", {
+            status: 400,
+            headers: plainHeaders,
+          });
+        }
         return new Response(
           JSON.stringify({ error: "Invalid channel. Must be: web, sms, whatsapp, or api" }),
-          { status: 400, headers }
+          { status: 400, headers: jsonHeaders }
         );
       }
 
@@ -606,19 +631,38 @@ http.route({
         visitorPhone: body.visitorPhone,
       });
 
+      // Return plain text: just the AI response string
+      if (wantPlainText) {
+        return new Response(result.response, {
+          status: 200,
+          headers: {
+            ...plainHeaders,
+            "X-Session-Id": result.sessionId,
+          },
+        });
+      }
+
+      // Default: return JSON
       return new Response(
         JSON.stringify({
           success: true,
           response: result.response,
           sessionId: result.sessionId,
         }),
-        { status: 200, headers }
+        { status: 200, headers: jsonHeaders }
       );
     } catch (error) {
       console.error("AI Chat API error:", error);
+      const acceptHdr = request.headers.get("Accept") || "";
+      if (acceptHdr.includes("text/plain")) {
+        return new Response("Error: An error occurred processing your request", {
+          status: 500,
+          headers: { ...jsonHeaders, "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }
       return new Response(
         JSON.stringify({ error: "An error occurred processing your request" }),
-        { status: 500, headers }
+        { status: 500, headers: jsonHeaders }
       );
     }
   }),
