@@ -1039,6 +1039,7 @@ function KnowledgeBaseTab({
   const [sourceType, setSourceType] = useState<SourceType>("manual");
   const [sourceUrl, setSourceUrl] = useState("");
   const [sourceHeaders, setSourceHeaders] = useState("");
+  const [editingEntry, setEditingEntry] = useState<Doc<"aiKnowledgeBase"> | null>(null);
   const addKnowledge = useMutation(api.aiAssistants.addKnowledge);
   const removeKnowledge = useMutation(api.aiAssistants.removeKnowledge);
   const updateKnowledge = useMutation(api.aiAssistants.updateKnowledge);
@@ -1208,6 +1209,9 @@ function KnowledgeBaseTab({
                     <p className="text-sm text-muted-foreground line-clamp-2">{entry.content}</p>
                   </div>
                   <div className="flex items-center gap-1 ml-4">
+                    <Button variant="ghost" size="sm" onClick={() => setEditingEntry(entry)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     {entry.sourceUrl && (
                       <Button variant="ghost" size="sm" onClick={() => handleSync(entry)}
                         disabled={syncing === entry._id}>
@@ -1234,7 +1238,116 @@ function KnowledgeBaseTab({
           ))}
         </div>
       )}
+
+      {/* Edit Knowledge Dialog */}
+      <Dialog open={editingEntry !== null} onOpenChange={(open) => { if (!open) setEditingEntry(null); }}>
+        {editingEntry && (
+          <EditKnowledgeDialog
+            key={editingEntry._id}
+            entry={editingEntry}
+            onClose={() => setEditingEntry(null)}
+          />
+        )}
+      </Dialog>
     </div>
+  );
+}
+
+// ─── Edit Knowledge Dialog ─────────────────────────────────────────────────
+
+function EditKnowledgeDialog({
+  entry, onClose,
+}: {
+  entry: Doc<"aiKnowledgeBase">;
+  onClose: () => void;
+}) {
+  const intl = useIntl();
+  const [title, setTitle] = useState(entry.title);
+  const [content, setContent] = useState(entry.content);
+  const [category, setCategory] = useState(entry.category ?? "");
+  const [sourceUrl, setSourceUrl] = useState(entry.sourceUrl ?? "");
+  const [sourceHeaders, setSourceHeaders] = useState(entry.sourceHeaders ?? "");
+  const [saving, setSaving] = useState(false);
+  const updateKnowledge = useMutation(api.aiAssistants.updateKnowledge);
+
+  const handleSave = async () => {
+    if (!title.trim()) {
+      toast.error(intl.formatMessage({ id: "page.ai.knowledge.titleRequired" }));
+      return;
+    }
+    if (!content.trim()) {
+      toast.error(intl.formatMessage({ id: "page.ai.knowledge.contentRequiredMsg" }));
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateKnowledge({
+        entryId: entry._id,
+        title: title.trim(),
+        content: content.trim(),
+        category: category.trim() || undefined,
+        sourceUrl: sourceUrl.trim() || undefined,
+        sourceHeaders: sourceHeaders.trim() || undefined,
+      });
+      toast.success(intl.formatMessage({ id: "page.ai.knowledge.updated" }));
+      onClose();
+    } catch {
+      toast.error(intl.formatMessage({ id: "page.ai.knowledge.updateFailed" }));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>{intl.formatMessage({ id: "page.ai.knowledge.editEntry" })}</DialogTitle>
+        <DialogDescription>{intl.formatMessage({ id: "page.ai.knowledge.editEntryDesc" })}</DialogDescription>
+      </DialogHeader>
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>{intl.formatMessage({ id: "page.ai.knowledge.titleField" })}</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Business Hours, Return Policy" />
+          </div>
+          <div className="space-y-2">
+            <Label>{intl.formatMessage({ id: "page.ai.knowledge.category" })}</Label>
+            <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. General, Products" />
+          </div>
+        </div>
+
+        {(entry.sourceType === "api" || entry.sourceType === "website") && (
+          <>
+            <div className="space-y-2">
+              <Label>{intl.formatMessage({ id: "page.ai.knowledge.sourceUrl" })}</Label>
+              <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)}
+                placeholder={entry.sourceType === "api" ? "https://api.example.com/data" : "https://example.com/about"} />
+            </div>
+            {entry.sourceType === "api" && (
+              <div className="space-y-2">
+                <Label>{intl.formatMessage({ id: "page.ai.knowledge.headers" })}</Label>
+                <Textarea value={sourceHeaders} onChange={(e) => setSourceHeaders(e.target.value)}
+                  placeholder={'{"Authorization": "Bearer YOUR_TOKEN"}'} rows={2} />
+              </div>
+            )}
+          </>
+        )}
+
+        <div className="space-y-2">
+          <Label>{intl.formatMessage({ id: "page.ai.knowledge.contentRequired" })}</Label>
+          <Textarea value={content} onChange={(e) => setContent(e.target.value)}
+            placeholder="Information the assistant should know..."
+            rows={8} />
+        </div>
+      </div>
+      <DialogFooter>
+        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+        <Button size="sm" onClick={handleSave} disabled={saving}>
+          {saving ? <Spinner className="h-4 w-4 mr-1" /> : null}
+          {intl.formatMessage({ id: "page.ai.tasks.saveChanges" })}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
   );
 }
 

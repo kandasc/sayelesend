@@ -688,6 +688,10 @@
   "page.ai.knowledge.deleteConfirm": "Delete this entry?",
   "page.ai.knowledge.source": "Source",
   "page.ai.knowledge.lastSynced": "Last synced",
+  "page.ai.knowledge.editEntry": "Edit Knowledge Entry",
+  "page.ai.knowledge.editEntryDesc": "Update the title, content, and other details of this entry",
+  "page.ai.knowledge.updated": "Knowledge entry updated",
+  "page.ai.knowledge.updateFailed": "Failed to update entry",
 
   "page.ai.tasks.title": "Tasks",
   "page.ai.tasks.subtitle": "Define actions the AI can execute via your API endpoints",

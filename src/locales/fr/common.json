@@ -688,6 +688,10 @@
   "page.ai.knowledge.deleteConfirm": "Supprimer cette entrée ?",
   "page.ai.knowledge.source": "Source",
   "page.ai.knowledge.lastSynced": "Dernière synchronisation",
+  "page.ai.knowledge.editEntry": "Modifier l'entrée",
+  "page.ai.knowledge.editEntryDesc": "Mettre à jour le titre, le contenu et les autres détails de cette entrée",
+  "page.ai.knowledge.updated": "Entrée mise à jour",
+  "page.ai.knowledge.updateFailed": "Échec de la mise à jour",
 
   "page.ai.tasks.title": "Tâches",
   "page.ai.tasks.subtitle": "Définissez les actions que l'IA peut exécuter via vos points d'accès API",
