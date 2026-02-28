@@ -2622,6 +2622,7 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
   const [customInstructions, setCustomInstructions] = useState(assistant.customInstructions ?? "");
   const [handoverEmail, setHandoverEmail] = useState(assistant.handoverEmail ?? "");
   const [handoverPhoneNumber, setHandoverPhoneNumber] = useState(assistant.handoverPhoneNumber ?? "");
+  const [saving, setSaving] = useState(false);
 
   // Departments
   const [departments, setDepartments] = useState<Department[]>(
@@ -2643,6 +2644,11 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
   const updateAssistant = useMutation(api.aiAssistants.update);
 
   const handleSave = async () => {
+    if (!name.trim() || !companyName.trim()) {
+      toast.error("Assistant name and company name are required");
+      return;
+    }
+    setSaving(true);
     try {
       await updateAssistant({
         assistantId: assistant._id, name: name.trim(), description: description.trim() || undefined,
@@ -2657,6 +2663,8 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
       toast.success("Settings updated");
     } catch {
       toast.error("Failed to update");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -2699,8 +2707,8 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
             <div className="space-y-2"><Label>Assistant Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
             <div className="space-y-2"><Label>Company Name</Label><Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} /></div>
           </div>
-          <div className="space-y-2"><Label>Description</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} /></div>
-          <div className="space-y-2"><Label>Company Description</Label><Textarea value={companyDescription} onChange={(e) => setCompanyDescription(e.target.value)} rows={3} /></div>
+          <div className="space-y-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Brief description of what this assistant does" /></div>
+          <div className="space-y-2"><Label>Company Description</Label><Textarea value={companyDescription} onChange={(e) => setCompanyDescription(e.target.value)} rows={4} placeholder="Describe your company, products, and services" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2"><Label>Industry</Label><Input value={industry} onChange={(e) => setIndustry(e.target.value)} /></div>
             <div className="space-y-2">
@@ -2716,7 +2724,7 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
               </Select>
             </div>
           </div>
-          <div className="space-y-2"><Label>Welcome Message</Label><Textarea value={welcomeMessage} onChange={(e) => setWelcomeMessage(e.target.value)} rows={2} /></div>
+          <div className="space-y-2"><Label>Welcome Message</Label><Textarea value={welcomeMessage} onChange={(e) => setWelcomeMessage(e.target.value)} rows={3} placeholder="The first message visitors see when opening the chat" /></div>
           <div className="space-y-2">
             <Label>Brand Color</Label>
             <div className="flex items-center gap-2">
@@ -2724,7 +2732,7 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
               <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="flex-1" />
             </div>
           </div>
-          <div className="space-y-2"><Label>Custom Instructions</Label><Textarea value={customInstructions} onChange={(e) => setCustomInstructions(e.target.value)} rows={3} /></div>
+          <div className="space-y-2"><Label>Custom Instructions</Label><Textarea value={customInstructions} onChange={(e) => setCustomInstructions(e.target.value)} rows={5} placeholder="Additional instructions for the AI assistant (e.g. tone, topics to avoid, specific responses)" /></div>
         </CardContent>
       </Card>
 
@@ -2867,8 +2875,8 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Custom AI Message (optional)</Label>
-              <Input value={newSubjectMsg} onChange={(e) => setNewSubjectMsg(e.target.value)}
-                placeholder="e.g. I'd recommend speaking with our sales team for detailed pricing." />
+              <Textarea value={newSubjectMsg} onChange={(e) => setNewSubjectMsg(e.target.value)}
+                placeholder="e.g. I'd recommend speaking with our sales team for detailed pricing." rows={2} />
             </div>
             <Button size="sm" onClick={addSubject}><Plus className="h-3 w-3 mr-1" />Add Subject</Button>
           </div>
@@ -2877,7 +2885,9 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button onClick={handleSave} size="lg">Save All Settings</Button>
+        <Button onClick={handleSave} size="lg" disabled={saving}>
+          {saving ? <><Spinner className="h-4 w-4 mr-2" />Saving...</> : "Save All Settings"}
+        </Button>
       </div>
     </div>
   );
