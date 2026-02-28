@@ -1236,25 +1236,22 @@ function KnowledgeBaseTab({
 
 type TaskParameter = { name: string; description: string; type: "string" | "number" | "boolean"; required: boolean };
 
-function TasksTab({
-  assistantId, clientId, tasks,
-}: {
-  assistantId: Id<"aiAssistants">;
-  clientId: Id<"clients">;
-  tasks: Doc<"aiAssistantTasks">[];
-}) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [apiEndpoint, setApiEndpoint] = useState("");
-  const [httpMethod, setHttpMethod] = useState<HttpMethod>("POST");
-  const [headers, setHeaders] = useState("");
-  const [bodyTemplate, setBodyTemplate] = useState("");
-  const [parameters, setParameters] = useState<TaskParameter[]>([]);
-  const createTask = useMutation(api.aiAssistants.createTask);
-  const updateTask = useMutation(api.aiAssistants.updateTask);
-  const removeTask = useMutation(api.aiAssistants.removeTask);
+// ─── Task Form Fields (shared between create & edit) ─────────────────────────
 
+function TaskFormFields({
+  name, setName, description, setDescription,
+  apiEndpoint, setApiEndpoint, httpMethod, setHttpMethod,
+  headers, setHeaders, bodyTemplate, setBodyTemplate,
+  parameters, setParameters,
+}: {
+  name: string; setName: (v: string) => void;
+  description: string; setDescription: (v: string) => void;
+  apiEndpoint: string; setApiEndpoint: (v: string) => void;
+  httpMethod: HttpMethod; setHttpMethod: (v: HttpMethod) => void;
+  headers: string; setHeaders: (v: string) => void;
+  bodyTemplate: string; setBodyTemplate: (v: string) => void;
+  parameters: TaskParameter[]; setParameters: (v: TaskParameter[]) => void;
+}) {
   const addParam = () => {
     setParameters([...parameters, { name: "", description: "", type: "string", required: true }]);
   };
@@ -1274,6 +1271,195 @@ function TasksTab({
   const removeParam = (index: number) => {
     setParameters(parameters.filter((_, i) => i !== index));
   };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Task Name *</Label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Check Order Status" />
+        </div>
+        <div className="space-y-2">
+          <Label>HTTP Method</Label>
+          <Select value={httpMethod} onValueChange={(v) => setHttpMethod(v as HttpMethod)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="GET">GET</SelectItem>
+              <SelectItem value="POST">POST</SelectItem>
+              <SelectItem value="PUT">PUT</SelectItem>
+              <SelectItem value="DELETE">DELETE</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Description * (tells the AI when to use this task)</Label>
+        <Textarea value={description} onChange={(e) => setDescription(e.target.value)}
+          placeholder="e.g. Look up the status of a customer order by order number" rows={2} />
+      </div>
+
+      <div className="space-y-2">
+        <Label>API Endpoint *</Label>
+        <Input value={apiEndpoint} onChange={(e) => setApiEndpoint(e.target.value)}
+          placeholder="https://api.yourcompany.com/orders/status" />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Custom Headers (JSON)</Label>
+        <Textarea value={headers} onChange={(e) => setHeaders(e.target.value)}
+          placeholder={'{"Authorization": "Bearer YOUR_TOKEN", "X-API-Key": "key123"}'} rows={2} />
+      </div>
+
+      {(httpMethod === "POST" || httpMethod === "PUT") && (
+        <div className="space-y-2">
+          <Label>Body Template (JSON with {"{{param}}"} placeholders)</Label>
+          <Textarea value={bodyTemplate} onChange={(e) => setBodyTemplate(e.target.value)}
+            placeholder={'{"order_id": "{{order_id}}", "action": "check_status"}'} rows={3} />
+        </div>
+      )}
+
+      {/* Parameters */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label>Parameters (info the AI needs to collect from user)</Label>
+          <Button size="sm" variant="ghost" onClick={addParam}><Plus className="h-3 w-3 mr-1" />Add</Button>
+        </div>
+        {parameters.map((param, i) => (
+          <div key={i} className="flex items-end gap-2 p-3 border rounded-lg">
+            <div className="flex-1 space-y-1">
+              <Label className="text-xs">Name</Label>
+              <Input value={param.name} onChange={(e) => updateParam(i, "name", e.target.value)} placeholder="order_id" className="h-8 text-sm" />
+            </div>
+            <div className="flex-1 space-y-1">
+              <Label className="text-xs">Description</Label>
+              <Input value={param.description} onChange={(e) => updateParam(i, "description", e.target.value)} placeholder="The order number" className="h-8 text-sm" />
+            </div>
+            <div className="w-24 space-y-1">
+              <Label className="text-xs">Type</Label>
+              <Select value={param.type} onValueChange={(v) => updateParam(i, "type", v)}>
+                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="string">String</SelectItem>
+                  <SelectItem value="number">Number</SelectItem>
+                  <SelectItem value="boolean">Boolean</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-20 space-y-1">
+              <Label className="text-xs">Required</Label>
+              <Select value={param.required ? "yes" : "no"} onValueChange={(v) => updateParam(i, "required", v === "yes")}>
+                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => removeParam(i)} className="h-8 w-8 p-0">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Edit Task Dialog ──────────────────────────────────────────────────────
+
+function EditTaskDialog({
+  task, onClose,
+}: {
+  task: Doc<"aiAssistantTasks">;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(task.name);
+  const [description, setDescription] = useState(task.description);
+  const [apiEndpoint, setApiEndpoint] = useState(task.apiEndpoint);
+  const [httpMethod, setHttpMethod] = useState<HttpMethod>(task.httpMethod);
+  const [headers, setHeaders] = useState(task.headers ?? "");
+  const [bodyTemplate, setBodyTemplate] = useState(task.bodyTemplate ?? "");
+  const [parameters, setParameters] = useState<TaskParameter[]>(
+    task.parameters.map((p) => ({ ...p }))
+  );
+  const [saving, setSaving] = useState(false);
+  const updateTask = useMutation(api.aiAssistants.updateTask);
+
+  const handleSave = async () => {
+    if (!name.trim() || !description.trim() || !apiEndpoint.trim()) {
+      toast.error("Name, description, and API endpoint are required");
+      return;
+    }
+    const validParams = parameters.filter((p) => p.name.trim() && p.description.trim());
+    setSaving(true);
+    try {
+      await updateTask({
+        taskId: task._id,
+        name: name.trim(),
+        description: description.trim(),
+        apiEndpoint: apiEndpoint.trim(),
+        httpMethod,
+        headers: headers.trim() || undefined,
+        bodyTemplate: bodyTemplate.trim() || undefined,
+        parameters: validParams,
+      });
+      toast.success("Task updated");
+      onClose();
+    } catch {
+      toast.error("Failed to update task");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>Edit Task</DialogTitle>
+        <DialogDescription>Modify the task configuration below</DialogDescription>
+      </DialogHeader>
+      <TaskFormFields
+        name={name} setName={setName}
+        description={description} setDescription={setDescription}
+        apiEndpoint={apiEndpoint} setApiEndpoint={setApiEndpoint}
+        httpMethod={httpMethod} setHttpMethod={setHttpMethod}
+        headers={headers} setHeaders={setHeaders}
+        bodyTemplate={bodyTemplate} setBodyTemplate={setBodyTemplate}
+        parameters={parameters} setParameters={setParameters}
+      />
+      <DialogFooter>
+        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+        <Button size="sm" onClick={handleSave} disabled={saving}>
+          {saving ? <Spinner className="h-4 w-4 mr-1" /> : null}
+          Save Changes
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+// ─── Tasks Tab ─────────────────────────────────────────────────────────────
+
+function TasksTab({
+  assistantId, clientId, tasks,
+}: {
+  assistantId: Id<"aiAssistants">;
+  clientId: Id<"clients">;
+  tasks: Doc<"aiAssistantTasks">[];
+}) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [apiEndpoint, setApiEndpoint] = useState("");
+  const [httpMethod, setHttpMethod] = useState<HttpMethod>("POST");
+  const [headers, setHeaders] = useState("");
+  const [bodyTemplate, setBodyTemplate] = useState("");
+  const [parameters, setParameters] = useState<TaskParameter[]>([]);
+  const [editingTask, setEditingTask] = useState<Doc<"aiAssistantTasks"> | null>(null);
+  const createTask = useMutation(api.aiAssistants.createTask);
+  const updateTask = useMutation(api.aiAssistants.updateTask);
+  const removeTask = useMutation(api.aiAssistants.removeTask);
 
   const handleCreate = async () => {
     if (!name.trim() || !description.trim() || !apiEndpoint.trim()) {
@@ -1322,95 +1508,15 @@ function TasksTab({
       {showAdd && (
         <Card>
           <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Task Name *</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Check Order Status" />
-              </div>
-              <div className="space-y-2">
-                <Label>HTTP Method</Label>
-                <Select value={httpMethod} onValueChange={(v) => setHttpMethod(v as HttpMethod)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="GET">GET</SelectItem>
-                    <SelectItem value="POST">POST</SelectItem>
-                    <SelectItem value="PUT">PUT</SelectItem>
-                    <SelectItem value="DELETE">DELETE</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Description * (tells the AI when to use this task)</Label>
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)}
-                placeholder="e.g. Look up the status of a customer order by order number" rows={2} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>API Endpoint *</Label>
-              <Input value={apiEndpoint} onChange={(e) => setApiEndpoint(e.target.value)}
-                placeholder="https://api.yourcompany.com/orders/status" />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Custom Headers (JSON)</Label>
-              <Textarea value={headers} onChange={(e) => setHeaders(e.target.value)}
-                placeholder={'{"Authorization": "Bearer YOUR_TOKEN", "X-API-Key": "key123"}'} rows={2} />
-            </div>
-
-            {(httpMethod === "POST" || httpMethod === "PUT") && (
-              <div className="space-y-2">
-                <Label>Body Template (JSON with {"{{param}}"} placeholders)</Label>
-                <Textarea value={bodyTemplate} onChange={(e) => setBodyTemplate(e.target.value)}
-                  placeholder={'{"order_id": "{{order_id}}", "action": "check_status"}'} rows={3} />
-              </div>
-            )}
-
-            {/* Parameters */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Parameters (info the AI needs to collect from user)</Label>
-                <Button size="sm" variant="ghost" onClick={addParam}><Plus className="h-3 w-3 mr-1" />Add</Button>
-              </div>
-              {parameters.map((param, i) => (
-                <div key={i} className="flex items-end gap-2 p-3 border rounded-lg">
-                  <div className="flex-1 space-y-1">
-                    <Label className="text-xs">Name</Label>
-                    <Input value={param.name} onChange={(e) => updateParam(i, "name", e.target.value)} placeholder="order_id" className="h-8 text-sm" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <Label className="text-xs">Description</Label>
-                    <Input value={param.description} onChange={(e) => updateParam(i, "description", e.target.value)} placeholder="The order number" className="h-8 text-sm" />
-                  </div>
-                  <div className="w-24 space-y-1">
-                    <Label className="text-xs">Type</Label>
-                    <Select value={param.type} onValueChange={(v) => updateParam(i, "type", v)}>
-                      <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="string">String</SelectItem>
-                        <SelectItem value="number">Number</SelectItem>
-                        <SelectItem value="boolean">Boolean</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="w-20 space-y-1">
-                    <Label className="text-xs">Required</Label>
-                    <Select value={param.required ? "yes" : "no"} onValueChange={(v) => updateParam(i, "required", v === "yes")}>
-                      <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="yes">Yes</SelectItem>
-                        <SelectItem value="no">No</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button size="sm" variant="ghost" onClick={() => removeParam(i)} className="h-8 w-8 p-0">
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-
+            <TaskFormFields
+              name={name} setName={setName}
+              description={description} setDescription={setDescription}
+              apiEndpoint={apiEndpoint} setApiEndpoint={setApiEndpoint}
+              httpMethod={httpMethod} setHttpMethod={setHttpMethod}
+              headers={headers} setHeaders={setHeaders}
+              bodyTemplate={bodyTemplate} setBodyTemplate={setBodyTemplate}
+              parameters={parameters} setParameters={setParameters}
+            />
             <div className="flex gap-2">
               <Button size="sm" onClick={handleCreate}>Create Task</Button>
               <Button size="sm" variant="ghost" onClick={resetForm}>Cancel</Button>
@@ -1460,6 +1566,9 @@ function TasksTab({
                     </div>
                   </div>
                   <div className="flex items-center gap-1 ml-4">
+                    <Button variant="ghost" size="sm" onClick={() => setEditingTask(task)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() =>
                       updateTask({ taskId: task._id, isActive: !task.isActive })
                     }>
@@ -1480,6 +1589,17 @@ function TasksTab({
           ))}
         </div>
       )}
+
+      {/* Edit Task Dialog */}
+      <Dialog open={editingTask !== null} onOpenChange={(open) => { if (!open) setEditingTask(null); }}>
+        {editingTask && (
+          <EditTaskDialog
+            key={editingTask._id}
+            task={editingTask}
+            onClose={() => setEditingTask(null)}
+          />
+        )}
+      </Dialog>
     </div>
   );
 }
