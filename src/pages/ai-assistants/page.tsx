@@ -3,6 +3,7 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import type { Id, Doc } from "@/convex/_generated/dataModel.d.ts";
 import { Authenticated, AuthLoading } from "convex/react";
+import { useIntl } from "react-intl";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -88,6 +89,7 @@ type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 // ─── Main Page (Admin + Client) ────────────────────────────────────────────
 
 function AIAssistantsInner() {
+  const intl = useIntl();
   const currentUser = useQuery(api.users.getCurrentUser, {});
   const clients = useQuery(api.clients.listClients, currentUser?.role === "admin" && !currentUser?.clientId ? {} : "skip");
   const [selectedClientId, setSelectedClientId] = useState<Id<"clients"> | null>(null);
@@ -117,8 +119,8 @@ function AIAssistantsInner() {
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon"><ShieldAlert /></EmptyMedia>
-          <EmptyTitle>Access denied</EmptyTitle>
-          <EmptyDescription>You do not have permission to view AI Assistants.</EmptyDescription>
+          <EmptyTitle>{intl.formatMessage({ id: "page.ai.accessDenied" })}</EmptyTitle>
+          <EmptyDescription>{intl.formatMessage({ id: "page.ai.accessDeniedDesc" })}</EmptyDescription>
         </EmptyHeader>
       </Empty>
     );
@@ -130,8 +132,8 @@ function AIAssistantsInner() {
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon"><Bot /></EmptyMedia>
-          <EmptyTitle>No AI assistants</EmptyTitle>
-          <EmptyDescription>Your account is not yet linked to a company. Contact your administrator.</EmptyDescription>
+          <EmptyTitle>{intl.formatMessage({ id: "page.ai.noAssistants" })}</EmptyTitle>
+          <EmptyDescription>{intl.formatMessage({ id: "page.ai.noAssistantsClientDesc" })}</EmptyDescription>
         </EmptyHeader>
       </Empty>
     );
@@ -165,11 +167,11 @@ function AIAssistantsInner() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">AI Assistants</h1>
+          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.ai.title" })}</h1>
           <p className="text-muted-foreground mt-1">
             {isSuperAdmin
-              ? "Create and manage AI chatbots for your clients"
-              : "View and manage your AI chatbots"}
+              ? intl.formatMessage({ id: "page.ai.subtitleAdmin" })
+              : intl.formatMessage({ id: "page.ai.subtitleClient" })}
           </p>
         </div>
         {isSuperAdmin && selectedClientId && (
@@ -183,7 +185,7 @@ function AIAssistantsInner() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="flex-1 max-w-sm space-y-2">
-                <Label>Select Client</Label>
+                <Label>{intl.formatMessage({ id: "page.ai.selectClient" })}</Label>
                 <Select
                   value={selectedClientId ?? "all"}
                   onValueChange={(val) => {
@@ -192,10 +194,10 @@ function AIAssistantsInner() {
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="All clients" />
+                    <SelectValue placeholder={intl.formatMessage({ id: "page.ai.allClients" })} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Clients</SelectItem>
+                    <SelectItem value="all">{intl.formatMessage({ id: "page.ai.allClients" })}</SelectItem>
                     {clients?.map((client) => (
                       <SelectItem key={client._id} value={client._id}>
                         {client.companyName}
@@ -216,13 +218,13 @@ function AIAssistantsInner() {
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon"><Bot /></EmptyMedia>
-            <EmptyTitle>No AI assistants yet</EmptyTitle>
+            <EmptyTitle>{intl.formatMessage({ id: "page.ai.noAssistantsYet" })}</EmptyTitle>
             <EmptyDescription>
               {isSuperAdmin
                 ? selectedClientId
-                  ? "Create an AI assistant for this client."
-                  : "Select a client to create an assistant, or view all assistants."
-                : "No AI assistants have been set up for your company yet. Contact your administrator."}
+                  ? intl.formatMessage({ id: "page.ai.noAssistantsCreateDesc" })
+                  : intl.formatMessage({ id: "page.ai.noAssistantsSelectDesc" })
+                : intl.formatMessage({ id: "page.ai.noAssistantsContactAdmin" })}
             </EmptyDescription>
           </EmptyHeader>
           {isSuperAdmin && selectedClientId && (
@@ -261,6 +263,7 @@ function AssistantCard({
   showClientName: boolean;
   onClick: () => void;
 }) {
+  const intl = useIntl();
   const clientName = clients?.find((c) => c._id === assistant.clientId)?.companyName ?? "Unknown";
 
   return (
@@ -280,7 +283,7 @@ function AssistantCard({
             </div>
           </div>
           <Badge variant={assistant.isActive ? "default" : "secondary"}>
-            {assistant.isActive ? "Active" : "Inactive"}
+            {assistant.isActive ? intl.formatMessage({ id: "common.active" }) : intl.formatMessage({ id: "common.inactive" })}
           </Badge>
         </div>
       </CardHeader>
@@ -317,11 +320,12 @@ function CreateAssistantDialog({ clientId, clientName }: { clientId: Id<"clients
   const [personality, setPersonality] = useState<Personality>("professional");
   const [primaryColor, setPrimaryColor] = useState("#3B82F6");
   const [customInstructions, setCustomInstructions] = useState("");
+  const intl = useIntl();
   const createAssistant = useMutation(api.aiAssistants.create);
 
   const handleCreate = async () => {
     if (!name.trim() || !companyName.trim()) {
-      toast.error("Name and company name are required");
+      toast.error(intl.formatMessage({ id: "page.ai.create.nameRequired" }));
       return;
     }
     try {
@@ -337,23 +341,23 @@ function CreateAssistantDialog({ clientId, clientName }: { clientId: Id<"clients
         primaryColor,
         customInstructions: customInstructions.trim() || undefined,
       });
-      toast.success("AI Assistant created!");
+      toast.success(intl.formatMessage({ id: "page.ai.create.success" }));
       setOpen(false);
       setName(""); setDescription(""); setCompanyDescription("");
       setIndustry(""); setWelcomeMessage(""); setCustomInstructions("");
     } catch {
-      toast.error("Failed to create assistant");
+      toast.error(intl.formatMessage({ id: "page.ai.create.failed" }));
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (v) setCompanyName(clientName); }}>
       <DialogTrigger asChild>
-        <Button><Plus className="h-4 w-4 mr-2" />Create Assistant</Button>
+        <Button><Plus className="h-4 w-4 mr-2" />{intl.formatMessage({ id: "page.ai.create.button" })}</Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create AI Assistant</DialogTitle>
+          <DialogTitle>{intl.formatMessage({ id: "page.ai.create.title" })}</DialogTitle>
           <DialogDescription>
             Set up a new AI chatbot for <strong>{clientName}</strong>
           </DialogDescription>
@@ -361,59 +365,59 @@ function CreateAssistantDialog({ clientId, clientName }: { clientId: Id<"clients
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Assistant Name *</Label>
+              <Label>{intl.formatMessage({ id: "page.ai.create.assistantName" })}</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Support Bot" />
             </div>
             <div className="space-y-2">
-              <Label>Company Name *</Label>
+              <Label>{intl.formatMessage({ id: "page.ai.create.companyName" })}</Label>
               <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Short Description</Label>
+            <Label>{intl.formatMessage({ id: "page.ai.create.shortDescription" })}</Label>
             <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What this assistant does" />
           </div>
           <div className="space-y-2">
-            <Label>Company Description</Label>
+            <Label>{intl.formatMessage({ id: "page.ai.create.companyDescription" })}</Label>
             <Textarea value={companyDescription} onChange={(e) => setCompanyDescription(e.target.value)} placeholder="Products, services, and more..." rows={3} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Industry</Label>
+              <Label>{intl.formatMessage({ id: "page.ai.create.industry" })}</Label>
               <Input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="e.g. Technology" />
             </div>
             <div className="space-y-2">
-              <Label>Personality</Label>
+              <Label>{intl.formatMessage({ id: "page.ai.create.personality" })}</Label>
               <Select value={personality} onValueChange={(v) => setPersonality(v as Personality)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="professional">Professional</SelectItem>
-                  <SelectItem value="friendly">Friendly</SelectItem>
-                  <SelectItem value="casual">Casual</SelectItem>
-                  <SelectItem value="formal">Formal</SelectItem>
+                  <SelectItem value="professional">{intl.formatMessage({ id: "page.ai.personality.professional" })}</SelectItem>
+                  <SelectItem value="friendly">{intl.formatMessage({ id: "page.ai.personality.friendly" })}</SelectItem>
+                  <SelectItem value="casual">{intl.formatMessage({ id: "page.ai.personality.casual" })}</SelectItem>
+                  <SelectItem value="formal">{intl.formatMessage({ id: "page.ai.personality.formal" })}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Welcome Message</Label>
+            <Label>{intl.formatMessage({ id: "page.ai.create.welcomeMessage" })}</Label>
             <Textarea value={welcomeMessage} onChange={(e) => setWelcomeMessage(e.target.value)} placeholder="First message visitors see" rows={2} />
           </div>
           <div className="space-y-2">
-            <Label>Brand Color</Label>
+            <Label>{intl.formatMessage({ id: "page.ai.create.brandColor" })}</Label>
             <div className="flex items-center gap-2">
               <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="h-10 w-12 cursor-pointer rounded border" />
               <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="flex-1" />
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Custom Instructions</Label>
+            <Label>{intl.formatMessage({ id: "page.ai.create.customInstructions" })}</Label>
             <Textarea value={customInstructions} onChange={(e) => setCustomInstructions(e.target.value)} placeholder="Additional rules or behaviors" rows={3} />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreate}>Create Assistant</Button>
+          <Button variant="ghost" onClick={() => setOpen(false)}>{intl.formatMessage({ id: "buttons.cancel" })}</Button>
+          <Button onClick={handleCreate}>{intl.formatMessage({ id: "page.ai.create.button" })}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -442,13 +446,14 @@ function AssistantDetail({
   const updateAssistant = useMutation(api.aiAssistants.update);
   const deleteAssistant = useMutation(api.aiAssistants.remove);
   const clients = useQuery(api.clients.listClients, isSuperAdmin ? {} : "skip");
+  const intl = useIntl();
 
   if (assistant === undefined) return <Skeleton className="h-96 w-full" />;
   if (!assistant) {
     return (
       <div className="text-center py-8">
-        <p>Assistant not found.</p>
-        <Button variant="ghost" onClick={onBack} className="mt-2">Go back</Button>
+        <p>{intl.formatMessage({ id: "page.ai.detail.notFound" })}</p>
+        <Button variant="ghost" onClick={onBack} className="mt-2">{intl.formatMessage({ id: "page.ai.detail.goBack" })}</Button>
       </div>
     );
   }
@@ -460,7 +465,7 @@ function AssistantDetail({
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={onBack}>
-          <ChevronLeft className="h-4 w-4 mr-1" />Back
+          <ChevronLeft className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.detail.back" })}
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
@@ -469,25 +474,25 @@ function AssistantDetail({
             </div>
             <div>
               <h1 className="text-2xl font-bold">{assistant.name}</h1>
-              {isSuperAdmin && <p className="text-sm text-muted-foreground">Client: {clientName}</p>}
+              {isSuperAdmin && <p className="text-sm text-muted-foreground">{intl.formatMessage({ id: "page.ai.detail.client" })}: {clientName}</p>}
             </div>
-            <Badge variant={assistant.isActive ? "default" : "secondary"}>{assistant.isActive ? "Active" : "Inactive"}</Badge>
+            <Badge variant={assistant.isActive ? "default" : "secondary"}>{assistant.isActive ? intl.formatMessage({ id: "common.active" }) : intl.formatMessage({ id: "common.inactive" })}</Badge>
           </div>
         </div>
         <Button variant="ghost" size="sm" onClick={async () => {
           await updateAssistant({ assistantId, isActive: !assistant.isActive });
-          toast.success(assistant.isActive ? "Deactivated" : "Activated");
+          toast.success(assistant.isActive ? intl.formatMessage({ id: "page.ai.detail.deactivated" }) : intl.formatMessage({ id: "page.ai.detail.activated" }));
         }}>
-          {assistant.isActive ? <><PowerOff className="h-4 w-4 mr-1" />Deactivate</> : <><Power className="h-4 w-4 mr-1" />Activate</>}
+          {assistant.isActive ? <><PowerOff className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.detail.deactivate" })}</> : <><Power className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.detail.activate" })}</>}
         </Button>
         {isSuperAdmin && (
           <Button variant="destructive" size="sm" onClick={async () => {
-            if (!confirm("Delete this assistant and all its data?")) return;
+            if (!confirm(intl.formatMessage({ id: "page.ai.detail.deleteConfirm" }))) return;
             await deleteAssistant({ assistantId });
-            toast.success("Deleted");
+            toast.success(intl.formatMessage({ id: "page.ai.detail.deleted" }));
             onBack();
           }}>
-            <Trash2 className="h-4 w-4 mr-1" />Delete
+            <Trash2 className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.detail.delete" })}
           </Button>
         )}
       </div>
@@ -495,10 +500,10 @@ function AssistantDetail({
       {/* Stats */}
       <div className="grid grid-cols-5 gap-4">
         {[
-          { label: "Conversations", value: assistant.totalConversations },
-          { label: "Messages", value: assistant.totalMessages },
-          { label: "Knowledge Entries", value: knowledgeBase?.length ?? 0 },
-          { label: "Tasks", value: tasks?.length ?? 0 },
+          { label: intl.formatMessage({ id: "page.ai.detail.conversations" }), value: assistant.totalConversations },
+          { label: intl.formatMessage({ id: "page.ai.detail.messages" }), value: assistant.totalMessages },
+          { label: intl.formatMessage({ id: "page.ai.detail.knowledgeEntries" }), value: knowledgeBase?.length ?? 0 },
+          { label: intl.formatMessage({ id: "page.ai.detail.tasks" }), value: tasks?.length ?? 0 },
           { label: "Personality", value: assistant.personality, capitalize: true },
         ].map((stat) => (
           <Card key={stat.label}>
@@ -513,15 +518,15 @@ function AssistantDetail({
       {/* Tabs */}
       <Tabs defaultValue="knowledge">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="knowledge"><Brain className="h-4 w-4 mr-1" />Knowledge</TabsTrigger>
-          <TabsTrigger value="training"><GraduationCap className="h-4 w-4 mr-1" />Training</TabsTrigger>
-          <TabsTrigger value="tasks"><Zap className="h-4 w-4 mr-1" />Tasks</TabsTrigger>
-          <TabsTrigger value="test"><MessageSquare className="h-4 w-4 mr-1" />Test Chat</TabsTrigger>
-          <TabsTrigger value="conversations"><Eye className="h-4 w-4 mr-1" />Conversations</TabsTrigger>
-          <TabsTrigger value="logs"><Activity className="h-4 w-4 mr-1" />Execution Logs</TabsTrigger>
-          <TabsTrigger value="handovers"><ArrowRightLeft className="h-4 w-4 mr-1" />Handovers{handoverRequests && handoverRequests.filter(h => h.status !== "resolved").length > 0 ? ` (${handoverRequests.filter(h => h.status !== "resolved").length})` : ""}</TabsTrigger>
-          <TabsTrigger value="api"><Code className="h-4 w-4 mr-1" />API / Integration</TabsTrigger>
-          <TabsTrigger value="settings"><Pencil className="h-4 w-4 mr-1" />Settings</TabsTrigger>
+          <TabsTrigger value="knowledge"><Brain className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.tabs.knowledge" })}</TabsTrigger>
+          <TabsTrigger value="training"><GraduationCap className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.tabs.training" })}</TabsTrigger>
+          <TabsTrigger value="tasks"><Zap className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.tabs.tasks" })}</TabsTrigger>
+          <TabsTrigger value="test"><MessageSquare className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.tabs.testChat" })}</TabsTrigger>
+          <TabsTrigger value="conversations"><Eye className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.tabs.conversations" })}</TabsTrigger>
+          <TabsTrigger value="logs"><Activity className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.tabs.executionLogs" })}</TabsTrigger>
+          <TabsTrigger value="handovers"><ArrowRightLeft className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.tabs.handovers" })}{handoverRequests && handoverRequests.filter(h => h.status !== "resolved").length > 0 ? ` (${handoverRequests.filter(h => h.status !== "resolved").length})` : ""}</TabsTrigger>
+          <TabsTrigger value="api"><Code className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.tabs.api" })}</TabsTrigger>
+          <TabsTrigger value="settings"><Pencil className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.tabs.settings" })}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="knowledge" className="mt-4">
@@ -1039,12 +1044,13 @@ function KnowledgeBaseTab({
   const updateKnowledge = useMutation(api.aiAssistants.updateKnowledge);
   const fetchSource = useAction(api.aiAssistantsActions.fetchSourceContent);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const intl = useIntl();
 
   const handleAdd = async () => {
-    if (!title.trim()) { toast.error("Title is required"); return; }
-    if (sourceType === "manual" && !content.trim()) { toast.error("Content is required"); return; }
+    if (!title.trim()) { toast.error(intl.formatMessage({ id: "page.ai.knowledge.titleRequired" })); return; }
+    if (sourceType === "manual" && !content.trim()) { toast.error(intl.formatMessage({ id: "page.ai.knowledge.contentRequiredMsg" })); return; }
     if ((sourceType === "api" || sourceType === "website") && !sourceUrl.trim()) {
-      toast.error("Source URL is required");
+      toast.error(intl.formatMessage({ id: "page.ai.knowledge.sourceUrlRequired" }));
       return;
     }
     try {
@@ -1058,11 +1064,11 @@ function KnowledgeBaseTab({
         sourceUrl: sourceUrl.trim() || undefined,
         sourceHeaders: sourceHeaders.trim() || undefined,
       });
-      toast.success("Knowledge entry added");
+      toast.success(intl.formatMessage({ id: "page.ai.knowledge.added" }));
       setTitle(""); setContent(""); setCategory(""); setSourceUrl(""); setSourceHeaders("");
       setSourceType("manual"); setShowAdd(false);
     } catch {
-      toast.error("Failed to add entry");
+      toast.error(intl.formatMessage({ id: "page.ai.knowledge.addFailed" }));
     }
   };
 
@@ -1076,12 +1082,12 @@ function KnowledgeBaseTab({
         entryId: entry._id,
       });
       if (result.success) {
-        toast.success("Content synced successfully");
+        toast.success(intl.formatMessage({ id: "page.ai.knowledge.synced" }));
       } else {
-        toast.error(result.error ?? "Sync failed");
+        toast.error(result.error ?? intl.formatMessage({ id: "page.ai.knowledge.syncFailed" }));
       }
     } catch {
-      toast.error("Sync failed");
+      toast.error(intl.formatMessage({ id: "page.ai.knowledge.syncFailed" }));
     } finally {
       setSyncing(null);
     }
@@ -1100,34 +1106,34 @@ function KnowledgeBaseTab({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Knowledge Base</h3>
-          <p className="text-sm text-muted-foreground">Feed your assistant with company data from multiple sources</p>
+          <h3 className="text-lg font-semibold">{intl.formatMessage({ id: "page.ai.knowledge.title" })}</h3>
+          <p className="text-sm text-muted-foreground">{intl.formatMessage({ id: "page.ai.knowledge.subtitle" })}</p>
         </div>
-        <Button size="sm" onClick={() => setShowAdd(!showAdd)}><Plus className="h-4 w-4 mr-1" />Add Entry</Button>
+        <Button size="sm" onClick={() => setShowAdd(!showAdd)}><Plus className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.knowledge.addEntry" })}</Button>
       </div>
 
       {showAdd && (
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-2">
-              <Label>Source Type</Label>
+              <Label>{intl.formatMessage({ id: "page.ai.knowledge.sourceType" })}</Label>
               <Select value={sourceType} onValueChange={(v) => setSourceType(v as SourceType)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="manual">Manual Text</SelectItem>
-                  <SelectItem value="api">API Endpoint</SelectItem>
-                  <SelectItem value="website">Website URL</SelectItem>
-                  <SelectItem value="document">Document / Paste</SelectItem>
+                  <SelectItem value="manual">{intl.formatMessage({ id: "page.ai.knowledge.manual" })}</SelectItem>
+                  <SelectItem value="api">{intl.formatMessage({ id: "page.ai.knowledge.apiEndpoint" })}</SelectItem>
+                  <SelectItem value="website">{intl.formatMessage({ id: "page.ai.knowledge.websiteUrl" })}</SelectItem>
+                  <SelectItem value="document">{intl.formatMessage({ id: "page.ai.knowledge.documentPaste" })}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Title *</Label>
+                <Label>{intl.formatMessage({ id: "page.ai.knowledge.titleField" })}</Label>
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Business Hours, Return Policy" />
               </div>
               <div className="space-y-2">
-                <Label>Category</Label>
+                <Label>{intl.formatMessage({ id: "page.ai.knowledge.category" })}</Label>
                 <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. General, Products" />
               </div>
             </div>
@@ -1135,13 +1141,13 @@ function KnowledgeBaseTab({
             {(sourceType === "api" || sourceType === "website") && (
               <>
                 <div className="space-y-2">
-                  <Label>Source URL *</Label>
+                  <Label>{intl.formatMessage({ id: "page.ai.knowledge.sourceUrl" })}</Label>
                   <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)}
                     placeholder={sourceType === "api" ? "https://api.example.com/data" : "https://example.com/about"} />
                 </div>
                 {sourceType === "api" && (
                   <div className="space-y-2">
-                    <Label>Headers (JSON)</Label>
+                    <Label>{intl.formatMessage({ id: "page.ai.knowledge.headers" })}</Label>
                     <Textarea value={sourceHeaders} onChange={(e) => setSourceHeaders(e.target.value)}
                       placeholder={'{"Authorization": "Bearer YOUR_TOKEN"}'} rows={2} />
                   </div>
@@ -1150,14 +1156,14 @@ function KnowledgeBaseTab({
             )}
 
             <div className="space-y-2">
-              <Label>{sourceType === "manual" || sourceType === "document" ? "Content *" : "Initial Content (or leave empty to sync)"}</Label>
+              <Label>{sourceType === "manual" || sourceType === "document" ? intl.formatMessage({ id: "page.ai.knowledge.contentRequired" }) : intl.formatMessage({ id: "page.ai.knowledge.initialContent" })}</Label>
               <Textarea value={content} onChange={(e) => setContent(e.target.value)}
                 placeholder={sourceType === "document" ? "Paste your document content here..." : "Information the assistant should know..."}
                 rows={5} />
             </div>
 
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleAdd}>Save Entry</Button>
+              <Button size="sm" onClick={handleAdd}>{intl.formatMessage({ id: "page.ai.knowledge.saveEntry" })}</Button>
               <Button size="sm" variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Button>
             </div>
           </CardContent>
@@ -1168,8 +1174,8 @@ function KnowledgeBaseTab({
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon"><BookOpen /></EmptyMedia>
-            <EmptyTitle>No knowledge entries</EmptyTitle>
-            <EmptyDescription>Add data from text, APIs, documents, or website URLs.</EmptyDescription>
+            <EmptyTitle>{intl.formatMessage({ id: "page.ai.knowledge.noEntries" })}</EmptyTitle>
+            <EmptyDescription>{intl.formatMessage({ id: "page.ai.knowledge.noEntriesDesc" })}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
@@ -1186,17 +1192,17 @@ function KnowledgeBaseTab({
                         {sourceIcon(entry.sourceType)}{entry.sourceType}
                       </Badge>
                       <Badge variant={entry.isActive ? "default" : "secondary"} className="text-xs">
-                        {entry.isActive ? "Active" : "Inactive"}
+                        {entry.isActive ? intl.formatMessage({ id: "common.active" }) : intl.formatMessage({ id: "common.inactive" })}
                       </Badge>
                     </div>
                     {entry.sourceUrl && (
                       <p className="text-xs text-muted-foreground mb-1 truncate">
-                        Source: {entry.sourceUrl}
+                        {intl.formatMessage({ id: "page.ai.knowledge.source" })}: {entry.sourceUrl}
                       </p>
                     )}
                     {entry.lastSyncedAt && (
                       <p className="text-xs text-muted-foreground mb-1">
-                        Last synced: {new Date(entry.lastSyncedAt).toLocaleString()}
+                        {intl.formatMessage({ id: "page.ai.knowledge.lastSynced" })}: {new Date(entry.lastSyncedAt).toLocaleString()}
                       </p>
                     )}
                     <p className="text-sm text-muted-foreground line-clamp-2">{entry.content}</p>
@@ -1214,9 +1220,9 @@ function KnowledgeBaseTab({
                       {entry.isActive ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                     </Button>
                     <Button variant="ghost" size="sm" onClick={async () => {
-                      if (confirm("Delete this entry?")) {
+                      if (confirm(intl.formatMessage({ id: "page.ai.knowledge.deleteConfirm" }))) {
                         await removeKnowledge({ entryId: entry._id });
-                        toast.success("Deleted");
+                        toast.success(intl.formatMessage({ id: "page.ai.detail.deleted" }));
                       }
                     }}>
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -1252,6 +1258,7 @@ function TaskFormFields({
   bodyTemplate: string; setBodyTemplate: (v: string) => void;
   parameters: TaskParameter[]; setParameters: (v: TaskParameter[]) => void;
 }) {
+  const intl = useIntl();
   const addParam = () => {
     setParameters([...parameters, { name: "", description: "", type: "string", required: true }]);
   };
@@ -1276,11 +1283,11 @@ function TaskFormFields({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Task Name *</Label>
+          <Label>{intl.formatMessage({ id: "page.ai.tasks.taskName" })}</Label>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Check Order Status" />
         </div>
         <div className="space-y-2">
-          <Label>HTTP Method</Label>
+          <Label>{intl.formatMessage({ id: "page.ai.tasks.httpMethod" })}</Label>
           <Select value={httpMethod} onValueChange={(v) => setHttpMethod(v as HttpMethod)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -1294,19 +1301,19 @@ function TaskFormFields({
       </div>
 
       <div className="space-y-2">
-        <Label>Description * (tells the AI when to use this task)</Label>
+        <Label>{intl.formatMessage({ id: "page.ai.tasks.description" })}</Label>
         <Textarea value={description} onChange={(e) => setDescription(e.target.value)}
           placeholder="e.g. Look up the status of a customer order by order number" rows={2} />
       </div>
 
       <div className="space-y-2">
-        <Label>API Endpoint *</Label>
+        <Label>{intl.formatMessage({ id: "page.ai.tasks.apiEndpoint" })}</Label>
         <Input value={apiEndpoint} onChange={(e) => setApiEndpoint(e.target.value)}
           placeholder="https://api.yourcompany.com/orders/status" />
       </div>
 
       <div className="space-y-2">
-        <Label>Custom Headers (JSON)</Label>
+        <Label>{intl.formatMessage({ id: "page.ai.tasks.customHeaders" })}</Label>
         <Textarea value={headers} onChange={(e) => setHeaders(e.target.value)}
           placeholder={'{"Authorization": "Bearer YOUR_TOKEN", "X-API-Key": "key123"}'} rows={2} />
       </div>
@@ -1322,21 +1329,21 @@ function TaskFormFields({
       {/* Parameters */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label>Parameters (info the AI needs to collect from user)</Label>
+          <Label>{intl.formatMessage({ id: "page.ai.tasks.parameters" })}</Label>
           <Button size="sm" variant="ghost" onClick={addParam}><Plus className="h-3 w-3 mr-1" />Add</Button>
         </div>
         {parameters.map((param, i) => (
           <div key={i} className="flex items-end gap-2 p-3 border rounded-lg">
             <div className="flex-1 space-y-1">
-              <Label className="text-xs">Name</Label>
+              <Label className="text-xs">{intl.formatMessage({ id: "page.ai.tasks.paramName" })}</Label>
               <Input value={param.name} onChange={(e) => updateParam(i, "name", e.target.value)} placeholder="order_id" className="h-8 text-sm" />
             </div>
             <div className="flex-1 space-y-1">
-              <Label className="text-xs">Description</Label>
+              <Label className="text-xs">{intl.formatMessage({ id: "page.ai.tasks.paramDescription" })}</Label>
               <Input value={param.description} onChange={(e) => updateParam(i, "description", e.target.value)} placeholder="The order number" className="h-8 text-sm" />
             </div>
             <div className="w-24 space-y-1">
-              <Label className="text-xs">Type</Label>
+              <Label className="text-xs">{intl.formatMessage({ id: "page.ai.tasks.paramType" })}</Label>
               <Select value={param.type} onValueChange={(v) => updateParam(i, "type", v)}>
                 <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -1347,7 +1354,7 @@ function TaskFormFields({
               </Select>
             </div>
             <div className="w-20 space-y-1">
-              <Label className="text-xs">Required</Label>
+              <Label className="text-xs">{intl.formatMessage({ id: "page.ai.tasks.paramRequired" })}</Label>
               <Select value={param.required ? "yes" : "no"} onValueChange={(v) => updateParam(i, "required", v === "yes")}>
                 <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -1374,6 +1381,7 @@ function EditTaskDialog({
   task: Doc<"aiAssistantTasks">;
   onClose: () => void;
 }) {
+  const intl = useIntl();
   const [name, setName] = useState(task.name);
   const [description, setDescription] = useState(task.description);
   const [apiEndpoint, setApiEndpoint] = useState(task.apiEndpoint);
@@ -1388,7 +1396,7 @@ function EditTaskDialog({
 
   const handleSave = async () => {
     if (!name.trim() || !description.trim() || !apiEndpoint.trim()) {
-      toast.error("Name, description, and API endpoint are required");
+      toast.error(intl.formatMessage({ id: "page.ai.tasks.nameRequired" }));
       return;
     }
     const validParams = parameters.filter((p) => p.name.trim() && p.description.trim());
@@ -1404,10 +1412,10 @@ function EditTaskDialog({
         bodyTemplate: bodyTemplate.trim() || undefined,
         parameters: validParams,
       });
-      toast.success("Task updated");
+      toast.success(intl.formatMessage({ id: "page.ai.tasks.updated" }));
       onClose();
     } catch {
-      toast.error("Failed to update task");
+      toast.error(intl.formatMessage({ id: "page.ai.tasks.updateFailed" }));
     } finally {
       setSaving(false);
     }
@@ -1416,8 +1424,8 @@ function EditTaskDialog({
   return (
     <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>Edit Task</DialogTitle>
-        <DialogDescription>Modify the task configuration below</DialogDescription>
+        <DialogTitle>{intl.formatMessage({ id: "page.ai.tasks.editTask" })}</DialogTitle>
+        <DialogDescription>{intl.formatMessage({ id: "page.ai.tasks.editTaskDesc" })}</DialogDescription>
       </DialogHeader>
       <TaskFormFields
         name={name} setName={setName}
@@ -1432,7 +1440,7 @@ function EditTaskDialog({
         <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
         <Button size="sm" onClick={handleSave} disabled={saving}>
           {saving ? <Spinner className="h-4 w-4 mr-1" /> : null}
-          Save Changes
+          {intl.formatMessage({ id: "page.ai.tasks.saveChanges" })}
         </Button>
       </DialogFooter>
     </DialogContent>
@@ -1448,6 +1456,7 @@ function TasksTab({
   clientId: Id<"clients">;
   tasks: Doc<"aiAssistantTasks">[];
 }) {
+  const intl = useIntl();
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -1463,7 +1472,7 @@ function TasksTab({
 
   const handleCreate = async () => {
     if (!name.trim() || !description.trim() || !apiEndpoint.trim()) {
-      toast.error("Name, description, and API endpoint are required");
+      toast.error(intl.formatMessage({ id: "page.ai.tasks.nameRequired" }));
       return;
     }
     const validParams = parameters.filter((p) => p.name.trim() && p.description.trim());
@@ -1479,10 +1488,10 @@ function TasksTab({
         bodyTemplate: bodyTemplate.trim() || undefined,
         parameters: validParams,
       });
-      toast.success("Task created");
+      toast.success(intl.formatMessage({ id: "page.ai.tasks.created" }));
       resetForm();
     } catch {
-      toast.error("Failed to create task");
+      toast.error(intl.formatMessage({ id: "page.ai.tasks.createFailed" }));
     }
   };
 
@@ -1495,13 +1504,13 @@ function TasksTab({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Tasks</h3>
+          <h3 className="text-lg font-semibold">{intl.formatMessage({ id: "page.ai.tasks.title" })}</h3>
           <p className="text-sm text-muted-foreground">
-            Define actions the AI can execute via your API endpoints
+            {intl.formatMessage({ id: "page.ai.tasks.subtitle" })}
           </p>
         </div>
         <Button size="sm" onClick={() => setShowAdd(!showAdd)}>
-          <Plus className="h-4 w-4 mr-1" />Add Task
+          <Plus className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.tasks.addTask" })}
         </Button>
       </div>
 
@@ -1518,7 +1527,7 @@ function TasksTab({
               parameters={parameters} setParameters={setParameters}
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleCreate}>Create Task</Button>
+              <Button size="sm" onClick={handleCreate}>{intl.formatMessage({ id: "page.ai.tasks.createTask" })}</Button>
               <Button size="sm" variant="ghost" onClick={resetForm}>Cancel</Button>
             </div>
           </CardContent>
@@ -1529,9 +1538,9 @@ function TasksTab({
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon"><Zap /></EmptyMedia>
-            <EmptyTitle>No tasks defined</EmptyTitle>
+            <EmptyTitle>{intl.formatMessage({ id: "page.ai.tasks.noTasks" })}</EmptyTitle>
             <EmptyDescription>
-              Define tasks with your API endpoints so the AI can take action for customers.
+              {intl.formatMessage({ id: "page.ai.tasks.noTasksDesc" })}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -1546,7 +1555,7 @@ function TasksTab({
                       <h4 className="font-medium">{task.name}</h4>
                       <Badge variant="outline" className="text-xs font-mono">{task.httpMethod}</Badge>
                       <Badge variant={task.isActive ? "default" : "secondary"} className="text-xs">
-                        {task.isActive ? "Active" : "Inactive"}
+                        {task.isActive ? intl.formatMessage({ id: "common.active" }) : intl.formatMessage({ id: "common.inactive" })}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground mb-1">{task.description}</p>
@@ -1561,7 +1570,7 @@ function TasksTab({
                       </div>
                     )}
                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                      <span>{task.executionCount} executions</span>
+                      <span>{task.executionCount} {intl.formatMessage({ id: "page.ai.tasks.executions" })}</span>
                       {task.lastExecutedAt && <span>Last: {new Date(task.lastExecutedAt).toLocaleString()}</span>}
                     </div>
                   </div>
@@ -1577,7 +1586,7 @@ function TasksTab({
                     <Button variant="ghost" size="sm" onClick={async () => {
                       if (confirm("Delete this task?")) {
                         await removeTask({ taskId: task._id });
-                        toast.success("Deleted");
+                        toast.success(intl.formatMessage({ id: "page.ai.detail.deleted" }));
                       }
                     }}>
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -1607,6 +1616,7 @@ function TasksTab({
 // ─── Test Chat Tab ──────────────────────────────────────────────────────────
 
 function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
+  const intl = useIntl();
   const [messages, setMessages] = useState<Array<{ role: "user" | "assistant" | "system"; content: string }>>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -1663,7 +1673,7 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
         stream.getTracks().forEach((t) => t.stop());
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
         if (audioBlob.size < 100) {
-          toast.error("Recording too short");
+          toast.error(intl.formatMessage({ id: "page.ai.test.recordingShort" }));
           return;
         }
         setIsTranscribing(true);
@@ -1683,10 +1693,10 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
             // Send the transcribed text directly as a message
             await handleSend(result.text.trim());
           } else {
-            toast.error("Could not understand the audio");
+            toast.error(intl.formatMessage({ id: "page.ai.test.noAudio" }));
           }
         } catch {
-          toast.error("Transcription failed");
+          toast.error(intl.formatMessage({ id: "page.ai.test.transcriptionFailed" }));
         } finally {
           setIsTranscribing(false);
         }
@@ -1696,7 +1706,7 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
       mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
     } catch {
-      toast.error("Microphone access denied. Please allow microphone access.");
+      toast.error(intl.formatMessage({ id: "page.ai.test.micDenied" }));
     }
   };
 
@@ -1740,7 +1750,7 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
       (s) => s.sessionId.startsWith("test_") && s.assistantId === assistantId
     );
     if (!testSession) {
-      toast.error("No active test session found. Send at least one message first.");
+      toast.error(intl.formatMessage({ id: "page.ai.test.noSession" }));
       return;
     }
     setIsLoading(true);
@@ -1756,12 +1766,12 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
           role: "system",
           content: "Conversation handed over to a human agent. An email summary has been sent.",
         }]);
-        toast.success("Handover requested successfully");
+        toast.success(intl.formatMessage({ id: "page.ai.test.handoverSuccess" }));
       } else {
-        toast.error(result.error ?? "Handover failed");
+        toast.error(result.error ?? intl.formatMessage({ id: "page.ai.test.handoverFailed" }));
       }
     } catch {
-      toast.error("Failed to request handover");
+      toast.error(intl.formatMessage({ id: "page.ai.test.handoverFailed" }));
     } finally {
       setIsLoading(false);
     }
@@ -1771,9 +1781,9 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
-          <MessageSquare className="h-4 w-4" /> Test Chat
+          <MessageSquare className="h-4 w-4" /> {intl.formatMessage({ id: "page.ai.test.title" })}
         </CardTitle>
-        <CardDescription>Test your assistant with voice and text. Click the mic to speak.</CardDescription>
+        <CardDescription>{intl.formatMessage({ id: "page.ai.test.subtitle" })}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="border rounded-lg flex flex-col h-96">
@@ -1781,7 +1791,7 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
             {messages.length === 0 && (
               <div className="text-center text-muted-foreground text-sm py-8 space-y-2">
                 <Mic className="h-8 w-8 mx-auto opacity-50" />
-                <p>Send a message or tap the mic to speak</p>
+                <p>{intl.formatMessage({ id: "page.ai.test.sendOrSpeak" })}</p>
               </div>
             )}
             {messages.map((msg, i) => (
@@ -1818,7 +1828,7 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
             {isTranscribing && (
               <div className="flex justify-end">
                 <div className="bg-primary/10 text-primary rounded-lg px-4 py-2 text-sm flex items-center gap-2">
-                  <Spinner /> Transcribing...
+                  <Spinner /> {intl.formatMessage({ id: "page.ai.test.transcribing" })}
                 </div>
               </div>
             )}
@@ -1835,7 +1845,7 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
             >
               {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </Button>
-            <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder={handedOver ? "Conversation handed over" : "Type or speak a message..."}
+            <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder={handedOver ? intl.formatMessage({ id: "page.ai.test.handedOver" }) : intl.formatMessage({ id: "page.ai.test.typeOrSpeak" })}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
               disabled={isLoading || isRecording || isTranscribing || handedOver} />
             <Button size="sm" onClick={() => handleSend()} disabled={isLoading || !input.trim() || isRecording || handedOver}>
@@ -1862,6 +1872,7 @@ function TestChatTab({ assistantId }: { assistantId: Id<"aiAssistants"> }) {
 // ─── Conversations Tab ──────────────────────────────────────────────────────
 
 function ConversationsTab({ sessions }: { sessions: Doc<"aiChatSessions">[] }) {
+  const intl = useIntl();
   const [selectedSession, setSelectedSession] = useState<Id<"aiChatSessions"> | null>(null);
   const chatMessages = useQuery(api.aiAssistants.getChatMessages, selectedSession ? { sessionId: selectedSession } : "skip");
 
@@ -1876,12 +1887,12 @@ function ConversationsTab({ sessions }: { sessions: Doc<"aiChatSessions">[] }) {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base">{session?.visitorName || "Anonymous"} ({session?.channel})</CardTitle>
+                <CardTitle className="text-base">{session?.visitorName || intl.formatMessage({ id: "page.ai.conversations.anonymous" })} ({session?.channel})</CardTitle>
                 <CardDescription>{session?.messageCount} messages</CardDescription>
               </div>
               {session?.status === "handed_over" && (
                 <Badge variant="secondary" className="flex items-center gap-1">
-                  <UserCheck className="h-3 w-3" /> Handed Over
+                  <UserCheck className="h-3 w-3" /> {intl.formatMessage({ id: "page.ai.conversations.handedOver" })}
                 </Badge>
               )}
             </div>
@@ -1911,8 +1922,8 @@ function ConversationsTab({ sessions }: { sessions: Doc<"aiChatSessions">[] }) {
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon"><MessageSquare /></EmptyMedia>
-          <EmptyTitle>No conversations yet</EmptyTitle>
-          <EmptyDescription>Conversations appear here when visitors chat with your assistant.</EmptyDescription>
+          <EmptyTitle>{intl.formatMessage({ id: "page.ai.conversations.noConversations" })}</EmptyTitle>
+          <EmptyDescription>{intl.formatMessage({ id: "page.ai.conversations.noConversationsDesc" })}</EmptyDescription>
         </EmptyHeader>
       </Empty>
     );
@@ -1925,14 +1936,14 @@ function ConversationsTab({ sessions }: { sessions: Doc<"aiChatSessions">[] }) {
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-sm">{session.visitorName || "Anonymous"}</p>
+                <p className="font-medium text-sm">{session.visitorName || intl.formatMessage({ id: "page.ai.conversations.anonymous" })}</p>
                 <p className="text-xs text-muted-foreground">{session.visitorEmail || session.sessionId.slice(0, 16)}</p>
               </div>
               <div className="text-right flex items-center gap-2">
                 <Badge variant="outline" className="text-xs capitalize">{session.channel}</Badge>
                 {session.status === "handed_over" && (
                   <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                    <UserCheck className="h-3 w-3" /> Handover
+                    <UserCheck className="h-3 w-3" /> {intl.formatMessage({ id: "page.ai.conversations.handover" })}
                   </Badge>
                 )}
                 <p className="text-xs text-muted-foreground">{session.messageCount} msgs</p>
@@ -1953,6 +1964,7 @@ function ExecutionLogsTab({
   logs: Doc<"aiTaskExecutionLogs">[];
   tasks: Doc<"aiAssistantTasks">[];
 }) {
+  const intl = useIntl();
   const taskMap = new Map(tasks.map((t) => [t._id, t.name]));
 
   if (logs.length === 0) {
@@ -1960,8 +1972,8 @@ function ExecutionLogsTab({
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon"><Activity /></EmptyMedia>
-          <EmptyTitle>No task executions yet</EmptyTitle>
-          <EmptyDescription>Logs appear here when the AI executes tasks during conversations.</EmptyDescription>
+          <EmptyTitle>{intl.formatMessage({ id: "page.ai.logs.noLogs" })}</EmptyTitle>
+          <EmptyDescription>{intl.formatMessage({ id: "page.ai.logs.noLogsDesc" })}</EmptyDescription>
         </EmptyHeader>
       </Empty>
     );
@@ -1974,9 +1986,9 @@ function ExecutionLogsTab({
           <CardContent className="pt-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <h4 className="font-medium text-sm">{taskMap.get(log.taskId) ?? "Unknown Task"}</h4>
+                <h4 className="font-medium text-sm">{taskMap.get(log.taskId) ?? intl.formatMessage({ id: "page.ai.logs.unknownTask" })}</h4>
                 <Badge variant={log.success ? "default" : "destructive"} className="text-xs">
-                  {log.success ? "Success" : "Failed"}
+                  {log.success ? intl.formatMessage({ id: "page.ai.logs.success" }) : intl.formatMessage({ id: "page.ai.logs.failed" })}
                 </Badge>
                 <Badge variant="outline" className="text-xs">HTTP {log.responseStatus}</Badge>
               </div>
@@ -2015,6 +2027,7 @@ function HandoversTab({
   requests: Doc<"aiHandoverRequests">[];
   sessions: Doc<"aiChatSessions">[];
 }) {
+  const intl = useIntl();
   const resolveHandover = useMutation(api.aiAssistants.resolveHandover);
   const takeOverChat = useMutation(api.aiAssistants.takeOverChat);
   const sendAgentMessage = useMutation(api.aiAssistants.sendAgentMessage);
@@ -2032,9 +2045,9 @@ function HandoversTab({
   const handleTakeOver = async (handoverId: Id<"aiHandoverRequests">) => {
     try {
       await takeOverChat({ handoverId });
-      toast.success("You have taken over this conversation");
+      toast.success(intl.formatMessage({ id: "page.ai.handovers.takenOver" }));
     } catch {
-      toast.error("Failed to take over");
+      toast.error(intl.formatMessage({ id: "page.ai.handovers.takeOverFailed" }));
     }
   };
 
@@ -2045,7 +2058,7 @@ function HandoversTab({
       await sendAgentMessage({ sessionId: selectedSession, content: agentReply.trim() });
       setAgentReply("");
     } catch {
-      toast.error("Failed to send message");
+      toast.error(intl.formatMessage({ id: "page.ai.handovers.sendFailed" }));
     } finally {
       setSendingReply(false);
     }
@@ -2069,7 +2082,7 @@ function HandoversTab({
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-base">AI Summary</CardTitle>
+                  <CardTitle className="text-base">{intl.formatMessage({ id: "page.ai.handovers.aiSummary" })}</CardTitle>
                   {request.department && (
                     <Badge variant="secondary" className="text-xs">{request.department}</Badge>
                   )}
@@ -2082,9 +2095,9 @@ function HandoversTab({
                   request.status === "in_progress" ? "secondary" :
                   request.status === "email_sent" ? "secondary" : "destructive"
                 }>
-                  {request.status === "resolved" ? "Resolved" :
-                   request.status === "in_progress" ? "Agent Active" :
-                   request.status === "email_sent" ? "Email Sent" : "Pending"}
+                  {request.status === "resolved" ? intl.formatMessage({ id: "page.ai.handovers.resolved" }) :
+                   request.status === "in_progress" ? intl.formatMessage({ id: "page.ai.handovers.agentActive" }) :
+                   request.status === "email_sent" ? intl.formatMessage({ id: "page.ai.handovers.emailSent" }) : intl.formatMessage({ id: "page.ai.handovers.pending" })}
                 </Badge>
               </div>
             </CardHeader>
@@ -2106,15 +2119,15 @@ function HandoversTab({
               <div className="flex items-center gap-2 mt-4">
                 {isPendingOrEmailSent && (
                   <Button size="sm" onClick={() => handleTakeOver(request._id)}>
-                    <UserCheck className="h-4 w-4 mr-1" />Take Over Chat
+                    <UserCheck className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.handovers.takeOverChat" })}
                   </Button>
                 )}
                 {request.status !== "resolved" && (
                   <Button size="sm" variant="secondary" onClick={async () => {
                     await resolveHandover({ handoverId: request._id });
-                    toast.success("Marked as resolved");
+                    toast.success(intl.formatMessage({ id: "page.ai.handovers.markedResolved" }));
                   }}>
-                    <CheckCircle className="h-4 w-4 mr-1" />Mark Resolved
+                    <CheckCircle className="h-4 w-4 mr-1" />{intl.formatMessage({ id: "page.ai.handovers.markResolved" })}
                   </Button>
                 )}
               </div>
@@ -2125,7 +2138,7 @@ function HandoversTab({
         {/* Live conversation with agent reply */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">{session?.visitorName || "Anonymous"} - Live Conversation</CardTitle>
+            <CardTitle className="text-base">{session?.visitorName || "Anonymous"} - {intl.formatMessage({ id: "page.ai.handovers.liveConversation" })}</CardTitle>
             <CardDescription>{chatMessages.length} messages {isInProgress && " - You are actively responding"}</CardDescription>
           </CardHeader>
           <CardContent>
@@ -2152,7 +2165,7 @@ function HandoversTab({
                   <Input
                     value={agentReply}
                     onChange={(e) => setAgentReply(e.target.value)}
-                    placeholder="Type your reply to the visitor..."
+                    placeholder={intl.formatMessage({ id: "page.ai.handovers.replyPlaceholder" })}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
@@ -2178,9 +2191,9 @@ function HandoversTab({
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon"><ArrowRightLeft /></EmptyMedia>
-          <EmptyTitle>No handover requests</EmptyTitle>
+          <EmptyTitle>{intl.formatMessage({ id: "page.ai.handovers.noRequests" })}</EmptyTitle>
           <EmptyDescription>
-            When visitors request to speak with a human agent, their requests appear here with an AI-generated conversation summary.
+            {intl.formatMessage({ id: "page.ai.handovers.noRequestsDesc" })}
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -2208,9 +2221,9 @@ function HandoversTab({
                     }
                     className="text-xs"
                   >
-                    {request.status === "resolved" ? "Resolved" :
-                     request.status === "in_progress" ? "Agent Active" :
-                     request.status === "email_sent" ? "Email Sent" : "Pending"}
+                    {request.status === "resolved" ? intl.formatMessage({ id: "page.ai.handovers.resolved" }) :
+                     request.status === "in_progress" ? intl.formatMessage({ id: "page.ai.handovers.agentActive" }) :
+                     request.status === "email_sent" ? intl.formatMessage({ id: "page.ai.handovers.emailSent" }) : intl.formatMessage({ id: "page.ai.handovers.pending" })}
                   </Badge>
                   {request.department && (
                     <Badge variant="outline" className="text-xs">{request.department}</Badge>
@@ -2238,7 +2251,7 @@ function HandoversTab({
                     onClick={async (e) => {
                       e.stopPropagation();
                       await takeOverChat({ handoverId: request._id });
-                      toast.success("Taken over");
+                      toast.success(intl.formatMessage({ id: "page.ai.handovers.takenOverShort" }));
                       setSelectedSession(request.sessionId);
                     }}
                     title="Take over this conversation"
@@ -2253,7 +2266,7 @@ function HandoversTab({
                     onClick={async (e) => {
                       e.stopPropagation();
                       await resolveHandover({ handoverId: request._id });
-                      toast.success("Resolved");
+                      toast.success(intl.formatMessage({ id: "page.ai.handovers.resolvedShort" }));
                     }}
                   >
                     <CheckCircle className="h-4 w-4" />
@@ -2271,6 +2284,7 @@ function HandoversTab({
 // ─── Training Tab ──────────────────────────────────────────────────────────
 
 function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
+  const intl = useIntl();
   const updateAssistant = useMutation(api.aiAssistants.update);
 
   // Tone & style
@@ -2320,15 +2334,15 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
         restrictionGuidelines: restrictionGuidelines.length > 0 ? restrictionGuidelines : undefined,
         vocabulary: vocabulary.length > 0 ? vocabulary : undefined,
       });
-      toast.success("Training settings saved");
+      toast.success(intl.formatMessage({ id: "page.ai.training.saved" }));
     } catch {
-      toast.error("Failed to save training settings");
+      toast.error(intl.formatMessage({ id: "page.ai.training.saveFailed" }));
     }
   };
 
   const addSampleQA = () => {
     if (!newQuestion.trim() || !newAnswer.trim()) {
-      toast.error("Both question and answer are required");
+      toast.error(intl.formatMessage({ id: "page.ai.training.qaRequired" }));
       return;
     }
     setSampleQA([...sampleQA, { question: newQuestion.trim(), answer: newAnswer.trim() }]);
@@ -2350,7 +2364,7 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
 
   const addVocabulary = () => {
     if (!newTerm.trim() || !newDefinition.trim()) {
-      toast.error("Both term and definition are required");
+      toast.error(intl.formatMessage({ id: "page.ai.training.termRequired" }));
       return;
     }
     setVocabulary([...vocabulary, { term: newTerm.trim(), definition: newDefinition.trim() }]);
@@ -2361,9 +2375,9 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold">Training & Tone</h3>
+        <h3 className="text-lg font-semibold">{intl.formatMessage({ id: "page.ai.training.title" })}</h3>
         <p className="text-sm text-muted-foreground">
-          Train your AI on how to respond based on your company{"'"}s habits, tone, and style.
+          {intl.formatMessage({ id: "page.ai.training.subtitle" })}
         </p>
       </div>
 
@@ -2371,13 +2385,13 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Languages className="h-4 w-4" /> Tone & Language
+            <Languages className="h-4 w-4" /> {intl.formatMessage({ id: "page.ai.training.toneLanguage" })}
           </CardTitle>
-          <CardDescription>Define the voice and style of your assistant</CardDescription>
+          <CardDescription>{intl.formatMessage({ id: "page.ai.training.toneLanguageDesc" })}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Tone Description</Label>
+            <Label>{intl.formatMessage({ id: "page.ai.training.toneDescription" })}</Label>
             <Textarea
               value={toneDescription}
               onChange={(e) => setToneDescription(e.target.value)}
@@ -2385,23 +2399,23 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
               rows={4}
             />
             <p className="text-xs text-muted-foreground">
-              Describe in detail how you want the AI to sound — personality, formality, warmth, humor, etc.
+              {intl.formatMessage({ id: "page.ai.training.toneDescHint" })}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Response Length</Label>
+              <Label>{intl.formatMessage({ id: "page.ai.training.responseLength" })}</Label>
               <Select value={responseLength} onValueChange={(v) => setResponseLength(v as ResponseLength)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="short">Short (1-2 sentences)</SelectItem>
-                  <SelectItem value="medium">Medium (2-4 sentences)</SelectItem>
-                  <SelectItem value="detailed">Detailed (full explanations)</SelectItem>
+                  <SelectItem value="short">{intl.formatMessage({ id: "page.ai.training.short" })}</SelectItem>
+                  <SelectItem value="medium">{intl.formatMessage({ id: "page.ai.training.medium" })}</SelectItem>
+                  <SelectItem value="detailed">{intl.formatMessage({ id: "page.ai.training.detailed" })}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Primary Language</Label>
+              <Label>{intl.formatMessage({ id: "page.ai.training.primaryLanguage" })}</Label>
               <Input
                 value={primaryLanguage}
                 onChange={(e) => setPrimaryLanguage(e.target.value)}
@@ -2411,7 +2425,7 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Greeting Style</Label>
+              <Label>{intl.formatMessage({ id: "page.ai.training.greetingStyle" })}</Label>
               <Textarea
                 value={greetingStyle}
                 onChange={(e) => setGreetingStyle(e.target.value)}
@@ -2420,7 +2434,7 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
               />
             </div>
             <div className="space-y-2">
-              <Label>Closing Style</Label>
+              <Label>{intl.formatMessage({ id: "page.ai.training.closingStyle" })}</Label>
               <Textarea
                 value={closingStyle}
                 onChange={(e) => setClosingStyle(e.target.value)}
@@ -2436,10 +2450,10 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" /> Example Conversations
+            <MessageSquare className="h-4 w-4" /> {intl.formatMessage({ id: "page.ai.training.exampleConversations" })}
           </CardTitle>
           <CardDescription>
-            Teach the AI by example — provide sample questions and the ideal response
+            {intl.formatMessage({ id: "page.ai.training.exampleConversationsDesc" })}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -2447,8 +2461,8 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
             <div key={index} className="border rounded-lg p-3 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 space-y-1">
-                  <p className="text-sm"><span className="font-medium text-muted-foreground">Customer:</span> {qa.question}</p>
-                  <p className="text-sm"><span className="font-medium text-primary">AI:</span> {qa.answer}</p>
+                  <p className="text-sm"><span className="font-medium text-muted-foreground">{intl.formatMessage({ id: "page.ai.training.customer" })}:</span> {qa.question}</p>
+                  <p className="text-sm"><span className="font-medium text-primary">{intl.formatMessage({ id: "page.ai.training.ai" })}:</span> {qa.answer}</p>
                 </div>
                 <Button
                   variant="ghost"
@@ -2462,7 +2476,7 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
           ))}
           <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
             <div className="space-y-2">
-              <Label className="text-xs">Customer Question</Label>
+              <Label className="text-xs">{intl.formatMessage({ id: "page.ai.training.customerQuestion" })}</Label>
               <Input
                 value={newQuestion}
                 onChange={(e) => setNewQuestion(e.target.value)}
@@ -2470,7 +2484,7 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs">Ideal AI Response</Label>
+              <Label className="text-xs">{intl.formatMessage({ id: "page.ai.training.idealResponse" })}</Label>
               <Textarea
                 value={newAnswer}
                 onChange={(e) => setNewAnswer(e.target.value)}
@@ -2479,7 +2493,7 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
               />
             </div>
             <Button size="sm" onClick={addSampleQA}>
-              <Plus className="h-3 w-3 mr-1" />Add Example
+              <Plus className="h-3 w-3 mr-1" />{intl.formatMessage({ id: "page.ai.training.addExample" })}
             </Button>
           </div>
         </CardContent>
@@ -2489,9 +2503,9 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <ListChecks className="h-4 w-4" /> Response Guidelines
+            <ListChecks className="h-4 w-4" /> {intl.formatMessage({ id: "page.ai.training.responseGuidelines" })}
           </CardTitle>
-          <CardDescription>Rules the AI should always follow</CardDescription>
+          <CardDescription>{intl.formatMessage({ id: "page.ai.training.guidelinesDesc" })}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {responseGuidelines.map((guideline, index) => (
@@ -2523,9 +2537,9 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Ban className="h-4 w-4" /> Restrictions
+            <Ban className="h-4 w-4" /> {intl.formatMessage({ id: "page.ai.training.restrictions" })}
           </CardTitle>
-          <CardDescription>Things the AI should never do</CardDescription>
+          <CardDescription>{intl.formatMessage({ id: "page.ai.training.restrictionsDesc" })}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {restrictionGuidelines.map((restriction, index) => (
@@ -2557,9 +2571,9 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <BookA className="h-4 w-4" /> Company Vocabulary
+            <BookA className="h-4 w-4" /> {intl.formatMessage({ id: "page.ai.training.vocabulary" })}
           </CardTitle>
-          <CardDescription>Terms and definitions the AI should know and use consistently</CardDescription>
+          <CardDescription>{intl.formatMessage({ id: "page.ai.training.vocabularyDesc" })}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {vocabulary.map((entry, index) => (
@@ -2598,7 +2612,7 @@ function TrainingTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
       {/* Save Button */}
       <div className="flex justify-end">
         <Button onClick={handleSaveAll} size="lg">
-          Save Training Settings
+          {intl.formatMessage({ id: "page.ai.training.saveButton" })}
         </Button>
       </div>
     </div>
@@ -2623,6 +2637,7 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
   const [handoverEmail, setHandoverEmail] = useState(assistant.handoverEmail ?? "");
   const [handoverPhoneNumber, setHandoverPhoneNumber] = useState(assistant.handoverPhoneNumber ?? "");
   const [saving, setSaving] = useState(false);
+  const intl = useIntl();
 
   // Departments
   const [departments, setDepartments] = useState<Department[]>(
@@ -2645,7 +2660,7 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
 
   const handleSave = async () => {
     if (!name.trim() || !companyName.trim()) {
-      toast.error("Assistant name and company name are required");
+      toast.error(intl.formatMessage({ id: "page.ai.settings.nameRequired" }));
       return;
     }
     setSaving(true);
@@ -2660,9 +2675,9 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
         handoverDepartments: departments.length > 0 ? departments : undefined,
         handoverSubjects: subjects.length > 0 ? subjects : undefined,
       });
-      toast.success("Settings updated");
+      toast.success(intl.formatMessage({ id: "page.ai.settings.updated" }));
     } catch {
-      toast.error("Failed to update");
+      toast.error(intl.formatMessage({ id: "page.ai.settings.updateFailed" }));
     } finally {
       setSaving(false);
     }
@@ -2670,7 +2685,7 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
 
   const addDepartment = () => {
     if (!newDeptName.trim() || !newDeptDesc.trim()) {
-      toast.error("Department name and description are required");
+      toast.error(intl.formatMessage({ id: "page.ai.settings.deptRequired" }));
       return;
     }
     setDepartments([...departments, {
@@ -2684,7 +2699,7 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
 
   const addSubject = () => {
     if (!newSubjectTopic.trim()) {
-      toast.error("Topic is required");
+      toast.error(intl.formatMessage({ id: "page.ai.settings.topicRequired" }));
       return;
     }
     setSubjects([...subjects, {
@@ -2700,39 +2715,39 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
       {/* General Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">General Settings</CardTitle>
+          <CardTitle className="text-base">{intl.formatMessage({ id: "page.ai.settings.generalSettings" })}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Assistant Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div className="space-y-2"><Label>Company Name</Label><Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} /></div>
+            <div className="space-y-2"><Label>{intl.formatMessage({ id: "page.ai.settings.assistantName" })}</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div className="space-y-2"><Label>{intl.formatMessage({ id: "page.ai.settings.companyName" })}</Label><Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} /></div>
           </div>
-          <div className="space-y-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Brief description of what this assistant does" /></div>
-          <div className="space-y-2"><Label>Company Description</Label><Textarea value={companyDescription} onChange={(e) => setCompanyDescription(e.target.value)} rows={4} placeholder="Describe your company, products, and services" /></div>
+          <div className="space-y-2"><Label>{intl.formatMessage({ id: "page.ai.settings.description" })}</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Brief description of what this assistant does" /></div>
+          <div className="space-y-2"><Label>{intl.formatMessage({ id: "page.ai.settings.companyDescription" })}</Label><Textarea value={companyDescription} onChange={(e) => setCompanyDescription(e.target.value)} rows={4} placeholder="Describe your company, products, and services" /></div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Industry</Label><Input value={industry} onChange={(e) => setIndustry(e.target.value)} /></div>
+            <div className="space-y-2"><Label>{intl.formatMessage({ id: "page.ai.settings.industry" })}</Label><Input value={industry} onChange={(e) => setIndustry(e.target.value)} /></div>
             <div className="space-y-2">
-              <Label>Personality</Label>
+              <Label>{intl.formatMessage({ id: "page.ai.settings.personality" })}</Label>
               <Select value={personality} onValueChange={(v) => setPersonality(v as Personality)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="professional">Professional</SelectItem>
-                  <SelectItem value="friendly">Friendly</SelectItem>
-                  <SelectItem value="casual">Casual</SelectItem>
-                  <SelectItem value="formal">Formal</SelectItem>
+                  <SelectItem value="professional">{intl.formatMessage({ id: "page.ai.personality.professional" })}</SelectItem>
+                  <SelectItem value="friendly">{intl.formatMessage({ id: "page.ai.personality.friendly" })}</SelectItem>
+                  <SelectItem value="casual">{intl.formatMessage({ id: "page.ai.personality.casual" })}</SelectItem>
+                  <SelectItem value="formal">{intl.formatMessage({ id: "page.ai.personality.formal" })}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <div className="space-y-2"><Label>Welcome Message</Label><Textarea value={welcomeMessage} onChange={(e) => setWelcomeMessage(e.target.value)} rows={3} placeholder="The first message visitors see when opening the chat" /></div>
+          <div className="space-y-2"><Label>{intl.formatMessage({ id: "page.ai.settings.welcomeMessage" })}</Label><Textarea value={welcomeMessage} onChange={(e) => setWelcomeMessage(e.target.value)} rows={3} placeholder="The first message visitors see when opening the chat" /></div>
           <div className="space-y-2">
-            <Label>Brand Color</Label>
+            <Label>{intl.formatMessage({ id: "page.ai.settings.brandColor" })}</Label>
             <div className="flex items-center gap-2">
               <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="h-10 w-12 cursor-pointer rounded border" />
               <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="flex-1" />
             </div>
           </div>
-          <div className="space-y-2"><Label>Custom Instructions</Label><Textarea value={customInstructions} onChange={(e) => setCustomInstructions(e.target.value)} rows={5} placeholder="Additional instructions for the AI assistant (e.g. tone, topics to avoid, specific responses)" /></div>
+          <div className="space-y-2"><Label>{intl.formatMessage({ id: "page.ai.settings.customInstructions" })}</Label><Textarea value={customInstructions} onChange={(e) => setCustomInstructions(e.target.value)} rows={5} placeholder="Additional instructions for the AI assistant (e.g. tone, topics to avoid, specific responses)" /></div>
         </CardContent>
       </Card>
 
@@ -2740,14 +2755,14 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <UserCheck className="h-4 w-4" /> Handover Settings
+            <UserCheck className="h-4 w-4" /> {intl.formatMessage({ id: "page.ai.settings.handoverSettings" })}
           </CardTitle>
-          <CardDescription>Configure how conversations are transferred to human agents</CardDescription>
+          <CardDescription>{intl.formatMessage({ id: "page.ai.settings.handoverSettingsDesc" })}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Handover Email</Label>
+              <Label>{intl.formatMessage({ id: "page.ai.settings.handoverEmail" })}</Label>
               <Input
                 type="email"
                 value={handoverEmail}
@@ -2755,11 +2770,11 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
                 placeholder="support@yourcompany.com"
               />
               <p className="text-xs text-muted-foreground">
-                Email to receive handover notifications with conversation summaries
+                {intl.formatMessage({ id: "page.ai.settings.handoverEmailDesc" })}
               </p>
             </div>
             <div className="space-y-2">
-              <Label>Phone Number (for call option)</Label>
+              <Label>{intl.formatMessage({ id: "page.ai.settings.handoverPhone" })}</Label>
               <Input
                 type="tel"
                 value={handoverPhoneNumber}
@@ -2767,7 +2782,7 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
                 placeholder="+225 01 23 45 67 89"
               />
               <p className="text-xs text-muted-foreground">
-                Customers can choose to call instead of chatting with an agent
+                {intl.formatMessage({ id: "page.ai.settings.handoverPhoneDesc" })}
               </p>
             </div>
           </div>
@@ -2778,10 +2793,10 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Building2 className="h-4 w-4" /> Specialist Departments
+            <Building2 className="h-4 w-4" /> {intl.formatMessage({ id: "page.ai.settings.departments" })}
           </CardTitle>
           <CardDescription>
-            Define departments so the AI can route customers to the right specialist
+            {intl.formatMessage({ id: "page.ai.settings.departmentsDesc" })}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -2806,23 +2821,23 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
           <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Department Name *</Label>
+                <Label className="text-xs">{intl.formatMessage({ id: "page.ai.settings.deptName" })}</Label>
                 <Input value={newDeptName} onChange={(e) => setNewDeptName(e.target.value)} placeholder="e.g. Sales, Technical Support" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Description *</Label>
+                <Label className="text-xs">{intl.formatMessage({ id: "page.ai.settings.deptDescription" })}</Label>
                 <Input value={newDeptDesc} onChange={(e) => setNewDeptDesc(e.target.value)} placeholder="e.g. Handles pricing and quotes" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Email (optional)</Label>
+                <Label className="text-xs">{intl.formatMessage({ id: "page.ai.settings.deptEmail" })}</Label>
                 <Input value={newDeptEmail} onChange={(e) => setNewDeptEmail(e.target.value)} placeholder="sales@company.com" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Phone (optional)</Label>
+                <Label className="text-xs">{intl.formatMessage({ id: "page.ai.settings.deptPhone" })}</Label>
                 <Input value={newDeptPhone} onChange={(e) => setNewDeptPhone(e.target.value)} placeholder="+225 01 23 45 67 89" />
               </div>
             </div>
-            <Button size="sm" onClick={addDepartment}><Plus className="h-3 w-3 mr-1" />Add Department</Button>
+            <Button size="sm" onClick={addDepartment}><Plus className="h-3 w-3 mr-1" />{intl.formatMessage({ id: "page.ai.settings.addDepartment" })}</Button>
           </div>
         </CardContent>
       </Card>
@@ -2831,10 +2846,10 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Tag className="h-4 w-4" /> Proactive Handover Subjects
+            <Tag className="h-4 w-4" /> {intl.formatMessage({ id: "page.ai.settings.subjects" })}
           </CardTitle>
           <CardDescription>
-            Topics where the AI should proactively offer to connect the customer with a human specialist
+            {intl.formatMessage({ id: "page.ai.settings.subjectsDesc" })}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -2856,16 +2871,16 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
           <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Topic *</Label>
+                <Label className="text-xs">{intl.formatMessage({ id: "page.ai.settings.subjectTopic" })}</Label>
                 <Input value={newSubjectTopic} onChange={(e) => setNewSubjectTopic(e.target.value)}
                   placeholder="e.g. Complaints, Pricing, Account cancellation" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Route to Department</Label>
+                <Label className="text-xs">{intl.formatMessage({ id: "page.ai.settings.subjectDepartment" })}</Label>
                 <Select value={newSubjectDept || "none"} onValueChange={(v) => setNewSubjectDept(v === "none" ? "" : v)}>
                   <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No specific department</SelectItem>
+                    <SelectItem value="none">{intl.formatMessage({ id: "page.ai.settings.noDepartment" })}</SelectItem>
                     {departments.map((d) => (
                       <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>
                     ))}
@@ -2874,11 +2889,11 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Custom AI Message (optional)</Label>
+              <Label className="text-xs">{intl.formatMessage({ id: "page.ai.settings.customAiMessage" })}</Label>
               <Textarea value={newSubjectMsg} onChange={(e) => setNewSubjectMsg(e.target.value)}
                 placeholder="e.g. I'd recommend speaking with our sales team for detailed pricing." rows={2} />
             </div>
-            <Button size="sm" onClick={addSubject}><Plus className="h-3 w-3 mr-1" />Add Subject</Button>
+            <Button size="sm" onClick={addSubject}><Plus className="h-3 w-3 mr-1" />{intl.formatMessage({ id: "page.ai.settings.addSubject" })}</Button>
           </div>
         </CardContent>
       </Card>
@@ -2886,7 +2901,7 @@ function SettingsTab({ assistant }: { assistant: Doc<"aiAssistants"> }) {
       {/* Save Button */}
       <div className="flex justify-end">
         <Button onClick={handleSave} size="lg" disabled={saving}>
-          {saving ? <><Spinner className="h-4 w-4 mr-2" />Saving...</> : "Save All Settings"}
+          {saving ? <><Spinner className="h-4 w-4 mr-2" />{intl.formatMessage({ id: "page.ai.settings.saving" })}</> : intl.formatMessage({ id: "page.ai.settings.saveAll" })}
         </Button>
       </div>
     </div>
