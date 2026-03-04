@@ -794,19 +794,38 @@ export async function generatePresentationPDF() {
   drawRect(doc, 0, 0, 210, 8, PRIMARY);
 
   y = sectionTitle(doc, "Offres & Tarification", 22);
-  y = subTitle(doc, "Choisissez le forfait adapte a vos besoins. Systeme de credits prepaye flexible avec tarification par canal.", y);
+  y = subTitle(doc, "Un tarif unique et transparent : 10 FCFA par SMS. Choisissez le forfait prepaye adapte a vos besoins.", y);
   y += 4;
+
+  // Tarification section - single rate info
+  drawRoundedRect(doc, 20, y, 170, 30, 5, PRIMARY_LIGHT);
+  doc.setFontSize(24);
+  doc.setFont("helvetica", "bold");
+  setColor(doc, PRIMARY);
+  doc.text("10 FCFA / SMS", 105, y + 14, { align: "center" });
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  setColor(doc, GRAY);
+  doc.text("Tarif unique, simple et transparent. Pas de frais caches.", 105, y + 23, { align: "center" });
+
+  y += 40;
+
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  setColor(doc, DARK);
+  doc.text("Forfaits Prepaye", 20, y);
+  y += 8;
 
   autoTable(doc, {
     startY: y,
-    head: [["Forfait", "Credits", "Prix", "Ideal Pour"]],
+    head: [["Forfait", "SMS", "Prix", "Ideal Pour"]],
     body: [
-      ["Starter", "500 credits", "5 000 FCFA", "Petites entreprises, tests"],
-      ["Business", "2 500 credits", "20 000 FCFA", "PME, campagnes regulieres"],
-      ["Pro", "7 500 credits", "50 000 FCFA", "Grandes campagnes, multi-canal"],
-      ["Enterprise", "25 000 credits", "150 000 FCFA", "Grands comptes, volume eleve"],
-      ["Ultra", "75 000 credits", "400 000 FCFA", "Operateurs, agregateurs"],
-      ["Mega", "200 000 credits", "900 000 FCFA", "Usage intensif, API"],
+      ["Starter", "500 SMS", "5 000 FCFA", "Petites entreprises, tests"],
+      ["Business", "2 500 SMS", "25 000 FCFA", "PME, campagnes regulieres"],
+      ["Pro", "5 000 SMS", "50 000 FCFA", "Grandes campagnes, multi-canal"],
+      ["Enterprise", "15 000 SMS", "150 000 FCFA", "Grands comptes, volume eleve"],
+      ["Ultra", "40 000 SMS", "400 000 FCFA", "Operateurs, agregateurs"],
+      ["Mega", "100 000 SMS", "1 000 000 FCFA", "Usage intensif, API"],
     ],
     theme: "striped",
     headStyles: {
@@ -837,18 +856,18 @@ export async function generatePresentationPDF() {
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   setColor(doc, DARK);
-  doc.text("Cout par Canal", 20, y);
+  doc.text("Tarifs par Canal", 20, y);
   y += 8;
 
   autoTable(doc, {
     startY: y,
-    head: [["Canal", "Credits / Message", "Notes"]],
+    head: [["Canal", "Tarif / Message", "Notes"]],
     body: [
-      ["SMS National", "1 credit", "Cote d'Ivoire, Togo, Benin et plus"],
-      ["SMS International", "2-5 credits", "Selon la destination"],
-      ["WhatsApp", "1-2 credits", "Messages template ou session"],
-      ["Telegram", "0.5 credit", "Via Bot API"],
-      ["Facebook Messenger", "1 credit", "Via Page API"],
+      ["SMS National", "10 FCFA", "Cote d'Ivoire, Togo, Benin et plus"],
+      ["SMS International", "20-50 FCFA", "Selon la destination"],
+      ["WhatsApp", "10-20 FCFA", "Messages template ou session"],
+      ["Telegram", "5 FCFA", "Via Bot API"],
+      ["Facebook Messenger", "10 FCFA", "Via Page API"],
     ],
     theme: "grid",
     headStyles: {
