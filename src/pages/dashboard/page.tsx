@@ -4,13 +4,14 @@ import { api } from "@/convex/_generated/api.js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { MessageSquare, CheckCircle, XCircle, Coins, Send, Plus, RefreshCw, Clock, AlertTriangle } from "lucide-react";
+import { MessageSquare, CheckCircle, XCircle, Coins, Send, Plus, RefreshCw, Clock, AlertTriangle, FileDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { format } from "date-fns";
 import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useIntl } from "react-intl";
+import { generatePresentationPDF } from "@/lib/presentation-pdf.ts";
 
 export default function Dashboard() {
   return (
@@ -352,6 +353,20 @@ function AdminDashboard() {
               })} ({bulkPendingCount})
             </Button>
           )}
+          <Button
+            variant="secondary"
+            onClick={() => {
+              try {
+                generatePresentationPDF();
+                toast.success(intl.formatMessage({ id: "page.dashboard.admin.pdfGenerated" }));
+              } catch {
+                toast.error(intl.formatMessage({ id: "page.dashboard.admin.pdfError" }));
+              }
+            }}
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            {intl.formatMessage({ id: "page.dashboard.admin.downloadPresentation" })}
+          </Button>
           <Link to={`/${lng}/admin/clients`}>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
