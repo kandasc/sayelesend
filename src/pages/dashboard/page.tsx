@@ -355,9 +355,9 @@ function AdminDashboard() {
           )}
           <Button
             variant="secondary"
-            onClick={() => {
+            onClick={async () => {
               try {
-                generatePresentationPDF();
+                await generatePresentationPDF();
                 toast.success(intl.formatMessage({ id: "page.dashboard.admin.pdfGenerated" }));
               } catch {
                 toast.error(intl.formatMessage({ id: "page.dashboard.admin.pdfError" }));

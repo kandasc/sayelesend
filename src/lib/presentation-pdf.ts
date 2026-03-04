@@ -1,16 +1,39 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-// ─── Color palette ─────────────────────────────────────────────────────────
-const PRIMARY = [15, 82, 186] as const; // Deep blue
-const PRIMARY_LIGHT = [230, 240, 255] as const;
-const ACCENT = [0, 184, 148] as const; // Teal/green
-const DARK = [30, 30, 45] as const;
-const GRAY = [120, 120, 140] as const;
-const LIGHT_BG = [245, 247, 252] as const;
+// ─── Brand colors (matching site oklch(0.50 0.22 25) primary) ──────────────
+const PRIMARY = [143, 39, 25] as const; // Deep terracotta/rust red
+const PRIMARY_LIGHT = [252, 240, 237] as const; // Very light warm tint
+const ACCENT = [180, 60, 35] as const; // Lighter terracotta accent
+const DARK = [35, 25, 22] as const; // Near-black warm
+const GRAY = [120, 100, 95] as const; // Warm gray
+const LIGHT_BG = [250, 245, 243] as const; // Warm off-white
 const WHITE = [255, 255, 255] as const;
 
 type RGB = readonly [number, number, number];
+
+const LOGO_URL = "https://cdn.hercules.app/file_gLTdUXfPCK1bJYdBbIxIeipb";
+const PHONE = "+225 05 65 44 36 86";
+const EMAIL = "contact@sayele.co";
+const WEBSITE = "www.sayele.co";
+const ADDRESS = "Abidjan, Cote d'Ivoire";
+
+// ─── Helper: load image as base64 ─────────────────────────────────────────
+
+async function loadImageAsBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
 
 // ─── Helper functions ──────────────────────────────────────────────────────
 
@@ -41,18 +64,17 @@ function addFooterLine(doc: jsPDF) {
   doc.line(20, 282, 190, 282);
   doc.setFontSize(7);
   setColor(doc, GRAY);
-  doc.text("SAYELE Message | www.sayele.co | contact@sayele.co", 105, 287, { align: "center" });
+  doc.text(`SAYELE Message | ${WEBSITE} | ${EMAIL}`, 105, 287, { align: "center" });
 }
 
-function sectionTitle(doc: jsPDF, title: string, y: number, icon?: string): number {
+function sectionTitle(doc: jsPDF, title: string, y: number): number {
   // Accent bar
-  drawRoundedRect(doc, 20, y, 4, 20, 2, ACCENT);
+  drawRoundedRect(doc, 20, y, 4, 20, 2, PRIMARY);
 
   doc.setFontSize(22);
   doc.setFont("helvetica", "bold");
   setColor(doc, DARK);
-  const prefix = icon ? `${icon}  ` : "";
-  doc.text(`${prefix}${title}`, 30, y + 14);
+  doc.text(title, 30, y + 14);
   return y + 30;
 }
 
@@ -66,8 +88,7 @@ function subTitle(doc: jsPDF, text: string, y: number): number {
 }
 
 function bulletPoint(doc: jsPDF, text: string, y: number, x = 25): number {
-  // Bullet dot
-  doc.setFillColor(ACCENT[0], ACCENT[1], ACCENT[2]);
+  doc.setFillColor(PRIMARY[0], PRIMARY[1], PRIMARY[2]);
   doc.circle(x, y - 1.5, 1.5, "F");
 
   doc.setFontSize(10);
@@ -79,16 +100,13 @@ function bulletPoint(doc: jsPDF, text: string, y: number, x = 25): number {
 }
 
 function featureCard(doc: jsPDF, title: string, desc: string, x: number, y: number, w: number) {
-  // Card background
   drawRoundedRect(doc, x, y, w, 38, 3, LIGHT_BG);
 
-  // Title
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   setColor(doc, PRIMARY);
   doc.text(title, x + 6, y + 12);
 
-  // Description
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   setColor(doc, GRAY);
@@ -98,9 +116,16 @@ function featureCard(doc: jsPDF, title: string, desc: string, x: number, y: numb
 
 // ─── PDF Generation ────────────────────────────────────────────────────────
 
-export function generatePresentationPDF() {
+export async function generatePresentationPDF() {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   let pageNum = 0;
+
+  // Try to load logo
+  const logoBase64 = await loadImageAsBase64(LOGO_URL);
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  const formattedDate = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
 
   // ════════════════════════════════════════════════════════════
   // PAGE 1 — COVER
@@ -109,48 +134,67 @@ export function generatePresentationPDF() {
 
   // Decorative circles
   doc.setFillColor(255, 255, 255);
-  doc.setGState(doc.GState({ opacity: 0.05 }));
-  doc.circle(170, 40, 80, "F");
-  doc.circle(30, 260, 60, "F");
+  doc.setGState(doc.GState({ opacity: 0.06 }));
+  doc.circle(170, 40, 90, "F");
+  doc.circle(25, 270, 70, "F");
+  doc.circle(190, 200, 50, "F");
   doc.setGState(doc.GState({ opacity: 1.0 }));
 
   // Logo area
-  drawRoundedRect(doc, 75, 60, 60, 60, 10, WHITE);
-  doc.setFontSize(32);
+  drawRoundedRect(doc, 65, 45, 80, 80, 12, WHITE);
+  if (logoBase64) {
+    try {
+      doc.addImage(logoBase64, "PNG", 85, 55, 40, 40);
+    } catch {
+      // Fallback to text if image fails
+      doc.setFontSize(28);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(PRIMARY[0], PRIMARY[1], PRIMARY[2]);
+      doc.text("SAYELE", 105, 85, { align: "center" });
+    }
+  } else {
+    doc.setFontSize(28);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(PRIMARY[0], PRIMARY[1], PRIMARY[2]);
+    doc.text("SAYELE", 105, 85, { align: "center" });
+  }
+
+  // Brand name under logo
+  doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(PRIMARY[0], PRIMARY[1], PRIMARY[2]);
-  doc.text("SAYELE", 105, 97, { align: "center" });
+  doc.text("SAYELE MESSAGE", 105, 115, { align: "center" });
 
   // Title
-  doc.setFontSize(36);
+  doc.setFontSize(38);
   doc.setFont("helvetica", "bold");
   setColor(doc, WHITE);
-  doc.text("Presentation", 105, 155, { align: "center" });
-  doc.text("Commerciale", 105, 170, { align: "center" });
+  doc.text("Presentation", 105, 158, { align: "center" });
+  doc.text("Commerciale", 105, 174, { align: "center" });
 
   // Subtitle
-  doc.setFontSize(16);
+  doc.setFontSize(15);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(200, 215, 255);
-  doc.text("Plateforme de Messagerie Multi-Canal", 105, 190, { align: "center" });
-  doc.text("Propulsee par l'Intelligence Artificielle", 105, 200, { align: "center" });
+  doc.setTextColor(255, 210, 200);
+  doc.text("Plateforme de Messagerie Multi-Canal", 105, 195, { align: "center" });
+  doc.text("Propulsee par l'Intelligence Artificielle", 105, 205, { align: "center" });
 
   // Separator line
   doc.setDrawColor(255, 255, 255);
   doc.setLineWidth(0.3);
-  doc.line(70, 215, 140, 215);
+  doc.line(70, 218, 140, 218);
 
   // Contact info
   doc.setFontSize(11);
-  doc.setTextColor(180, 200, 255);
-  doc.text("www.sayele.co", 105, 230, { align: "center" });
-  doc.text("contact@sayele.co", 105, 238, { align: "center" });
+  doc.setTextColor(255, 200, 190);
+  doc.text(WEBSITE, 105, 232, { align: "center" });
+  doc.text(EMAIL, 105, 240, { align: "center" });
+  doc.text(PHONE, 105, 248, { align: "center" });
 
   // Date
-  const now = new Date();
-  const dateStr = now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
   doc.setFontSize(10);
-  doc.text(dateStr.charAt(0).toUpperCase() + dateStr.slice(1), 105, 255, { align: "center" });
+  doc.setTextColor(255, 180, 170);
+  doc.text(formattedDate, 105, 265, { align: "center" });
 
   // ════════════════════════════════════════════════════════════
   // PAGE 2 — SOMMAIRE
@@ -180,26 +224,22 @@ export function generatePresentationPDF() {
 
   let tocY = 55;
   tocItems.forEach((item, idx) => {
-    // Number circle
     drawRoundedRect(doc, 35, tocY - 5, 10, 10, 5, idx % 2 === 0 ? PRIMARY : ACCENT);
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     setColor(doc, WHITE);
     doc.text(`${idx + 1}`, 40, tocY + 2, { align: "center" });
 
-    // Title
     doc.setFontSize(13);
     doc.setFont("helvetica", "normal");
     setColor(doc, DARK);
     doc.text(item, 52, tocY + 2);
 
-    // Dotted line
-    doc.setDrawColor(200, 200, 210);
+    doc.setDrawColor(200, 190, 185);
     doc.setLineDashPattern([1, 1], 0);
     doc.line(52 + doc.getTextWidth(item) + 3, tocY + 2, 165, tocY + 2);
     doc.setLineDashPattern([], 0);
 
-    // Page number
     doc.setFontSize(11);
     setColor(doc, PRIMARY);
     doc.text(`${idx + 3}`, 170, tocY + 2);
@@ -304,7 +344,7 @@ export function generatePresentationPDF() {
     {
       name: "WhatsApp Business",
       desc: "Integration officielle via l'API WhatsApp Cloud de Meta. Envoi de messages riches (texte, images, documents), templates approuves, conversations bidirectionnelles.",
-      color: ACCENT,
+      color: [37, 150, 75] as RGB,
     },
     {
       name: "Telegram",
@@ -319,7 +359,6 @@ export function generatePresentationPDF() {
   ];
 
   channels.forEach((ch) => {
-    // Channel header bar
     drawRoundedRect(doc, 20, y, 170, 8, 2, ch.color);
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
@@ -327,7 +366,6 @@ export function generatePresentationPDF() {
     doc.text(ch.name, 25, y + 6);
     y += 12;
 
-    // Description
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     setColor(doc, DARK);
@@ -381,7 +419,6 @@ export function generatePresentationPDF() {
     ["Planification", "Programmez l'envoi de vos messages a une date et heure precises. Ideal pour les rappels et les campagnes."],
   ];
 
-  // 2 columns, 4 rows
   const colW = 82;
   const cardH = 40;
   const gap = 6;
@@ -407,7 +444,6 @@ export function generatePresentationPDF() {
   y = subTitle(doc, "SAYELE integre des capacites d'IA avancees pour automatiser vos interactions clients et augmenter la productivite de vos equipes.", y);
   y += 4;
 
-  // AI Features
   const aiFeatures = [
     {
       title: "Assistants IA Personnalises",
@@ -450,7 +486,6 @@ export function generatePresentationPDF() {
   ];
 
   aiFeatures.forEach((feat) => {
-    // Feature title
     drawRoundedRect(doc, 20, y, 170, 8, 2, ACCENT);
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
@@ -554,7 +589,6 @@ export function generatePresentationPDF() {
   y = subTitle(doc, "Des outils puissants pour gerer vos clients, credits et operations au quotidien.", y);
   y += 4;
 
-  // Admin features with table
   autoTable(doc, {
     startY: y,
     head: [["Fonctionnalite", "Description"]],
@@ -603,7 +637,6 @@ export function generatePresentationPDF() {
   y = subTitle(doc, "Integrez SAYELE a vos applications existantes grace a notre API REST complete et nos webhooks en temps reel.", y);
   y += 4;
 
-  // API endpoints table
   autoTable(doc, {
     startY: y,
     head: [["Endpoint", "Methode", "Description"]],
@@ -639,31 +672,30 @@ export function generatePresentationPDF() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   y = (doc as any).lastAutoTable.finalY + 12;
 
-  // Code example
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   setColor(doc, DARK);
   doc.text("Exemple d'Integration", 20, y);
   y += 8;
 
-  // Code block background
+  // Code block
   drawRoundedRect(doc, 20, y, 170, 48, 4, DARK);
 
   doc.setFontSize(8);
   doc.setFont("courier", "normal");
-  doc.setTextColor(0, 230, 118);
+  doc.setTextColor(180, 100, 80); // Warm code comment color
   doc.text("// Envoi d'un SMS via l'API SAYELE", 28, y + 8);
 
-  doc.setTextColor(200, 200, 200);
+  doc.setTextColor(230, 210, 200);
   const codeLines = [
-    'curl -X POST https://api.sayele.co/api/v1/sms/send \\',
+    "curl -X POST https://api.sayele.co/api/v1/sms/send \\",
     '  -H "Authorization: Bearer sk_live_votre_cle" \\',
     '  -H "Content-Type: application/json" \\',
-    '  -d \'{',
-    '    "to": "+22890001234",',
-    '    "message": "Bonjour! Votre code est 1234",',
-    '    "channel": "sms"',
-    '  }\'',
+    "  -d '{",
+    '    \"to\": \"+22505654436\",',
+    '    \"message\": \"Bonjour! Votre code est 1234\",',
+    '    \"channel\": \"sms\"',
+    "  }'",
   ];
   codeLines.forEach((line, i) => {
     doc.text(line, 28, y + 14 + i * 4.5);
@@ -671,7 +703,6 @@ export function generatePresentationPDF() {
 
   y += 60;
 
-  // Webhooks section
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   setColor(doc, DARK);
@@ -732,20 +763,17 @@ export function generatePresentationPDF() {
     const isEven = i % 2 === 0;
     drawRoundedRect(doc, 20, y, 170, 28, 4, isEven ? LIGHT_BG : WHITE);
 
-    // Number badge
     drawRoundedRect(doc, 25, y + 4, 8, 8, 4, PRIMARY);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     setColor(doc, WHITE);
     doc.text(`${i + 1}`, 29, y + 10, { align: "center" });
 
-    // Title
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     setColor(doc, DARK);
     doc.text(adv.title, 38, y + 10);
 
-    // Description
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     setColor(doc, GRAY);
@@ -769,7 +797,6 @@ export function generatePresentationPDF() {
   y = subTitle(doc, "Choisissez le forfait adapte a vos besoins. Systeme de credits prepaye flexible avec tarification par canal.", y);
   y += 4;
 
-  // Pricing table
   autoTable(doc, {
     startY: y,
     head: [["Forfait", "Credits", "Prix", "Ideal Pour"]],
@@ -807,7 +834,6 @@ export function generatePresentationPDF() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   y = (doc as any).lastAutoTable.finalY + 12;
 
-  // Per-channel pricing
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   setColor(doc, DARK);
@@ -818,7 +844,7 @@ export function generatePresentationPDF() {
     startY: y,
     head: [["Canal", "Credits / Message", "Notes"]],
     body: [
-      ["SMS National", "1 credit", "Togo, Benin, Cote d'Ivoire et plus"],
+      ["SMS National", "1 credit", "Cote d'Ivoire, Togo, Benin et plus"],
       ["SMS International", "2-5 credits", "Selon la destination"],
       ["WhatsApp", "1-2 credits", "Messages template ou session"],
       ["Telegram", "0.5 credit", "Via Bot API"],
@@ -846,7 +872,6 @@ export function generatePresentationPDF() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   y = (doc as any).lastAutoTable.finalY + 10;
 
-  // Note
   drawRoundedRect(doc, 20, y, 170, 20, 4, PRIMARY_LIGHT);
   doc.setFontSize(9);
   doc.setFont("helvetica", "italic");
@@ -869,28 +894,37 @@ export function generatePresentationPDF() {
   doc.addPage();
   pageNum++;
 
-  // Full page gradient-like effect
+  // Top half branded
   drawRect(doc, 0, 0, 210, 150, PRIMARY);
   drawRect(doc, 0, 150, 210, 147, WHITE);
 
-  // Title
+  // Decorative
+  doc.setFillColor(255, 255, 255);
+  doc.setGState(doc.GState({ opacity: 0.06 }));
+  doc.circle(40, 30, 50, "F");
+  doc.circle(185, 120, 45, "F");
+  doc.setGState(doc.GState({ opacity: 1.0 }));
+
+  // Logo on last page
+  if (logoBase64) {
+    try {
+      drawRoundedRect(doc, 90, 20, 30, 30, 6, WHITE);
+      doc.addImage(logoBase64, "PNG", 95, 24, 20, 20);
+    } catch {
+      // skip
+    }
+  }
+
   doc.setFontSize(32);
   doc.setFont("helvetica", "bold");
   setColor(doc, WHITE);
-  doc.text("Pret a Commencer ?", 105, 60, { align: "center" });
+  doc.text("Pret a Commencer ?", 105, 70, { align: "center" });
 
   doc.setFontSize(14);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(200, 215, 255);
-  doc.text("Contactez-nous pour une demonstration", 105, 75, { align: "center" });
-  doc.text("personnalisee de la plateforme SAYELE.", 105, 85, { align: "center" });
-
-  // Decorative circles
-  doc.setFillColor(255, 255, 255);
-  doc.setGState(doc.GState({ opacity: 0.05 }));
-  doc.circle(40, 30, 50, "F");
-  doc.circle(180, 120, 40, "F");
-  doc.setGState(doc.GState({ opacity: 1.0 }));
+  doc.setTextColor(255, 210, 200);
+  doc.text("Contactez-nous pour une demonstration", 105, 85, { align: "center" });
+  doc.text("personnalisee de la plateforme SAYELE.", 105, 95, { align: "center" });
 
   // Contact cards
   const contactY = 115;
@@ -905,16 +939,15 @@ export function generatePresentationPDF() {
   doc.text("Site Web", 35, contactY + 8);
   doc.setFont("helvetica", "normal");
   setColor(doc, DARK);
-  doc.text("www.sayele.co", 35, contactY + 15);
+  doc.text(WEBSITE, 35, contactY + 15);
 
   doc.setFont("helvetica", "bold");
   setColor(doc, PRIMARY);
   doc.text("Email", 115, contactY + 8);
   doc.setFont("helvetica", "normal");
   setColor(doc, DARK);
-  doc.text("contact@sayele.co", 115, contactY + 15);
+  doc.text(EMAIL, 115, contactY + 15);
 
-  // Second row of contact
   const contact2Y = contactY + 28;
   drawRoundedRect(doc, 25, contact2Y, 160, 20, 4, WHITE);
   doc.setDrawColor(PRIMARY[0], PRIMARY[1], PRIMARY[2]);
@@ -925,16 +958,16 @@ export function generatePresentationPDF() {
   doc.text("Telephone", 35, contact2Y + 8);
   doc.setFont("helvetica", "normal");
   setColor(doc, DARK);
-  doc.text("+228 XX XX XX XX", 35, contact2Y + 15);
+  doc.text(PHONE, 35, contact2Y + 15);
 
   doc.setFont("helvetica", "bold");
   setColor(doc, PRIMARY);
   doc.text("Adresse", 115, contact2Y + 8);
   doc.setFont("helvetica", "normal");
   setColor(doc, DARK);
-  doc.text("Lome, Togo", 115, contact2Y + 15);
+  doc.text(ADDRESS, 115, contact2Y + 15);
 
-  // Bottom section
+  // Next steps
   y = 190;
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
@@ -957,20 +990,19 @@ export function generatePresentationPDF() {
   });
 
   y += 10;
-  // CTA box
-  drawRoundedRect(doc, 45, y, 120, 18, 6, ACCENT);
+  drawRoundedRect(doc, 45, y, 120, 18, 6, PRIMARY);
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   setColor(doc, WHITE);
   doc.text("Demander une Demo Gratuite", 105, y + 12, { align: "center" });
 
-  // Footer
+  // Final footer
   y = 280;
   doc.setFontSize(8);
   setColor(doc, GRAY);
-  doc.text(`SAYELE Message | Presentation Commerciale | ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}`, 105, y, { align: "center" });
+  doc.text(`SAYELE Message | Presentation Commerciale | ${formattedDate}`, 105, y, { align: "center" });
   doc.text("Document confidentiel — Usage commercial uniquement", 105, y + 5, { align: "center" });
 
-  // ─── Save ────────────────────────────────────────────────────────────────────
+  // ─── Save ────────────────────────────────────────────────────────────────
   doc.save("SAYELE-Presentation-Commerciale.pdf");
 }
