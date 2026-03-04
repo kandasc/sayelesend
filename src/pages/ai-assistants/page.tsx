@@ -570,7 +570,7 @@ function ApiIntegrationTab({
   assistantId: Id<"aiAssistants">;
   assistant: Doc<"aiAssistants">;
 }) {
-  const API_BASE = (import.meta.env.VITE_CONVEX_SITE_URL as string) || "https://api.sayele.co";
+  const API_BASE = "https://api.sayele.co";
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);

@@ -31,7 +31,7 @@ import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import PaginationControls from "@/components/ui/pagination-controls.tsx";
 
-const CONVEX_SITE_URL = import.meta.env.VITE_CONVEX_SITE_URL as string;
+const CONVEX_SITE_URL = "https://api.sayele.co";
 
 function MTargetWebhookInfo() {
   const [copied, setCopied] = useState(false);
