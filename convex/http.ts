@@ -567,7 +567,16 @@ http.route({
 
     const verifyToken = process.env.META_WHATSAPP_VERIFY_TOKEN;
 
-    if (mode === "subscribe" && token === verifyToken) {
+    console.log("[WhatsApp Webhook] Verify attempt:", {
+      mode,
+      receivedTokenLength: token?.length,
+      receivedTokenStart: token?.substring(0, 6),
+      storedTokenLength: verifyToken?.length,
+      storedTokenStart: verifyToken?.substring(0, 6),
+      match: token === verifyToken,
+    });
+
+    if (mode === "subscribe" && token && verifyToken && token.trim() === verifyToken.trim()) {
       console.log("[WhatsApp Webhook] Verification successful");
       return new Response(challenge ?? "", {
         status: 200,
