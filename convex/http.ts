@@ -553,6 +553,144 @@ http.route({
   handler: incomingWebhookHandler("africastalking"),
 });
 
+// ─── WhatsApp Webhook (Meta Cloud API) ─────────────────────────────────────
+
+// GET /webhooks/whatsapp/incoming - Meta webhook verification
+http.route({
+  path: "/webhooks/whatsapp/incoming",
+  method: "GET",
+  handler: httpAction(async (_ctx, request) => {
+    const url = new URL(request.url);
+    const mode = url.searchParams.get("hub.mode");
+    const token = url.searchParams.get("hub.verify_token");
+    const challenge = url.searchParams.get("hub.challenge");
+
+    const verifyToken = process.env.META_WHATSAPP_VERIFY_TOKEN;
+
+    if (mode === "subscribe" && token === verifyToken) {
+      console.log("[WhatsApp Webhook] Verification successful");
+      return new Response(challenge ?? "", {
+        status: 200,
+        headers: { "Content-Type": "text/plain" },
+      });
+    }
+
+    console.error("[WhatsApp Webhook] Verification failed – token mismatch");
+    return new Response("Forbidden", { status: 403 });
+  }),
+});
+
+// POST /webhooks/whatsapp/incoming - Receive incoming WhatsApp messages
+http.route({
+  path: "/webhooks/whatsapp/incoming",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const body = await request.json();
+      console.log("[WhatsApp Webhook] Incoming:", JSON.stringify(body));
+
+      // Meta sends a standard webhook structure:
+      // body.entry[].changes[].value.messages[]
+      const entries = (body as Record<string, unknown[]>).entry;
+      if (!Array.isArray(entries)) {
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { ...securityHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      for (const entry of entries) {
+        const entryObj = entry as Record<string, unknown>;
+        const changes = entryObj.changes as Array<Record<string, unknown>> | undefined;
+        if (!Array.isArray(changes)) continue;
+
+        for (const change of changes) {
+          const value = change.value as Record<string, unknown> | undefined;
+          if (!value) continue;
+
+          const messages = value.messages as Array<Record<string, unknown>> | undefined;
+          if (!Array.isArray(messages)) continue;
+
+          // Extract the WhatsApp business phone number for routing
+          const metadata = value.metadata as Record<string, string> | undefined;
+          const displayPhoneNumber = metadata?.display_phone_number ?? "";
+
+          for (const msg of messages) {
+            const from = msg.from as string;
+            const msgType = msg.type as string;
+            let text = "";
+
+            if (msgType === "text") {
+              const textObj = msg.text as Record<string, string> | undefined;
+              text = textObj?.body ?? "";
+            } else if (msgType === "image" || msgType === "video" || msgType === "audio" || msgType === "document") {
+              text = `[${msgType}]`;
+            } else if (msgType === "location") {
+              const loc = msg.location as Record<string, number> | undefined;
+              text = `[location: ${loc?.latitude ?? 0}, ${loc?.longitude ?? 0}]`;
+            } else {
+              text = `[${msgType}]`;
+            }
+
+            // Store via the existing incoming SMS handler (reuse for WhatsApp)
+            await ctx.runMutation(internal.sms.webhooks.handleIncomingSms, {
+              provider: "other",
+              data: JSON.stringify({
+                from: `+${from}`,
+                to: displayPhoneNumber,
+                message: text,
+                channel: "whatsapp",
+                providerMessageId: msg.id as string,
+              }),
+            });
+          }
+
+          // Handle status updates (delivery receipts)
+          const statuses = value.statuses as Array<Record<string, unknown>> | undefined;
+          if (Array.isArray(statuses)) {
+            for (const statusUpdate of statuses) {
+              const waStatus = statusUpdate.status as string;
+              let mappedStatus: string | undefined;
+              if (waStatus === "delivered") mappedStatus = "delivered";
+              else if (waStatus === "read") mappedStatus = "delivered";
+              else if (waStatus === "failed") mappedStatus = "failed";
+              else if (waStatus === "sent") mappedStatus = "sent";
+
+              if (mappedStatus) {
+                await ctx.runMutation(internal.sms.webhooks.handleDeliveryUpdate, {
+                  provider: "other",
+                  data: JSON.stringify({
+                    providerMessageId: statusUpdate.id as string,
+                    status: mappedStatus,
+                    recipientId: statusUpdate.recipient_id as string,
+                  }),
+                });
+              }
+            }
+          }
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...securityHeaders, "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      console.error("[WhatsApp Webhook] Error:", error);
+      await ctx.runMutation(internal.httpHelpers.logWebhookFailure, {
+        action: "WhatsApp incoming webhook processing failed",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
+      // Always return 200 to Meta to avoid retries
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...securityHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }),
+});
+
 // ─── AI Chat API ───────────────────────────────────────────────────────────
 
 // OPTIONS for AI Chat
