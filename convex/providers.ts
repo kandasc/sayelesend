@@ -171,6 +171,13 @@ export const updateProvider = mutation({
       serviceId: v.optional(v.string()),
       remoteId: v.optional(v.string()),
       uniqueId: v.optional(v.string()),
+      phoneNumberId: v.optional(v.string()),
+      businessAccountId: v.optional(v.string()),
+      accessToken: v.optional(v.string()),
+      botToken: v.optional(v.string()),
+      pageAccessToken: v.optional(v.string()),
+      pageId: v.optional(v.string()),
+      appSecret: v.optional(v.string()),
     })),
   },
   handler: async (ctx, args) => {
@@ -204,24 +211,7 @@ export const updateProvider = mutation({
       });
     }
 
-    const updates: Partial<{
-      name: string;
-      config: {
-        apiKey?: string;
-        apiSecret?: string;
-        accountSid?: string;
-        authToken?: string;
-        username?: string;
-        password?: string;
-        senderId?: string;
-        endpoint?: string;
-        serviceId?: string;
-        remoteId?: string;
-        uniqueId?: string;
-      };
-      costPerSms: number;
-      isActive: boolean;
-    }> = {};
+    const updates: Record<string, unknown> = {};
 
     if (args.name !== undefined) updates.name = args.name;
     if (args.costPerSms !== undefined) updates.costPerSms = args.costPerSms;

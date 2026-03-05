@@ -751,26 +751,31 @@ async function sendViaWhatsApp(
   message: { to: string; from: string; message: string }
 ): Promise<{ success: boolean; providerMessageId?: string; error?: string }> {
   try {
-    if (!config.phoneNumberId || !config.accessToken) {
-      return { success: false, error: "Missing WhatsApp credentials (Phone Number ID and Access Token required)" };
+    // Use provider config first, fall back to environment variables
+    const phoneNumberId = config.phoneNumberId || process.env.META_WHATSAPP_PHONE_ID;
+    const accessToken = config.accessToken || process.env.META_WHATSAPP_TOKEN;
+
+    if (!phoneNumberId || !accessToken) {
+      return { success: false, error: "Missing WhatsApp credentials (Phone Number ID and Access Token required). Configure in provider or add META_WHATSAPP_PHONE_ID and META_WHATSAPP_TOKEN secrets." };
     }
 
     // Ensure phone number is in E.164 format (digits only, with country code)
-    let cleanPhone = message.to.replace(/\D/g, "");
+    const cleanPhone = message.to.replace(/\D/g, "");
     
-    // If phone doesn't start with a country code, we can't send it
-    if (!cleanPhone || cleanPhone.length < 10) {
+    if (!cleanPhone || cleanPhone.length < 8) {
       return { success: false, error: "Invalid phone number format. Must include country code (E.164 format)" };
     }
 
-    // Use latest Graph API version (v21.0)
+    console.log(`[WhatsApp] Sending to ${cleanPhone} via phoneNumberId ${phoneNumberId}`);
+
+    // Use latest Graph API version
     const response = await fetch(
-      `https://graph.facebook.com/v21.0/${config.phoneNumberId}/messages`,
+      `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${config.accessToken}`,
+          "Authorization": `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           messaging_product: "whatsapp",
@@ -784,6 +789,7 @@ async function sendViaWhatsApp(
     );
 
     const data = await response.json();
+    console.log(`[WhatsApp] Response status: ${response.status}, body:`, JSON.stringify(data));
 
     if (response.ok && data.messages && data.messages[0]) {
       return {
@@ -791,7 +797,6 @@ async function sendViaWhatsApp(
         providerMessageId: data.messages[0].id,
       };
     } else {
-      // Provide more detailed error messages
       const errorMessage = data.error?.message || "Failed to send via WhatsApp Cloud API";
       const errorCode = data.error?.code || "unknown";
       const errorType = data.error?.type || "";
