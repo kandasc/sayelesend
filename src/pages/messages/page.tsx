@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { Plus, Search, Download, Calendar as CalendarIcon, FileText, RefreshCw } from "lucide-react";
+import { Plus, Search, Download, Calendar as CalendarIcon, FileText, RefreshCw, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { format, startOfDay, endOfDay } from "date-fns";
@@ -63,7 +63,9 @@ function MessagesContent() {
   const [debouncedSearch] = useDebounce(searchQuery, 300);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const triggerCleanup = useMutation(api.messages.triggerBulkMarkDelivered);
+  const resendMessage = useMutation(api.messages.resendMessage);
   const [cleanupRunning, setCleanupRunning] = useState(false);
+  const [resending, setResending] = useState(false);
   
   type MessageType = NonNullable<typeof messages>[number];
   const [selectedMessage, setSelectedMessage] = useState<MessageType | null>(null);
@@ -507,6 +509,13 @@ function MessagesContent() {
                   <p className="font-medium">{format(new Date(selectedMessage._creationTime), "PPpp")}</p>
                 </div>
               </div>
+
+              {selectedMessage.status === "failed" && selectedMessage.failureReason && (
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <Label className="text-xs text-destructive font-medium">{intl.formatMessage({ id: "common.error" })}</Label>
+                  <p className="text-sm text-destructive mt-1">{selectedMessage.failureReason}</p>
+                </div>
+              )}
               
               <div>
                 <Label className="text-xs text-muted-foreground">{intl.formatMessage({ id: "common.message" })}</Label>
@@ -514,6 +523,31 @@ function MessagesContent() {
                   <p className="text-sm whitespace-pre-wrap">{selectedMessage.message}</p>
                 </div>
               </div>
+
+              {selectedMessage.status === "failed" && (
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    disabled={resending}
+                    onClick={async () => {
+                      setResending(true);
+                      try {
+                        await resendMessage({ messageId: selectedMessage._id });
+                        toast.success(intl.formatMessage({ id: "page.messages.resendSuccess" }));
+                        setSelectedMessage(null);
+                      } catch (error) {
+                        const msg = error instanceof Error ? error.message : "Failed to resend";
+                        toast.error(msg);
+                      } finally {
+                        setResending(false);
+                      }
+                    }}
+                  >
+                    <RotateCcw className={`h-4 w-4 mr-2 ${resending ? "animate-spin" : ""}`} />
+                    {resending ? intl.formatMessage({ id: "buttons.sending" }) : intl.formatMessage({ id: "page.messages.resend" })}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

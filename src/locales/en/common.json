@@ -104,6 +104,7 @@
   "common.na": "N/A",
   "common.statusActive": "Active",
   "common.statusPending": "Pending",
+  "common.error": "Error",
 
   "footer.developedBy": "Developed by",
 
@@ -165,6 +166,8 @@
   "page.messages.pdfExported": "PDF exported successfully",
   "page.messages.csvExportFailed": "Failed to export CSV",
   "page.messages.pdfExportFailed": "Failed to export PDF",
+  "page.messages.resend": "Resend",
+  "page.messages.resendSuccess": "Message queued for resend",
 
   "page.incoming.title": "Incoming Messages",
   "page.incoming.subtitle": "View and manage incoming SMS messages",

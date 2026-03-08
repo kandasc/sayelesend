@@ -554,6 +554,78 @@ export const getMessageViaApi = query({
   },
 });
 
+// Resend a failed message
+export const resendMessage = mutation({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "User not logged in", code: "UNAUTHENTICATED" });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!user) {
+      throw new ConvexError({ message: "User not found", code: "NOT_FOUND" });
+    }
+
+    const message = await ctx.db.get(args.messageId);
+    if (!message) {
+      throw new ConvexError({ message: "Message not found", code: "NOT_FOUND" });
+    }
+
+    // Only allow resending failed messages
+    if (message.status !== "failed") {
+      throw new ConvexError({ message: "Only failed messages can be resent", code: "BAD_REQUEST" });
+    }
+
+    // Check access
+    if (user.role === "client" && user.clientId !== message.clientId) {
+      throw new ConvexError({ message: "Access denied", code: "FORBIDDEN" });
+    }
+
+    // Check provider is still active
+    const provider = await ctx.db.get(message.providerId);
+    if (!provider || !provider.isActive) {
+      throw new ConvexError({ message: "Provider is not available or inactive", code: "BAD_REQUEST" });
+    }
+
+    // Check client credits
+    const client = await ctx.db.get(message.clientId);
+    if (!client) {
+      throw new ConvexError({ message: "Client not found", code: "NOT_FOUND" });
+    }
+
+    if (client.credits < provider.costPerSms) {
+      throw new ConvexError({ message: "Insufficient credits", code: "BAD_REQUEST" });
+    }
+
+    // Deduct credits
+    await ctx.db.patch(message.clientId, {
+      credits: client.credits - provider.costPerSms,
+    });
+
+    // Reset message status to pending
+    await ctx.db.patch(args.messageId, {
+      status: "pending" as const,
+      failureReason: undefined,
+      sentAt: undefined,
+      deliveredAt: undefined,
+      creditsUsed: provider.costPerSms,
+    });
+
+    // Re-trigger sending
+    await ctx.scheduler.runAfter(0, internal.sms.send.sendSingleMessage, {
+      messageId: args.messageId,
+    });
+
+    return args.messageId;
+  },
+});
+
 // One-time cleanup: mark old "sent" messages as "delivered" (runs in batches, self-scheduling)
 export const bulkMarkDelivered = internalMutation({
   args: {},

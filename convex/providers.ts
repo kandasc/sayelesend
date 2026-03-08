@@ -157,6 +157,22 @@ export const updateProvider = mutation({
   args: {
     providerId: v.id("smsProviders"),
     name: v.optional(v.string()),
+    type: v.optional(v.union(
+      v.literal("twilio"),
+      v.literal("vonage"),
+      v.literal("africas_talking"),
+      v.literal("mtarget"),
+      v.literal("whatsapp"),
+      v.literal("telegram"),
+      v.literal("facebook_messenger"),
+      v.literal("custom")
+    )),
+    channel: v.optional(v.union(
+      v.literal("sms"),
+      v.literal("whatsapp"),
+      v.literal("telegram"),
+      v.literal("facebook_messenger")
+    )),
     costPerSms: v.optional(v.number()),
     isActive: v.optional(v.boolean()),
     config: v.optional(v.object({
@@ -214,6 +230,8 @@ export const updateProvider = mutation({
     const updates: Record<string, unknown> = {};
 
     if (args.name !== undefined) updates.name = args.name;
+    if (args.type !== undefined) updates.type = args.type;
+    if (args.channel !== undefined) updates.channel = args.channel;
     if (args.costPerSms !== undefined) updates.costPerSms = args.costPerSms;
     if (args.isActive !== undefined) updates.isActive = args.isActive;
     if (args.config !== undefined) updates.config = args.config;
@@ -251,7 +269,10 @@ export const deleteProvider = mutation({
 
     const clients = await ctx.db.query("clients").collect();
     const hasClients = clients.some(
-      (client) => client.smsProviderId === args.providerId
+      (client) => client.smsProviderId === args.providerId ||
+        client.whatsappProviderId === args.providerId ||
+        client.telegramProviderId === args.providerId ||
+        client.facebookMessengerProviderId === args.providerId
     );
 
     if (hasClients) {

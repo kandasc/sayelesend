@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select.tsx";
 import { Switch } from "@/components/ui/switch.tsx";
-import { Plus, Edit, Copy, Check } from "lucide-react";
+import { Plus, Edit, Copy, Check, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useIntl } from "react-intl";
@@ -111,9 +111,12 @@ export default function AdminProviders() {
 function ProvidersContent() {
   const intl = useIntl();
   const providers = useQuery(api.providers.listProviders, {});
+  const deleteProvider = useMutation(api.providers.deleteProvider);
   const providersPagination = usePagination(providers ?? [], { pageSize: 10 });
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<Id<"smsProviders"> | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<Id<"smsProviders"> | null>(
     null
   );
@@ -168,16 +171,26 @@ function ProvidersContent() {
                     </p>
                   )}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedProvider(provider._id);
-                    setEditOpen(true);
-                  }}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedProvider(provider._id);
+                      setEditOpen(true);
+                    }}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => setDeleteConfirmId(provider._id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-2 text-sm">
@@ -211,6 +224,44 @@ function ProvidersContent() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Provider</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete this provider? This action cannot be undone.
+            Providers assigned to clients cannot be deleted.
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteConfirmId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleting}
+              onClick={async () => {
+                if (!deleteConfirmId) return;
+                setDeleting(true);
+                try {
+                  await deleteProvider({ providerId: deleteConfirmId });
+                  toast.success("Provider deleted");
+                  setDeleteConfirmId(null);
+                } catch (error) {
+                  const msg = error instanceof Error ? error.message : "Failed to delete provider";
+                  toast.error(msg);
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -652,6 +703,12 @@ function EditProviderForm({
   const provider = useQuery(api.providers.getProvider, { providerId });
   const updateProvider = useMutation(api.providers.updateProvider);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [providerType, setProviderType] = useState<string>("");
+  const [channel, setChannel] = useState<string>("");
+
+  // Initialize type/channel from provider data once loaded
+  const currentType = providerType || provider?.type || "twilio";
+  const currentChannel = channel || provider?.channel || "sms";
 
   if (!provider) {
     return <div>Loading...</div>;
@@ -665,25 +722,44 @@ function EditProviderForm({
     const config: Record<string, string> = {};
 
     // Build config based on provider type
-    if (provider.type === "twilio") {
+    const selectedType = currentType;
+    let selectedChannel: "sms" | "whatsapp" | "telegram" | "facebook_messenger" = currentChannel as "sms" | "whatsapp" | "telegram" | "facebook_messenger";
+
+    if (selectedType === "twilio") {
       config.accountSid = formData.get("accountSid") as string;
       config.authToken = formData.get("authToken") as string;
       config.senderId = formData.get("senderId") as string;
-    } else if (provider.type === "vonage") {
+    } else if (selectedType === "vonage") {
       config.apiKey = formData.get("apiKey") as string;
       config.apiSecret = formData.get("apiSecret") as string;
       config.senderId = formData.get("senderId") as string;
-    } else if (provider.type === "africas_talking") {
+    } else if (selectedType === "africas_talking") {
       config.username = formData.get("username") as string;
       config.apiKey = formData.get("apiKey") as string;
       config.senderId = formData.get("senderId") as string;
-    } else if (provider.type === "mtarget") {
+    } else if (selectedType === "mtarget") {
       config.username = formData.get("username") as string;
       config.password = formData.get("password") as string;
       config.senderId = formData.get("senderId") as string;
       config.serviceId = formData.get("serviceId") as string;
       config.remoteId = formData.get("remoteId") as string;
       config.uniqueId = formData.get("uniqueId") as string;
+    } else if (selectedType === "whatsapp") {
+      selectedChannel = "whatsapp";
+      config.phoneNumberId = formData.get("phoneNumberId") as string;
+      config.businessAccountId = formData.get("businessAccountId") as string;
+      config.accessToken = formData.get("accessToken") as string;
+      config.senderId = formData.get("senderId") as string;
+    } else if (selectedType === "telegram") {
+      selectedChannel = "telegram";
+      config.botToken = formData.get("botToken") as string;
+      config.senderId = formData.get("senderId") as string;
+    } else if (selectedType === "facebook_messenger") {
+      selectedChannel = "facebook_messenger";
+      config.pageAccessToken = formData.get("pageAccessToken") as string;
+      config.pageId = formData.get("pageId") as string;
+      config.appSecret = formData.get("appSecret") as string;
+      config.senderId = formData.get("senderId") as string;
     } else {
       config.endpoint = formData.get("endpoint") as string;
       config.apiKey = formData.get("apiKey") as string;
@@ -694,6 +770,8 @@ function EditProviderForm({
       await updateProvider({
         providerId,
         name: formData.get("name") as string,
+        type: selectedType as "twilio" | "vonage" | "africas_talking" | "mtarget" | "whatsapp" | "telegram" | "facebook_messenger" | "custom",
+        channel: selectedChannel,
         costPerSms: Number(formData.get("costPerSms")),
         isActive: formData.get("isActive") === "on",
         config,
@@ -716,9 +794,38 @@ function EditProviderForm({
         </div>
         <div className="space-y-2">
           <Label htmlFor="type">Provider Type</Label>
-          <Input id="type" value={provider.type} disabled className="bg-muted" />
+          <Select value={currentType} onValueChange={setProviderType}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="twilio">Twilio</SelectItem>
+              <SelectItem value="vonage">Vonage</SelectItem>
+              <SelectItem value="africas_talking">{"Africa's Talking"}</SelectItem>
+              <SelectItem value="mtarget">MTarget</SelectItem>
+              <SelectItem value="whatsapp">WhatsApp Business API</SelectItem>
+              <SelectItem value="telegram">Telegram Bot</SelectItem>
+              <SelectItem value="facebook_messenger">Facebook Messenger</SelectItem>
+              <SelectItem value="custom">Custom</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
+
+      {currentType === "twilio" && (
+        <div className="space-y-2">
+          <Label>Channel</Label>
+          <Select value={currentChannel} onValueChange={setChannel}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sms">SMS</SelectItem>
+              <SelectItem value="whatsapp">WhatsApp</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -741,7 +848,7 @@ function EditProviderForm({
         </div>
       </div>
 
-      {provider.type === "twilio" && (
+      {currentType === "twilio" && (
         <>
           <div className="space-y-2">
             <Label htmlFor="accountSid">Account SID</Label>
@@ -749,18 +856,12 @@ function EditProviderForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="authToken">Auth Token</Label>
-            <Input
-              id="authToken"
-              name="authToken"
-              type="password"
-              defaultValue={provider.config.authToken}
-              required
-            />
+            <Input id="authToken" name="authToken" type="password" defaultValue={provider.config.authToken} required />
           </div>
         </>
       )}
 
-      {provider.type === "vonage" && (
+      {currentType === "vonage" && (
         <>
           <div className="space-y-2">
             <Label htmlFor="apiKey">API Key</Label>
@@ -768,18 +869,12 @@ function EditProviderForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="apiSecret">API Secret</Label>
-            <Input
-              id="apiSecret"
-              name="apiSecret"
-              type="password"
-              defaultValue={provider.config.apiSecret}
-              required
-            />
+            <Input id="apiSecret" name="apiSecret" type="password" defaultValue={provider.config.apiSecret} required />
           </div>
         </>
       )}
 
-      {provider.type === "africas_talking" && (
+      {currentType === "africas_talking" && (
         <>
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
@@ -792,7 +887,7 @@ function EditProviderForm({
         </>
       )}
 
-      {provider.type === "mtarget" && (
+      {currentType === "mtarget" && (
         <>
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
@@ -800,13 +895,7 @@ function EditProviderForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              defaultValue={provider.config.password}
-              required
-            />
+            <Input id="password" name="password" type="password" defaultValue={provider.config.password} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="serviceId">Service ID</Label>
@@ -824,17 +913,52 @@ function EditProviderForm({
         </>
       )}
 
-      {provider.type === "custom" && (
+      {currentType === "whatsapp" && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="phoneNumberId">Phone Number ID <span className="text-destructive">*</span></Label>
+            <Input id="phoneNumberId" name="phoneNumberId" defaultValue={provider.config.phoneNumberId} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="businessAccountId">Business Account ID (WABA ID)</Label>
+            <Input id="businessAccountId" name="businessAccountId" defaultValue={provider.config.businessAccountId} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="accessToken">Access Token <span className="text-destructive">*</span></Label>
+            <Input id="accessToken" name="accessToken" type="password" defaultValue={provider.config.accessToken} required />
+          </div>
+        </>
+      )}
+
+      {currentType === "telegram" && (
+        <div className="space-y-2">
+          <Label htmlFor="botToken">Bot Token <span className="text-destructive">*</span></Label>
+          <Input id="botToken" name="botToken" type="password" defaultValue={provider.config.botToken} required />
+        </div>
+      )}
+
+      {currentType === "facebook_messenger" && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="pageAccessToken">Page Access Token <span className="text-destructive">*</span></Label>
+            <Input id="pageAccessToken" name="pageAccessToken" type="password" defaultValue={provider.config.pageAccessToken} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="pageId">Page ID <span className="text-destructive">*</span></Label>
+            <Input id="pageId" name="pageId" defaultValue={provider.config.pageId} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="appSecret">App Secret</Label>
+            <Input id="appSecret" name="appSecret" type="password" defaultValue={provider.config.appSecret} />
+          </div>
+        </>
+      )}
+
+      {currentType === "custom" && (
         <>
           <div className="space-y-2">
             <Label htmlFor="endpoint">API Endpoint</Label>
-            <Input
-              id="endpoint"
-              name="endpoint"
-              type="url"
-              defaultValue={provider.config.endpoint}
-              required
-            />
+            <Input id="endpoint" name="endpoint" type="url" defaultValue={provider.config.endpoint} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="apiKey">API Key</Label>
