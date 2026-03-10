@@ -130,7 +130,7 @@ function DashboardContent() {
                     )}
               </p>
             </div>
-            <Link to={`/${lng}/payments`}>
+            <Link to={`/${lng}/payments?tab=buy`}>
               <Button size="sm">
                 {intl.formatMessage({ id: "page.dashboard.buyCredits" })}
               </Button>

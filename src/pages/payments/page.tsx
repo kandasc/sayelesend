@@ -86,6 +86,11 @@ function PaymentsContent() {
   const verifyPayment = useAction(api.payments.verifyPayment);
   const [verifying, setVerifying] = useState(false);
 
+  // Support direct navigation to a specific tab via ?tab=buy
+  const tabParam = searchParams.get("tab");
+  const defaultTab = tabParam === "buy" ? "buy" : tabParam === "history" ? "history" : "usage";
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
   // Check for payment success callback
   useEffect(() => {
     const transactionId = searchParams.get("transaction_id");
@@ -161,9 +166,7 @@ function PaymentsContent() {
             </div>
             <Button
               size="sm"
-              onClick={() =>
-                document.getElementById("buy-credits-tab")?.click()
-              }
+              onClick={() => setActiveTab("buy")}
             >
               Buy Credits
             </Button>
@@ -260,7 +263,7 @@ function PaymentsContent() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="usage" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="usage" className="gap-2">
             <BarChart3 className="h-4 w-4" />

@@ -5,7 +5,7 @@ import { action } from "./_generated/server";
 import { api } from "./_generated/api.js";
 import { ConvexError } from "convex/values";
 
-const SAYELE_GATEWAY_URL = "https://gate.sayele.co/sdk";
+const SAYELE_GATEWAY_URL = process.env.SAYELE_GATEWAY_URL || "https://gate.sayele.co/sdk";
 
 // Credit packages available for purchase (10 XOF per SMS, min 5,000 SMS)
 export const CREDIT_PACKAGES = [
@@ -81,18 +81,31 @@ export const createPaymentSession = action({
     };
 
     // Call SAYELE payment gateway
-    const response = await fetch(SAYELE_GATEWAY_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(paymentRequest),
-    });
+    console.log(`[Payment] Calling gateway: ${SAYELE_GATEWAY_URL}`);
+    console.log(`[Payment] Package: ${selectedPackage.id}, Amount: ${selectedPackage.amount} ${selectedPackage.currency}`);
+
+    let response: Response;
+    try {
+      response = await fetch(SAYELE_GATEWAY_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(paymentRequest),
+      });
+    } catch (fetchError) {
+      console.error(`[Payment] Gateway connection failed:`, fetchError);
+      throw new ConvexError({
+        message: "Unable to reach payment gateway. Please check SAYELE_GATEWAY_URL or try again later.",
+        code: "EXTERNAL_SERVICE_ERROR",
+      });
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`[Payment] Gateway error ${response.status}: ${errorText}`);
       throw new ConvexError({
-        message: `Payment gateway error: ${errorText}`,
+        message: `Payment gateway error (${response.status}): ${errorText || "No details returned"}`,
         code: "EXTERNAL_SERVICE_ERROR",
       });
     }
