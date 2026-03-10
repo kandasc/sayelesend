@@ -546,7 +546,7 @@ function BuyCreditsTab({
   packages: CreditPackage[] | undefined;
   lng: string | undefined;
 }) {
-  const createPayment = useAction(api.payments.createPaymentSession);
+  const createPaymentIntent = useAction(api.payments.createPaymentIntent);
   const [processingPackage, setProcessingPackage] = useState<string | null>(null);
 
   if (!packages) {
@@ -559,16 +559,51 @@ function BuyCreditsTab({
     );
   }
 
+  // Load SayeleGate SDK dynamically and redirect to checkout
+  const loadSdkAndRedirect = (clientSecret: string, successUrl: string, cancelUrl: string) => {
+    const publicKey = import.meta.env.VITE_SAYELE_GATE_PUBLIC_KEY || "";
+
+    // Check if SDK is already loaded
+    const existingScript = document.querySelector('script[src*="sayelegate-sdk"]');
+    if (existingScript && window.SayeleGateSDK) {
+      const gate = new window.SayeleGateSDK(publicKey);
+      gate.redirectToCheckout({ clientSecret, successUrl, cancelUrl });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://gate-api.sayele.co/sayelegate-sdk.js";
+    script.onload = () => {
+      if (window.SayeleGateSDK) {
+        const gate = new window.SayeleGateSDK(publicKey);
+        gate.redirectToCheckout({ clientSecret, successUrl, cancelUrl });
+      } else {
+        toast.error("Failed to load payment SDK");
+        setProcessingPackage(null);
+      }
+    };
+    script.onerror = () => {
+      toast.error("Failed to load payment SDK");
+      setProcessingPackage(null);
+    };
+    document.head.appendChild(script);
+  };
+
   const handlePurchase = async (packageId: string) => {
     setProcessingPackage(packageId);
     try {
       const baseUrl = window.location.origin;
-      const { paymentUrl } = await createPayment({
+      const successUrl = `${baseUrl}/${lng}/payments?status=success&transaction_id={transaction_id}`;
+      const cancelUrl = `${baseUrl}/${lng}/payments?status=cancelled`;
+
+      const { clientSecret } = await createPaymentIntent({
         packageId,
-        successUrl: `${baseUrl}/${lng}/payments?status=success&transaction_id={transaction_id}`,
-        cancelUrl: `${baseUrl}/${lng}/payments?status=cancelled`,
+        successUrl,
+        cancelUrl,
       });
-      window.location.href = paymentUrl;
+
+      // Use the SayeleGate SDK to redirect to checkout
+      loadSdkAndRedirect(clientSecret, successUrl, cancelUrl);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to initiate payment"

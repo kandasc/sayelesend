@@ -5,7 +5,8 @@ import { action } from "./_generated/server";
 import { api } from "./_generated/api.js";
 import { ConvexError } from "convex/values";
 
-const SAYELE_GATEWAY_URL = process.env.SAYELE_GATEWAY_URL || "https://gate.sayele.co/sdk";
+// SayeleGate API endpoint for creating payment intents
+const SAYELE_API_URL = "https://gate-api.sayele.co/api/v1/payment-intents";
 
 // Credit packages available for purchase (10 XOF per SMS, min 5,000 SMS)
 export const CREDIT_PACKAGES = [
@@ -17,22 +18,21 @@ export const CREDIT_PACKAGES = [
   { id: "enterprise", name: "Enterprise", credits: 250000, amount: 2500000, currency: "XOF" },
 ] as const;
 
-type PaymentResponse = {
-  success: boolean;
-  payment_url?: string;
-  transaction_id?: string;
+type PaymentIntentResponse = {
+  client_secret?: string;
+  id?: string;
   error?: string;
+  message?: string;
 };
 
-// Create a payment session for credit purchase
-export const createPaymentSession = action({
+// Create a payment intent via SayeleGate API
+export const createPaymentIntent = action({
   args: {
     packageId: v.string(),
     successUrl: v.string(),
     cancelUrl: v.string(),
   },
-  handler: async (ctx, args): Promise<{ paymentUrl: string; transactionId: string }> => {
-    // Get current user
+  handler: async (ctx, args): Promise<{ clientSecret: string; transactionId: string }> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({
@@ -50,6 +50,16 @@ export const createPaymentSession = action({
       });
     }
 
+    // Get the secret key from environment
+    const secretKey = process.env.SAYELE_GATE_SECRET_KEY;
+    if (!secretKey) {
+      console.error("[Payment] SAYELE_GATE_SECRET_KEY not configured");
+      throw new ConvexError({
+        message: "Payment gateway not configured. Please add SAYELE_GATE_SECRET_KEY in Secrets.",
+        code: "EXTERNAL_SERVICE_ERROR",
+      });
+    }
+
     // Get user details
     const user = await ctx.runQuery(api.users.getCurrentUser, {});
     if (!user) {
@@ -59,69 +69,76 @@ export const createPaymentSession = action({
       });
     }
 
-    // Get client details
     const client = await ctx.runQuery(api.clients.getCurrentClient, {});
 
-    // Create payment request
-    const paymentRequest = {
+    // Build payment intent request per SayeleGate API docs
+    const paymentIntentBody = {
       amount: selectedPackage.amount,
       currency: selectedPackage.currency,
       payment_method_types: ["card", "mobile_money"],
-      description: `SAYELE Credits - ${selectedPackage.name} Package (${selectedPackage.credits} credits)`,
-      customer_email: user.email || identity.email || "customer@sayele.co",
-      customer_name: user.name || identity.name || "SAYELE Customer",
+      description: `SAYELE Credits - ${selectedPackage.name} Package (${selectedPackage.credits.toLocaleString()} credits)`,
       return_url: args.successUrl,
-      cancel_url: args.cancelUrl,
       metadata: {
         package_id: selectedPackage.id,
         credits: selectedPackage.credits.toString(),
         user_id: user._id,
         client_id: client?._id || "",
+        cancel_url: args.cancelUrl,
       },
     };
 
-    // Call SAYELE payment gateway
-    console.log(`[Payment] Calling gateway: ${SAYELE_GATEWAY_URL}`);
-    console.log(`[Payment] Package: ${selectedPackage.id}, Amount: ${selectedPackage.amount} ${selectedPackage.currency}`);
+    console.log(`[Payment] Creating payment intent: ${selectedPackage.id}, ${selectedPackage.amount} ${selectedPackage.currency}`);
 
     let response: Response;
     try {
-      response = await fetch(SAYELE_GATEWAY_URL, {
+      response = await fetch(SAYELE_API_URL, {
         method: "POST",
         headers: {
+          "Authorization": `Bearer ${secretKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(paymentRequest),
+        body: JSON.stringify(paymentIntentBody),
       });
     } catch (fetchError) {
-      console.error(`[Payment] Gateway connection failed:`, fetchError);
+      console.error("[Payment] Gateway connection failed:", fetchError);
       throw new ConvexError({
-        message: "Unable to reach payment gateway. Please check SAYELE_GATEWAY_URL or try again later.",
+        message: "Unable to reach payment gateway. Please try again later.",
         code: "EXTERNAL_SERVICE_ERROR",
       });
     }
+
+    const responseText = await response.text();
+    console.log(`[Payment] Gateway response ${response.status}: ${responseText}`);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[Payment] Gateway error ${response.status}: ${errorText}`);
       throw new ConvexError({
-        message: `Payment gateway error (${response.status}): ${errorText || "No details returned"}`,
+        message: `Payment gateway error (${response.status}): ${responseText || "No details returned"}`,
         code: "EXTERNAL_SERVICE_ERROR",
       });
     }
 
-    const result = (await response.json()) as PaymentResponse;
-
-    if (!result.success || !result.payment_url) {
+    let result: PaymentIntentResponse;
+    try {
+      result = JSON.parse(responseText) as PaymentIntentResponse;
+    } catch {
       throw new ConvexError({
-        message: result.error || "Failed to create payment session",
+        message: "Invalid response from payment gateway",
         code: "EXTERNAL_SERVICE_ERROR",
       });
     }
+
+    if (!result.client_secret) {
+      throw new ConvexError({
+        message: result.error || result.message || "Failed to create payment intent",
+        code: "EXTERNAL_SERVICE_ERROR",
+      });
+    }
+
+    const transactionId = result.id || `txn_${Date.now()}`;
 
     // Store pending transaction
     await ctx.runMutation(api.paymentMutations.createPendingTransaction, {
-      transactionId: result.transaction_id || `txn_${Date.now()}`,
+      transactionId,
       packageId: selectedPackage.id,
       credits: selectedPackage.credits,
       amount: selectedPackage.amount,
@@ -129,8 +146,8 @@ export const createPaymentSession = action({
     });
 
     return {
-      paymentUrl: result.payment_url,
-      transactionId: result.transaction_id || "",
+      clientSecret: result.client_secret,
+      transactionId,
     };
   },
 });
@@ -149,49 +166,10 @@ export const verifyPayment = action({
       });
     }
 
-    // Verify with SAYELE gateway
-    const response = await fetch(`${SAYELE_GATEWAY_URL}/verify/${args.transactionId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+    // Try to complete the pending transaction directly
+    const result = await ctx.runMutation(api.paymentMutations.completePendingTransaction, {
+      transactionId: args.transactionId,
     });
-
-    if (!response.ok) {
-      // If verification endpoint doesn't exist, check pending transaction
-      const result = await ctx.runMutation(api.paymentMutations.completePendingTransaction, {
-        transactionId: args.transactionId,
-      });
-      return result;
-    }
-
-    const result = (await response.json()) as {
-      success: boolean;
-      status: string;
-      metadata?: {
-        credits?: string;
-        package_id?: string;
-      };
-    };
-
-    if (result.success && result.status === "completed") {
-      const credits = parseInt(result.metadata?.credits || "0", 10);
-      await ctx.runMutation(api.paymentMutations.addCreditsToClient, {
-        credits,
-        transactionId: args.transactionId,
-        description: `Credit purchase - ${result.metadata?.package_id || "unknown"} package`,
-      });
-
-      return {
-        success: true,
-        credits,
-        message: `Successfully added ${credits} credits to your account`,
-      };
-    }
-
-    return {
-      success: false,
-      message: "Payment not completed or verification failed",
-    };
+    return result;
   },
 });
