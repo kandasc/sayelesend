@@ -374,6 +374,55 @@ export const deleteUser = mutation({
   },
 });
 
+export const rejectUser = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "User not logged in",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!admin || admin.role !== "admin") {
+      throw new ConvexError({
+        message: "Admin access required",
+        code: "FORBIDDEN",
+      });
+    }
+
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser) {
+      throw new ConvexError({
+        message: "User not found",
+        code: "NOT_FOUND",
+      });
+    }
+
+    await ctx.db.patch(args.userId, { status: "rejected" });
+
+    await logSecurityEvent({
+      ctx,
+      eventType: "admin_action",
+      action: `User rejected: ${targetUser.email || args.userId}`,
+      success: true,
+      userId: admin._id,
+    });
+
+    return { success: true };
+  },
+});
+
 // Get system stats for admin
 export const getSystemStats = query({
   args: {},

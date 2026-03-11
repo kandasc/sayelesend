@@ -562,6 +562,8 @@
   "page.adminUsers.clientSelectNote": "Sélectionnez le compte client que cet utilisateur va gérer.",
   "page.adminUsers.deleteUser": "Supprimer l'utilisateur",
   "page.adminUsers.deleteUserDescription": "Cette action est permanente et irréversible. L'utilisateur perdra tout accès.",
+  "page.adminUsers.reject": "Rejeter",
+  "page.adminUsers.userRejected": "Demande de l'utilisateur rejetée",
 
   "page.adminProviders.title": "Fournisseurs SMS",
   "page.adminProviders.subtitle": "Gérez les configurations des fournisseurs SMS",

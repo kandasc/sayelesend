@@ -1,10 +1,14 @@
-import { Mail, Clock, CheckCircle2, Home, LogOut } from "lucide-react";
+import { Mail, Clock, CheckCircle2, Home, LogOut, XCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Link, useParams } from "react-router-dom";
 import Logo from "@/components/logo.tsx";
 
-export default function PendingActivation() {
+type PendingActivationProps = {
+  rejected?: boolean;
+};
+
+export default function PendingActivation({ rejected = false }: PendingActivationProps) {
   const { lng } = useParams();
   const lang = lng || "en";
 
@@ -55,45 +59,87 @@ export default function PendingActivation() {
         <Card className="max-w-2xl w-full">
           <CardContent className="p-8 space-y-6">
             <div className="flex justify-center">
-              <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
-                <Clock className="h-10 w-10 text-primary" />
+              <div className={`h-20 w-20 rounded-full flex items-center justify-center ${
+                rejected ? "bg-destructive/10" : "bg-primary/10"
+              }`}>
+                {rejected ? (
+                  <XCircle className="h-10 w-10 text-destructive" />
+                ) : (
+                  <Clock className="h-10 w-10 text-primary" />
+                )}
               </div>
             </div>
 
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold">Account Pending Activation</h1>
+              <h1 className="text-2xl font-bold">
+                {rejected ? "Access Request Denied" : "Account Pending Activation"}
+              </h1>
               <p className="text-muted-foreground">
-                Thank you for signing up! Your account is currently pending activation.
+                {rejected
+                  ? "Your request to access the platform has been reviewed and was not approved at this time."
+                  : "Thank you for signing up! Your account is currently pending activation."}
               </p>
             </div>
 
             <div className="space-y-4 pt-4">
-              <div className="flex gap-4 p-4 bg-muted/50 rounded-lg">
-                <div className="flex-shrink-0 mt-1">
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
-                </div>
-                <div className="space-y-1">
-                  <p className="font-medium">What happens next?</p>
-                  <p className="text-sm text-muted-foreground">
-                    Our team is reviewing your registration. Once your account is activated, 
-                    you'll be able to access all platform features including SMS, WhatsApp, 
-                    Telegram, and Facebook Messenger messaging.
-                  </p>
-                </div>
-              </div>
+              {rejected ? (
+                <>
+                  <div className="flex gap-4 p-4 bg-destructive/5 rounded-lg border border-destructive/20">
+                    <div className="flex-shrink-0 mt-1">
+                      <XCircle className="h-5 w-5 text-destructive" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-medium">What does this mean?</p>
+                      <p className="text-sm text-muted-foreground">
+                        Your registration was reviewed by our team and was not approved. 
+                        This could be due to incomplete information or other eligibility criteria.
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="flex gap-4 p-4 bg-muted/50 rounded-lg">
-                <div className="flex-shrink-0 mt-1">
-                  <Mail className="h-5 w-5 text-primary" />
-                </div>
-                <div className="space-y-1">
-                  <p className="font-medium">You'll be notified</p>
-                  <p className="text-sm text-muted-foreground">
-                    We'll send you an email notification as soon as your account is activated. 
-                    This usually takes 1-2 business days.
-                  </p>
-                </div>
-              </div>
+                  <div className="flex gap-4 p-4 bg-muted/50 rounded-lg">
+                    <div className="flex-shrink-0 mt-1">
+                      <Mail className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-medium">Need more information?</p>
+                      <p className="text-sm text-muted-foreground">
+                        If you believe this was a mistake or would like to appeal, 
+                        please contact our support team. We will be happy to review your case.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex gap-4 p-4 bg-muted/50 rounded-lg">
+                    <div className="flex-shrink-0 mt-1">
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-medium">What happens next?</p>
+                      <p className="text-sm text-muted-foreground">
+                        Our team is reviewing your registration. Once your account is activated, 
+                        you'll be able to access all platform features including SMS, WhatsApp, 
+                        Telegram, and Facebook Messenger messaging.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 p-4 bg-muted/50 rounded-lg">
+                    <div className="flex-shrink-0 mt-1">
+                      <Mail className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-medium">You'll be notified</p>
+                      <p className="text-sm text-muted-foreground">
+                        We'll send you an email notification as soon as your account is activated. 
+                        This usually takes 1-2 business days.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="pt-4 border-t">

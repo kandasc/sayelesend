@@ -562,6 +562,8 @@
   "page.adminUsers.clientSelectNote": "Select the client account this user will manage.",
   "page.adminUsers.deleteUser": "Delete User",
   "page.adminUsers.deleteUserDescription": "This action is permanent and cannot be undone. The user will lose all access.",
+  "page.adminUsers.reject": "Reject",
+  "page.adminUsers.userRejected": "User request rejected",
 
   "page.adminProviders.title": "SMS Providers",
   "page.adminProviders.subtitle": "Manage SMS provider configurations",

@@ -137,6 +137,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   const hasEmailAssistant = currentClient?.emailAssistantEnabled === true;
   const hasMarketing = currentClient?.marketingEnabled === true;
+
+  const isRejected = effectiveUser?.status === "rejected";
   
   const isPendingActivation = 
     effectiveUser?.role === "client" && 
@@ -149,6 +151,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (needsContactForm) {
     return <ContactFormOnboarding />;
+  }
+
+  if (isRejected && !isRealAdmin) {
+    return <PendingActivation rejected />;
   }
 
   if (isPendingActivation) {

@@ -40,7 +40,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, UserPlus, Mail, Shield, MoreVertical, Edit, Trash2, Eye, UserMinus } from "lucide-react";
+import { Users, UserPlus, Mail, Shield, MoreVertical, Edit, Trash2, Eye, UserMinus, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import PaginationControls from "@/components/ui/pagination-controls.tsx";
@@ -64,6 +64,7 @@ export default function AdminUsersPage() {
   const updateUserDetails = useMutation(api.admin.updateUserDetails);
   const unassignUser = useMutation(api.admin.unassignUserFromClient);
   const deleteUser = useMutation(api.admin.deleteUser);
+  const rejectUser = useMutation(api.admin.rejectUser);
 
   const handleAssignUser = async () => {
     if (!userEmail || !selectedClientId || selectedClientId === "none") {
@@ -175,6 +176,19 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleRejectUser = async (userId: Id<"users">) => {
+    try {
+      await rejectUser({ userId });
+      toast.success(intl.formatMessage({ id: "page.adminUsers.userRejected" }));
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to reject user");
+      }
+    }
+  };
+
   const usersPagination = usePagination(users ?? [], { pageSize: 15 });
 
   if (users === undefined || users === null || clients === undefined || clients === null) {
@@ -189,7 +203,7 @@ export default function AdminUsersPage() {
   const admins = users.filter((u) => u.role === "admin");
   const clientUsers = users.filter((u) => u.role === "client");
   const viewers = users.filter((u) => u.role === "viewer");
-  const unassignedUsers = users.filter((u) => !u.role || (!u.clientId && u.role !== "admin"));
+  const unassignedUsers = users.filter((u) => (!u.role || (!u.clientId && u.role !== "admin")) && u.status !== "rejected");
 
   return (
     <div className="space-y-6">
@@ -281,15 +295,25 @@ export default function AdminUsersPage() {
                     <div className="font-medium">{user.name || "Unknown"}</div>
                     <div className="text-sm text-muted-foreground">{user.email || "No email"}</div>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setUserEmail(user.email || "");
-                      setAssignDialogOpen(true);
-                    }}
-                  >
-                    {intl.formatMessage({ id: "page.adminUsers.assignToClient" })}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleRejectUser(user._id)}
+                    >
+                      <XCircle className="h-4 w-4 mr-1" />
+                      {intl.formatMessage({ id: "page.adminUsers.reject" })}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setUserEmail(user.email || "");
+                        setAssignDialogOpen(true);
+                      }}
+                    >
+                      {intl.formatMessage({ id: "page.adminUsers.assignToClient" })}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
