@@ -739,9 +739,12 @@ export default defineSchema({
     status: v.union(
       v.literal("draft"),
       v.literal("saved"),
+      v.literal("scheduled"),
       v.literal("published")
     ),
     isFavorite: v.optional(v.boolean()),
+    scheduledAt: v.optional(v.string()), // ISO 8601 UTC
+    publishedAt: v.optional(v.string()), // ISO 8601 UTC
   })
     .index("by_client", ["clientId"])
     .index("by_user", ["userId"])
