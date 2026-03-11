@@ -168,3 +168,96 @@ export const generateUploadUrl = mutation({
     return await ctx.storage.generateUploadUrl();
   },
 });
+
+// ─── Marketing Images ────────────────────────────────────────
+
+export const saveImage = mutation({
+  args: {
+    prompt: v.string(),
+    style: v.string(),
+    platform: v.optional(v.string()),
+    aspectRatio: v.optional(v.string()),
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user?.clientId) {
+      throw new ConvexError({ message: "No client assigned", code: "FORBIDDEN" });
+    }
+
+    return await ctx.db.insert("marketingImages", {
+      clientId: user.clientId,
+      userId: user._id,
+      prompt: args.prompt,
+      style: args.style,
+      platform: args.platform,
+      aspectRatio: args.aspectRatio,
+      storageId: args.storageId,
+    });
+  },
+});
+
+export const listImages = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({ message: "Not authenticated", code: "UNAUTHENTICATED" });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user?.clientId) return [];
+
+    const images = await ctx.db
+      .query("marketingImages")
+      .withIndex("by_client", (q) => q.eq("clientId", user.clientId!))
+      .order("desc")
+      .collect();
+
+    return Promise.all(
+      images.map(async (img) => ({
+        ...img,
+        imageUrl: await ctx.storage.getUrl(img.storageId),
+      }))
+    );
+  },
+});
+
+export const updateImage = mutation({
+  args: {
+    imageId: v.id("marketingImages"),
+    isFavorite: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.imageId);
+    if (!existing) {
+      throw new ConvexError({ message: "Image not found", code: "NOT_FOUND" });
+    }
+    const updates: Record<string, unknown> = {};
+    if (args.isFavorite !== undefined) updates.isFavorite = args.isFavorite;
+    await ctx.db.patch(args.imageId, updates);
+  },
+});
+
+export const deleteImage = mutation({
+  args: { imageId: v.id("marketingImages") },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.imageId);
+    if (!existing) {
+      throw new ConvexError({ message: "Image not found", code: "NOT_FOUND" });
+    }
+    await ctx.storage.delete(existing.storageId);
+    await ctx.db.delete(args.imageId);
+  },
+});

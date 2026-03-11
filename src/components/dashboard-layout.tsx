@@ -38,6 +38,7 @@ import { useIntl } from "react-intl";
   MailOpen,
   Megaphone,
   PenLine,
+  ImageIcon,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
@@ -200,6 +201,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     icon: <Megaphone className="h-5 w-5" />,
     items: [
       { path: `/${lang}/content-studio`, label: intl.formatMessage({ id: "nav.contentStudio" }), icon: <PenLine className="h-4 w-4" /> },
+      { path: `/${lang}/image-creator`, label: intl.formatMessage({ id: "nav.imageCreator" }), icon: <ImageIcon className="h-4 w-4" /> },
     ],
   };
 

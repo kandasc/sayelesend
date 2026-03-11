@@ -747,4 +747,18 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_platform", ["platform"])
     .index("by_status", ["status"]),
+
+  // ─── Marketing Images ──────────────────────────────────────────
+  marketingImages: defineTable({
+    clientId: v.id("clients"),
+    userId: v.id("users"),
+    prompt: v.string(),
+    style: v.string(),
+    platform: v.optional(v.string()),
+    aspectRatio: v.optional(v.string()),
+    storageId: v.id("_storage"),
+    isFavorite: v.optional(v.boolean()),
+  })
+    .index("by_client", ["clientId"])
+    .index("by_user", ["userId"]),
 });

@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import OpenAI from "openai";
 import { action } from "./_generated/server";
+import { api } from "./_generated/api";
 import { ConvexError } from "convex/values";
 
 // ─── Platform-specific guidelines ─────────────────────────────
@@ -195,6 +196,132 @@ Return JSON: { "variations": ["variation1", "variation2", ...] }`,
       console.error("[Marketing] Variations error:", error);
       throw new ConvexError({
         message: "Failed to generate variations",
+        code: "EXTERNAL_SERVICE_ERROR",
+      });
+    }
+  },
+});
+
+// ─── Generate Marketing Image ────────────────────────────────
+
+export const generateMarketingImage = action({
+  args: {
+    prompt: v.string(),
+    style: v.string(),
+    platform: v.optional(v.string()),
+    aspectRatio: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<{
+    storageId: string;
+    imageUrl: string;
+  }> => {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    // Build an enhanced prompt with style and platform context
+    const platformHint = args.platform
+      ? `Optimized for ${args.platform} social media.`
+      : "";
+    const aspectHint = args.aspectRatio
+      ? `Aspect ratio: ${args.aspectRatio}.`
+      : "";
+
+    const fullPrompt = `Create a professional marketing image: ${args.prompt}
+Style: ${args.style}. ${platformHint} ${aspectHint}
+The image should be clean, visually appealing, and suitable for social media marketing. No text or watermarks unless explicitly requested.`;
+
+    try {
+      const response = await openai.responses.create({
+        model: "gpt-5",
+        instructions: "Generate a high-quality marketing image from the user's prompt.",
+        input: fullPrompt,
+        tools: [{ type: "image_generation" }],
+      });
+
+      // Extract image data from response
+      const imageData = response.output
+        .filter((output) => output.type === "image_generation_call")
+        .map((output) => {
+          if (output.type === "image_generation_call") {
+            return output.result;
+          }
+          return "";
+        })
+        .filter(Boolean);
+
+      if (imageData.length === 0) {
+        throw new ConvexError({
+          message: "No image was generated. Please try a different prompt.",
+          code: "EXTERNAL_SERVICE_ERROR",
+        });
+      }
+
+      const imageBase64 = imageData[0];
+
+      if (!imageBase64) {
+        throw new ConvexError({
+          message: "No image data received. Please try again.",
+          code: "EXTERNAL_SERVICE_ERROR",
+        });
+      }
+
+      // Store in Convex file storage
+      const byteArray = Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0));
+      const storageId = await ctx.storage.store(
+        new Blob([byteArray], { type: "image/png" })
+      );
+
+      const imageUrl = await ctx.storage.getUrl(storageId);
+
+      return {
+        storageId: storageId as string,
+        imageUrl: imageUrl || "",
+      };
+    } catch (error) {
+      if (error instanceof ConvexError) throw error;
+      console.error("[Marketing] Image generation error:", error);
+      throw new ConvexError({
+        message: "Failed to generate image. Please try again.",
+        code: "EXTERNAL_SERVICE_ERROR",
+      });
+    }
+  },
+});
+
+// ─── Generate Image Prompt Suggestions ───────────────────────
+
+export const suggestImagePrompts = action({
+  args: {
+    topic: v.string(),
+    platform: v.optional(v.string()),
+    style: v.optional(v.string()),
+  },
+  handler: async (_ctx, args): Promise<{ suggestions: string[] }> => {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are a creative marketing image consultant. Generate 4 detailed image prompt suggestions for social media marketing images. Each prompt should be specific, visual, and describe a complete scene. ${args.platform ? `Optimized for ${args.platform}.` : ""} ${args.style ? `Style preference: ${args.style}.` : ""}
+
+Return JSON: { "suggestions": ["prompt1", "prompt2", "prompt3", "prompt4"] }`,
+          },
+          { role: "user", content: `Topic: ${args.topic}` },
+        ],
+        response_format: { type: "json_object" },
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) return { suggestions: [] };
+
+      const parsed = JSON.parse(content) as { suggestions?: string[] };
+      return { suggestions: parsed.suggestions || [] };
+    } catch (error) {
+      console.error("[Marketing] Prompt suggestions error:", error);
+      throw new ConvexError({
+        message: "Failed to generate suggestions",
         code: "EXTERNAL_SERVICE_ERROR",
       });
     }
