@@ -28,11 +28,13 @@
   "nav.credits": "Crédits",
   "nav.creditsBilling": "Crédits & Facturation",
   "nav.submissions": "Soumissions",
+  "nav.contentStudio": "Studio de Contenu",
 
   "nav.group.messaging": "Messagerie",
   "nav.group.contactsAutomation": "Contacts & Automatisation",
   "nav.group.developer": "Développeur",
   "nav.group.administration": "Administration",
+  "nav.group.marketing": "Marketing",
 
   "dashboard.testMode": "Mode Test",
   "dashboard.viewingAsClient": "Vue en tant qu'admin client",

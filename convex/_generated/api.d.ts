@@ -38,6 +38,8 @@ import type * as lib_secureKey from "../lib/secureKey.js";
 import type * as lib_securityLogger from "../lib/securityLogger.js";
 import type * as lib_validation from "../lib/validation.js";
 import type * as lib_webhookVerification from "../lib/webhookVerification.js";
+import type * as marketing from "../marketing.js";
+import type * as marketingActions from "../marketingActions.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as paymentMutations from "../paymentMutations.js";
@@ -99,6 +101,8 @@ declare const fullApi: ApiFromModules<{
   "lib/securityLogger": typeof lib_securityLogger;
   "lib/validation": typeof lib_validation;
   "lib/webhookVerification": typeof lib_webhookVerification;
+  marketing: typeof marketing;
+  marketingActions: typeof marketingActions;
   messages: typeof messages;
   migrations: typeof migrations;
   paymentMutations: typeof paymentMutations;

@@ -707,4 +707,44 @@ export default defineSchema({
     .index("by_client", ["clientId"])
     .index("by_user", ["userId"])
     .index("by_status", ["status"]),
+
+  // ─── Marketing Content Studio ────────────────────────────────
+  marketingContent: defineTable({
+    clientId: v.id("clients"),
+    userId: v.id("users"),
+    platform: v.union(
+      v.literal("facebook"),
+      v.literal("instagram"),
+      v.literal("x"),
+      v.literal("linkedin"),
+      v.literal("whatsapp"),
+      v.literal("tiktok"),
+      v.literal("general")
+    ),
+    tone: v.union(
+      v.literal("professional"),
+      v.literal("casual"),
+      v.literal("humorous"),
+      v.literal("inspirational"),
+      v.literal("promotional"),
+      v.literal("educational")
+    ),
+    language: v.string(),
+    topic: v.string(),
+    generatedText: v.string(),
+    hashtags: v.optional(v.string()),
+    callToAction: v.optional(v.string()),
+    imageStorageId: v.optional(v.id("_storage")),
+    imageUrl: v.optional(v.string()),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("saved"),
+      v.literal("published")
+    ),
+    isFavorite: v.optional(v.boolean()),
+  })
+    .index("by_client", ["clientId"])
+    .index("by_user", ["userId"])
+    .index("by_platform", ["platform"])
+    .index("by_status", ["status"]),
 });

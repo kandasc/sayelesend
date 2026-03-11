@@ -36,6 +36,8 @@ import { useIntl } from "react-intl";
   Code,
   Shield,
   MailOpen,
+  Megaphone,
+  PenLine,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
@@ -192,6 +194,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ],
   };
 
+  // Marketing group
+  const marketingGroup: NavGroup = {
+    label: intl.formatMessage({ id: "nav.group.marketing" }),
+    icon: <Megaphone className="h-5 w-5" />,
+    items: [
+      { path: `/${lang}/content-studio`, label: intl.formatMessage({ id: "nav.contentStudio" }), icon: <PenLine className="h-4 w-4" /> },
+    ],
+  };
+
   // Bottom standalone items
   const bottomItems: NavItem[] = [
     { path: `/${lang}/reports`, label: intl.formatMessage({ id: "nav.reports" }), icon: <BarChart3 className="h-5 w-5" /> },
@@ -217,7 +228,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ],
   };
 
-  const navGroups = [messagingGroup, contactsGroup, developerGroup];
+  const navGroups = [messagingGroup, contactsGroup, marketingGroup, developerGroup];
 
   return (
     <div className="flex h-screen bg-background">
