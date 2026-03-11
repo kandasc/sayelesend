@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.tsx";
-import { Plus, Edit, DollarSign, Users as UsersIcon, MailOpen } from "lucide-react";
+import { Plus, Edit, DollarSign, Users as UsersIcon, MailOpen, Megaphone } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useIntl } from "react-intl";
@@ -148,6 +148,12 @@ function ClientsContent() {
                         <Badge variant="secondary" className="gap-1">
                           <MailOpen className="h-3 w-3" />
                           {intl.formatMessage({ id: "page.adminClients.emailAI" })}
+                        </Badge>
+                      )}
+                      {client.marketingEnabled && (
+                        <Badge variant="secondary" className="gap-1">
+                          <Megaphone className="h-3 w-3" />
+                          {intl.formatMessage({ id: "page.adminClients.marketing" })}
                         </Badge>
                       )}
                     </div>
@@ -459,11 +465,13 @@ function EditClientForm({
   const updateClient = useMutation(api.clients.updateClient);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailAssistantEnabled, setEmailAssistantEnabled] = useState(false);
+  const [marketingEnabled, setMarketingEnabled] = useState(false);
 
   // Sync toggle state when client data loads
   useEffect(() => {
     if (client) {
       setEmailAssistantEnabled(client.emailAssistantEnabled ?? false);
+      setMarketingEnabled(client.marketingEnabled ?? false);
     }
   }, [client]);
 
@@ -498,6 +506,7 @@ function EditClientForm({
         senderId: (formData.get("senderId") as string) || undefined,
         remoteId: (formData.get("remoteId") as string) || undefined,
         emailAssistantEnabled,
+        marketingEnabled,
       });
       toast.success(intl.formatMessage({ id: "page.adminClients.clientUpdated" }));
       onSuccess();
@@ -655,6 +664,22 @@ function EditClientForm({
               id="emailAssistant"
               checked={emailAssistantEnabled}
               onCheckedChange={setEmailAssistantEnabled}
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <Megaphone className="h-4 w-4 text-primary" />
+                <Label htmlFor="marketing" className="font-medium">{intl.formatMessage({ id: "page.adminClients.marketingTools" })}</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {intl.formatMessage({ id: "page.adminClients.marketingDesc" })}
+              </p>
+            </div>
+            <Switch
+              id="marketing"
+              checked={marketingEnabled}
+              onCheckedChange={setMarketingEnabled}
             />
           </div>
         </div>

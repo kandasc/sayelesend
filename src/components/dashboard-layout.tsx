@@ -136,6 +136,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isSuperAdmin = isAdmin && !effectiveUser?.clientId;
   
   const hasEmailAssistant = currentClient?.emailAssistantEnabled === true;
+  const hasMarketing = currentClient?.marketingEnabled === true;
   
   const isPendingActivation = 
     effectiveUser?.role === "client" && 
@@ -232,7 +233,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ],
   };
 
-  const navGroups = [messagingGroup, contactsGroup, marketingGroup, developerGroup];
+  const navGroups = [messagingGroup, contactsGroup, ...(hasMarketing || isSuperAdmin ? [marketingGroup] : []), developerGroup];
 
   return (
     <div className="flex h-screen bg-background">

@@ -64,6 +64,7 @@ export default defineSchema({
     remoteId: v.optional(v.string()),
     // Feature flags
     emailAssistantEnabled: v.optional(v.boolean()),
+    marketingEnabled: v.optional(v.boolean()),
     // Message counts per channel
     smsCount: v.optional(v.number()),
     whatsappCount: v.optional(v.number()),
