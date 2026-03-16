@@ -753,6 +753,7 @@ function HistoryTab({
             </Empty>
           ) : (
             <>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -799,6 +800,7 @@ function HistoryTab({
                 ))}
               </TableBody>
             </Table>
+            </div>
             <PaginationControls {...txPagination} itemLabel="transactions" />
             </>
           )}
@@ -813,6 +815,7 @@ function HistoryTab({
             <CardDescription>Payments made through the gateway</CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -855,6 +858,7 @@ function HistoryTab({
                 ))}
               </TableBody>
             </Table>
+            </div>
             <PaginationControls {...payPagination} itemLabel="payments" />
           </CardContent>
         </Card>

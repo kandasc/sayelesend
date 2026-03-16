@@ -302,39 +302,40 @@ function MessagesContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.messages.title" })}</h1>
-          <p className="text-muted-foreground">{intl.formatMessage({ id: "page.messages.subtitle" })}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">{intl.formatMessage({ id: "page.messages.title" })}</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">{intl.formatMessage({ id: "page.messages.subtitle" })}</p>
         </div>
-        {currentUser?.role === "admin" && (
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={cleanupRunning}
-            onClick={async () => {
-              setCleanupRunning(true);
-              try {
-                await triggerCleanup({});
-                toast.success("Bulk status update started. Old 'sent' messages will be marked as 'delivered' in batches.");
-              } catch {
-                toast.error("Failed to start cleanup");
-              } finally {
-                setCleanupRunning(false);
-              }
-            }}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${cleanupRunning ? "animate-spin" : ""}`} />
-            {intl.formatMessage({ id: "page.messages.updateOldStatus" })}
-          </Button>
-        )}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              {intl.formatMessage({ id: "page.messages.sendMessage" })}
+        <div className="flex gap-2">
+          {currentUser?.role === "admin" && (
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={cleanupRunning}
+              onClick={async () => {
+                setCleanupRunning(true);
+                try {
+                  await triggerCleanup({});
+                  toast.success("Bulk status update started. Old 'sent' messages will be marked as 'delivered' in batches.");
+                } catch {
+                  toast.error("Failed to start cleanup");
+                } finally {
+                  setCleanupRunning(false);
+                }
+              }}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${cleanupRunning ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">{intl.formatMessage({ id: "page.messages.updateOldStatus" })}</span>
             </Button>
-          </DialogTrigger>
+          )}
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                {intl.formatMessage({ id: "page.messages.sendMessage" })}
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{intl.formatMessage({ id: "page.messages.sendNewMessage" })}</DialogTitle>
@@ -345,6 +346,7 @@ function MessagesContent() {
             />
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -374,7 +376,7 @@ function MessagesContent() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -386,8 +388,8 @@ function MessagesContent() {
             </div>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="min-w-[240px] justify-start text-left font-normal">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
+                <Button variant="secondary" className="sm:min-w-[240px] justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
                   {dateRange?.from ? (
                     dateRange.to ? (
                       <>

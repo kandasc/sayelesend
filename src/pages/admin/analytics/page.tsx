@@ -79,14 +79,14 @@ export default function AdminAnalyticsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.adminAnalytics.title" })}</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold">{intl.formatMessage({ id: "page.adminAnalytics.title" })}</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           {intl.formatMessage({ id: "page.adminAnalytics.subtitle" })}
         </p>
       </div>
 
       {/* Key System Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.adminAnalytics.totalClients" })}</CardTitle>
@@ -168,7 +168,7 @@ export default function AdminAnalyticsPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         {/* Client Usage Chart */}
         <Card>
           <CardHeader>
@@ -245,7 +245,7 @@ export default function AdminAnalyticsPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         {/* Credit Distribution */}
         <Card>
           <CardHeader>

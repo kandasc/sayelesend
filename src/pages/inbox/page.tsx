@@ -97,15 +97,15 @@ function InboxContent() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.inbox.title" })}</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">{intl.formatMessage({ id: "page.inbox.title" })}</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             {intl.formatMessage({ id: "page.inbox.subtitle" })}
             {totalUnread ? ` — ${totalUnread} unread` : ""}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {isAdmin && (
             <Button
               variant="secondary"

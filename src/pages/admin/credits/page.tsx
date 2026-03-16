@@ -113,19 +113,19 @@ export default function AdminCreditsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Credit Management</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Credit Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Manage client credits and view transaction history
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setAddDialogOpen(true)}>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={() => setAddDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Credits
           </Button>
-          <Button variant="outline" onClick={() => setDeductDialogOpen(true)}>
+          <Button size="sm" variant="outline" onClick={() => setDeductDialogOpen(true)}>
             <Minus className="mr-2 h-4 w-4" />
             Deduct Credits
           </Button>
@@ -133,7 +133,7 @@ export default function AdminCreditsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Credits</CardTitle>
@@ -188,6 +188,7 @@ export default function AdminCreditsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -256,6 +257,7 @@ export default function AdminCreditsPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -268,6 +270,7 @@ export default function AdminCreditsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -338,6 +341,7 @@ export default function AdminCreditsPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

@@ -127,10 +127,10 @@ function ProvidersContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Messaging Providers</h1>
-          <p className="text-muted-foreground">Manage SMS, WhatsApp, Telegram, and Facebook Messenger providers</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Messaging Providers</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Manage SMS, WhatsApp, Telegram, and Facebook Messenger providers</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
@@ -148,7 +148,7 @@ function ProvidersContent() {
         </Dialog>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         {providersPagination.paginatedItems.map((provider) => (
           <Card key={provider._id}>
             <CardContent className="pt-6">

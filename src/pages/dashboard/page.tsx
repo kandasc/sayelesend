@@ -51,12 +51,12 @@ function DashboardContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-2xl sm:text-3xl font-bold">
             {intl.formatMessage({ id: "page.dashboard.title" })}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm sm:text-base">
             {intl.formatMessage(
               { id: "page.dashboard.welcome" },
               { name: currentUser.name || "User" }
@@ -64,14 +64,14 @@ function DashboardContent() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link to={`/${lng}/messages`}>
-            <Button variant="outline">
+          <Link to={`/${lng}/messages`} className="flex-1 sm:flex-none">
+            <Button variant="secondary" className="w-full sm:w-auto" size="sm">
               <MessageSquare className="h-4 w-4 mr-2" />
               {intl.formatMessage({ id: "page.dashboard.sendMessage" })}
             </Button>
           </Link>
-          <Link to={`/${lng}/bulk`}>
-            <Button>
+          <Link to={`/${lng}/bulk`} className="flex-1 sm:flex-none">
+            <Button className="w-full sm:w-auto" size="sm">
               <Send className="h-4 w-4 mr-2" />
               {intl.formatMessage({ id: "page.dashboard.bulkMessage" })}
             </Button>
@@ -309,21 +309,22 @@ function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-2xl sm:text-3xl font-bold">
             {intl.formatMessage({ id: "page.dashboard.admin.title" })}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm sm:text-base">
             {intl.formatMessage({
               id: "page.dashboard.admin.subtitle",
             })}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {singlePendingCount > 0 && (
             <Button 
-              variant="outline" 
+              variant="secondary" 
+              size="sm"
               onClick={handleRetryPending}
               disabled={isRetrying}
             >
@@ -332,14 +333,15 @@ function AdminDashboard() {
               ) : (
                 <Clock className="h-4 w-4 mr-2" />
               )}
-              {intl.formatMessage({
+              <span className="hidden sm:inline">{intl.formatMessage({
                 id: "page.dashboard.admin.retrySingle",
-              })} ({singlePendingCount})
+              })}</span> ({singlePendingCount})
             </Button>
           )}
           {bulkPendingCount > 0 && (
             <Button 
               variant="secondary" 
+              size="sm"
               onClick={handleCleanupBulk}
               disabled={isCleaning}
             >
@@ -348,13 +350,14 @@ function AdminDashboard() {
               ) : (
                 <XCircle className="h-4 w-4 mr-2" />
               )}
-              {intl.formatMessage({
+              <span className="hidden sm:inline">{intl.formatMessage({
                 id: "page.dashboard.admin.cleanupBulk",
-              })} ({bulkPendingCount})
+              })}</span> ({bulkPendingCount})
             </Button>
           )}
           <Button
             variant="secondary"
+            size="sm"
             onClick={async () => {
               try {
                 await generatePresentationPDF();
@@ -364,13 +367,13 @@ function AdminDashboard() {
               }
             }}
           >
-            <FileDown className="h-4 w-4 mr-2" />
-            {intl.formatMessage({ id: "page.dashboard.admin.downloadPresentation" })}
+            <FileDown className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{intl.formatMessage({ id: "page.dashboard.admin.downloadPresentation" })}</span>
           </Button>
           <Link to={`/${lng}/admin/clients`}>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              {intl.formatMessage({ id: "page.dashboard.admin.newClient" })}
+            <Button size="sm">
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">{intl.formatMessage({ id: "page.dashboard.admin.newClient" })}</span>
             </Button>
           </Link>
         </div>

@@ -309,14 +309,14 @@ function IncomingMessagesContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.incoming.title" })}</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">{intl.formatMessage({ id: "page.incoming.title" })}</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             {intl.formatMessage({ id: "page.incoming.subtitle" })}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -338,7 +338,7 @@ function IncomingMessagesContent() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.incoming.totalReceived" })}</CardTitle>
@@ -370,7 +370,7 @@ function IncomingMessagesContent() {
         </Card>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -382,7 +382,7 @@ function IncomingMessagesContent() {
         </div>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="min-w-[240px] justify-start text-left font-normal">
+            <Button variant="outline" className="sm:min-w-[240px] justify-start text-left font-normal">
               <CalendarIcon className="mr-2 h-4 w-4" />
               {dateRange?.from ? (
                 dateRange.to ? (

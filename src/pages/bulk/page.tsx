@@ -65,10 +65,10 @@ function BulkSMSContent() {
   if (currentUser.role === "admin") {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.bulk.title" })}</h1>
-            <p className="text-muted-foreground">{intl.formatMessage({ id: "page.bulk.subtitle" })}</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">{intl.formatMessage({ id: "page.bulk.title" })}</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">{intl.formatMessage({ id: "page.bulk.subtitle" })}</p>
           </div>
           <UpdateBulkStatusButton />
         </div>
@@ -132,16 +132,16 @@ function BulkSMSContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.bulk.title" })}</h1>
-          <p className="text-muted-foreground">{intl.formatMessage({ id: "page.bulk.subtitle" })}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">{intl.formatMessage({ id: "page.bulk.title" })}</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">{intl.formatMessage({ id: "page.bulk.subtitle" })}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              {intl.formatMessage({ id: "page.bulk.newCampaign" })}
+            <Button size="sm">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline ml-2">{intl.formatMessage({ id: "page.bulk.newCampaign" })}</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
@@ -268,7 +268,7 @@ function CampaignList({
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <div>
@@ -845,7 +845,7 @@ function CampaignDetails({ bulkMessageId }: { bulkMessageId: Id<"bulkMessages"> 
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.bulk.totalRecipients" })}</CardTitle>

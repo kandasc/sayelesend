@@ -5,7 +5,7 @@ import Logo from "@/components/logo.tsx";
 import { LanguageSwitcher } from "@/components/language-switcher.tsx";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import { useIntl } from "react-intl";
-  import {
+import {
   Home,
   MessageSquare,
   Key,
@@ -40,6 +40,7 @@ import { useIntl } from "react-intl";
   PenLine,
   ImageIcon,
   Library,
+  Menu,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
@@ -54,6 +55,11 @@ import { Badge } from "@/components/ui/badge.tsx";
 import PendingActivation from "@/components/pending-activation.tsx";
 import ContactFormOnboarding from "@/components/contact-form-onboarding.tsx";
 import { useState } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+} from "@/components/ui/sheet.tsx";
 
 type NavItem = {
   path: string;
@@ -71,9 +77,11 @@ type NavGroup = {
 function NavGroupSection({
   group,
   pathname,
+  onNavigate,
 }: {
   group: NavGroup;
   pathname: string;
+  onNavigate?: () => void;
 }) {
   const isAnyActive = group.items.some((item) => pathname === item.path);
   const [open, setOpen] = useState(group.defaultOpen || isAnyActive);
@@ -97,7 +105,7 @@ function NavGroupSection({
       {open && (
         <div className="ml-4 mt-0.5 space-y-0.5 border-l border-border pl-2">
           {group.items.map((item) => (
-            <Link key={item.path} to={item.path}>
+            <Link key={item.path} to={item.path} onClick={onNavigate}>
               <button
                 className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors ${
                   pathname === item.path
@@ -116,12 +124,199 @@ function NavGroupSection({
   );
 }
 
+// Shared sidebar content used in both desktop sidebar and mobile sheet
+function SidebarContent({
+  user,
+  intl,
+  lang,
+  pathname,
+  isRealAdmin,
+  isTestMode,
+  isAdmin,
+  isSuperAdmin,
+  hasEmailAssistant,
+  hasMarketing,
+  clients,
+  setTestMode,
+  topItems,
+  navGroups,
+  bottomItems,
+  adminGroup,
+  onNavigate,
+}: {
+  user: ReturnType<typeof useAuth>["user"];
+  intl: ReturnType<typeof useIntl>;
+  lang: string;
+  pathname: string;
+  isRealAdmin: boolean;
+  isTestMode: boolean;
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
+  hasEmailAssistant: boolean;
+  hasMarketing: boolean;
+  clients: Array<{ _id: Id<"clients">; companyName: string }> | undefined;
+  setTestMode: (args: { clientId: Id<"clients"> | null }) => void;
+  topItems: NavItem[];
+  navGroups: NavGroup[];
+  bottomItems: NavItem[];
+  adminGroup: NavGroup;
+  onNavigate?: () => void;
+}) {
+  return (
+    <>
+      {isRealAdmin && (
+        <div className="p-4 border-b bg-muted/50">
+          {isTestMode ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <TestTube2 className="h-4 w-4 text-orange-500" />
+                <Badge variant="outline" className="text-xs">{intl.formatMessage({ id: "dashboard.testMode" })}</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {intl.formatMessage({ id: "dashboard.viewingAsClient" })}
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full"
+                onClick={() => setTestMode({ clientId: null })}
+              >
+                {intl.formatMessage({ id: "dashboard.exitTestMode" })}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <label className="text-xs font-medium">{intl.formatMessage({ id: "dashboard.testAsClient" })}</label>
+              <Select
+                onValueChange={(value) => {
+                  if (value && value !== "none") {
+                    setTestMode({ clientId: value as Id<"clients"> });
+                  }
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder={intl.formatMessage({ id: "dashboard.selectClient" })} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{intl.formatMessage({ id: "dashboard.selectClient" })}</SelectItem>
+                  {clients?.map((client) => (
+                    <SelectItem key={client._id} value={client._id}>
+                      {client.companyName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+      )}
+
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        {topItems.map((item) => (
+          <Link key={item.path} to={item.path} onClick={onNavigate}>
+            <button
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                pathname === item.path
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-accent text-foreground"
+              }`}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          </Link>
+        ))}
+
+        {navGroups.map((group) => (
+          <NavGroupSection
+            key={group.label}
+            group={group}
+            pathname={pathname}
+            onNavigate={onNavigate}
+          />
+        ))}
+
+        {bottomItems.map((item) => (
+          <Link key={item.path} to={item.path} onClick={onNavigate}>
+            <button
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                pathname === item.path
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-accent text-foreground"
+              }`}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          </Link>
+        ))}
+
+        {isAdmin && (
+          <div className="pt-3 mt-2 border-t">
+            <NavGroupSection group={adminGroup} pathname={pathname} onNavigate={onNavigate} />
+          </div>
+        )}
+      </nav>
+
+      <div className="p-4 border-t space-y-3">
+        <LanguageSwitcher />
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <span className="text-sm font-semibold text-primary">
+              {user?.profile.name?.charAt(0) || "U"}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{user?.profile.name}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {user?.profile.email}
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={() => {
+            try {
+              sessionStorage.clear();
+              localStorage.clear();
+              
+              const stored = localStorage.getItem("preferredLanguage");
+              const langPref = stored && ["en", "fr"].includes(stored) ? stored : "en";
+              localStorage.setItem("preferredLanguage", langPref);
+              
+              window.location.href = `/${langPref}`;
+            } catch (error) {
+              console.error("Sign out error:", error);
+              window.location.href = "/";
+            }
+          }}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          {intl.formatMessage({ id: "buttons.signOut" })}
+        </Button>
+        <div className="mt-4 pt-4 border-t text-center">
+          <a
+            href="https://sayele.co"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+          >
+            {intl.formatMessage({ id: "footer.developedBy" })} <span className="font-semibold text-primary">SAYELE</span>
+          </a>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const location = useLocation();
   const { lng } = useParams();
   const lang = lng || "en";
   const intl = useIntl();
+  const [mobileOpen, setMobileOpen] = useState(false);
   
   const realUser = useQuery(api.users.getCurrentUser, {});
   const effectiveUser = useQuery(api.testMode.getEffectiveUser, {});
@@ -241,165 +436,70 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navGroups = [messagingGroup, contactsGroup, ...(hasMarketing || isSuperAdmin ? [marketingGroup] : []), developerGroup];
 
+  const sidebarProps = {
+    user,
+    intl,
+    lang,
+    pathname: location.pathname,
+    isRealAdmin: isRealAdmin ?? false,
+    isTestMode,
+    isAdmin: isAdmin ?? false,
+    isSuperAdmin: isSuperAdmin ?? false,
+    hasEmailAssistant,
+    hasMarketing,
+    clients: clients as Array<{ _id: Id<"clients">; companyName: string }> | undefined,
+    setTestMode,
+    topItems,
+    navGroups,
+    bottomItems,
+    adminGroup,
+  };
+
   return (
     <div className="flex h-screen bg-background">
-      <aside className="w-64 border-r bg-card flex flex-col">
+      {/* Desktop sidebar - hidden on mobile */}
+      <aside className="hidden lg:flex w-64 border-r bg-card flex-col shrink-0">
         <div className="p-6 border-b">
           <Link to={`/${lang}`}>
             <Logo size="sm" showText={true} clickable={false} />
           </Link>
         </div>
-
-        {isRealAdmin && (
-          <div className="p-4 border-b bg-muted/50">
-            {isTestMode ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <TestTube2 className="h-4 w-4 text-orange-500" />
-                  <Badge variant="outline" className="text-xs">{intl.formatMessage({ id: "dashboard.testMode" })}</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {intl.formatMessage({ id: "dashboard.viewingAsClient" })}
-                </p>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => setTestMode({ clientId: null })}
-                >
-                  {intl.formatMessage({ id: "dashboard.exitTestMode" })}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <label className="text-xs font-medium">{intl.formatMessage({ id: "dashboard.testAsClient" })}</label>
-                <Select
-                  onValueChange={(value) => {
-                    if (value && value !== "none") {
-                      setTestMode({ clientId: value as Id<"clients"> });
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder={intl.formatMessage({ id: "dashboard.selectClient" })} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{intl.formatMessage({ id: "dashboard.selectClient" })}</SelectItem>
-                    {clients?.map((client) => (
-                      <SelectItem key={client._id} value={client._id}>
-                        {client.companyName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-        )}
-
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {/* Top standalone items */}
-          {topItems.map((item) => (
-            <Link key={item.path} to={item.path}>
-              <button
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === item.path
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-accent text-foreground"
-                }`}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            </Link>
-          ))}
-
-          {/* Collapsible groups */}
-          {navGroups.map((group) => (
-            <NavGroupSection
-              key={group.label}
-              group={group}
-              pathname={location.pathname}
-            />
-          ))}
-
-          {/* Bottom standalone items */}
-          {bottomItems.map((item) => (
-            <Link key={item.path} to={item.path}>
-              <button
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === item.path
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-accent text-foreground"
-                }`}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            </Link>
-          ))}
-
-          {/* Admin section */}
-          {isAdmin && (
-            <div className="pt-3 mt-2 border-t">
-              <NavGroupSection group={adminGroup} pathname={location.pathname} />
-            </div>
-          )}
-        </nav>
-
-        <div className="p-4 border-t space-y-3">
-          <LanguageSwitcher />
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-sm font-semibold text-primary">
-                {user?.profile.name?.charAt(0) || "U"}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user?.profile.name}</p>
-              <p className="text-xs text-muted-foreground truncate">
-                {user?.profile.email}
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={() => {
-              try {
-                sessionStorage.clear();
-                localStorage.clear();
-                
-                const stored = localStorage.getItem("preferredLanguage");
-                const langPref = stored && ["en", "fr"].includes(stored) ? stored : "en";
-                localStorage.setItem("preferredLanguage", langPref);
-                
-                window.location.href = `/${langPref}`;
-              } catch (error) {
-                console.error("Sign out error:", error);
-                window.location.href = "/";
-              }
-            }}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            {intl.formatMessage({ id: "buttons.signOut" })}
-          </Button>
-          <div className="mt-4 pt-4 border-t text-center">
-            <a
-              href="https://sayele.co"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
-            >
-              {intl.formatMessage({ id: "footer.developedBy" })} <span className="font-semibold text-primary">SAYELE</span>
-            </a>
-          </div>
-        </div>
+        <SidebarContent {...sidebarProps} />
       </aside>
 
-      <main className="flex-1 overflow-auto">
-        <div className="container mx-auto p-6 max-w-7xl">{children}</div>
-      </main>
+      {/* Mobile sidebar sheet */}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="w-72 p-0">
+          <SheetTitle className="sr-only">Navigation</SheetTitle>
+          <div className="p-4 border-b">
+            <Link to={`/${lang}`} onClick={() => setMobileOpen(false)}>
+              <Logo size="sm" showText={true} clickable={false} />
+            </Link>
+          </div>
+          <div className="flex flex-col flex-1 overflow-hidden h-[calc(100vh-65px)]">
+            <SidebarContent {...sidebarProps} onNavigate={() => setMobileOpen(false)} />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile top bar */}
+        <header className="lg:hidden flex items-center gap-3 px-4 h-14 border-b bg-card shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="p-2"
+            onClick={() => setMobileOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <Logo size="sm" showText={true} clickable={false} />
+        </header>
+
+        <main className="flex-1 overflow-auto">
+          <div className="mx-auto p-4 sm:p-6 max-w-7xl">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

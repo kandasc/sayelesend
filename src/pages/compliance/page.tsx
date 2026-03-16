@@ -192,8 +192,8 @@ function SuppressionList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="relative flex-1 w-full sm:w-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={intl.formatMessage({ id: "page.compliance.searchByPhone" })}
@@ -220,6 +220,7 @@ function SuppressionList() {
       ) : (
         <>
         <Card>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -257,6 +258,7 @@ function SuppressionList() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </Card>
         <PaginationControls {...pagination} itemLabel="contacts" />
         </>
@@ -405,8 +407,8 @@ function ActivityLog() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="relative flex-1 w-full sm:w-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={intl.formatMessage({ id: "page.compliance.searchByPhoneLog" })}
@@ -441,6 +443,7 @@ function ActivityLog() {
         </Empty>
       ) : (
         <Card>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -487,6 +490,7 @@ function ActivityLog() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </Card>
       )}
     </div>

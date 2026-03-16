@@ -152,29 +152,29 @@ function ContactsPageInner() {
   const hasFilters = searchInput || selectedTag !== "all" || filterOptedOut !== "all";
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-2xl sm:text-3xl font-bold">
             {intl.formatMessage({ id: "page.contacts.title" })}
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             {intl.formatMessage({ id: "page.contacts.subtitle" })}
           </p>
         </div>
         <div className="flex gap-2">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => setImportDialogOpen(true)}
           >
-            <FileUp className="h-4 w-4 mr-2" />
-            {intl.formatMessage({ id: "page.contacts.importContacts" })}
+            <FileUp className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{intl.formatMessage({ id: "page.contacts.importContacts" })}</span>
           </Button>
           <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            {intl.formatMessage({ id: "page.contacts.addContact" })}
+            <UserPlus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{intl.formatMessage({ id: "page.contacts.addContact" })}</span>
           </Button>
         </div>
       </div>
@@ -226,8 +226,8 @@ function ContactsPageInner() {
 
       {/* Filters */}
       <div className="bg-card border rounded-lg p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="relative sm:col-span-2 lg:col-span-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={intl.formatMessage({ id: "page.contacts.searchPlaceholder" })}
@@ -308,7 +308,8 @@ function ContactsPageInner() {
           </Empty>
         ) : (
           <>
-            <Table>
+            <div className="overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>
@@ -384,7 +385,8 @@ function ContactsPageInner() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
             <div className="border-t p-4">
               <PaginationControls {...pagination} itemLabel="contacts" />
             </div>

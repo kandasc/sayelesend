@@ -207,21 +207,21 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{intl.formatMessage({ id: "page.adminUsers.title" })}</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">{intl.formatMessage({ id: "page.adminUsers.title" })}</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             {intl.formatMessage({ id: "page.adminUsers.subtitle" })}
           </p>
         </div>
-        <Button onClick={() => setAssignDialogOpen(true)}>
+        <Button size="sm" onClick={() => setAssignDialogOpen(true)}>
           <UserPlus className="mr-2 h-4 w-4" />
           {intl.formatMessage({ id: "page.adminUsers.assignToClient" })}
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{intl.formatMessage({ id: "page.adminUsers.totalUsers" })}</CardTitle>
@@ -330,6 +330,7 @@ export default function AdminUsersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -448,6 +449,7 @@ export default function AdminUsersPage() {
             </TableBody>
           </Table>
           <PaginationControls {...usersPagination} itemLabel="users" />
+          </div>
         </CardContent>
       </Card>
 
