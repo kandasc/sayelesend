@@ -127,6 +127,7 @@
   "page.dashboard.noCredits": "No credits remaining",
   "page.dashboard.criticalBalance": "Critical balance",
   "page.dashboard.purchaseCredits": "Purchase credits to continue sending messages.",
+  "page.dashboard.lowCriticalMessage": "You have only {credits} credits remaining. Purchase more credits to continue sending messages.",
   "page.dashboard.lowBalance": "Low balance",
   "page.dashboard.creditsRunningLow": "Your credits are running low ({count} remaining). Consider topping up soon.",
   "page.dashboard.creditsLeft": "Only {count} credits left. Top up to avoid service interruption.",

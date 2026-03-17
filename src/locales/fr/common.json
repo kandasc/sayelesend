@@ -127,6 +127,7 @@
   "page.dashboard.noCredits": "Aucun crédit restant",
   "page.dashboard.criticalBalance": "Solde critique",
   "page.dashboard.purchaseCredits": "Achetez des crédits pour continuer à envoyer des messages.",
+  "page.dashboard.lowCriticalMessage": "Il ne vous reste que {credits} crédits. Achetez plus de crédits pour continuer à envoyer des messages.",
   "page.dashboard.lowBalance": "Solde bas",
   "page.dashboard.creditsRunningLow": "Vos crédits sont bas ({count} restants). Pensez à recharger bientôt.",
   "page.dashboard.creditsLeft": "Seulement {count} crédits restants. Rechargez pour éviter toute interruption.",
