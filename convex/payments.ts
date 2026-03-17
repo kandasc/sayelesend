@@ -10,6 +10,7 @@ const SAYELE_API_URL = "https://gate-api.sayele.co/api/v1/payment-intents";
 
 // Credit packages available for purchase (10 XOF per SMS, min 5,000 SMS)
 export const CREDIT_PACKAGES = [
+  { id: "mini", name: "Mini", credits: 2000, amount: 20000, currency: "XOF" },
   { id: "starter", name: "Starter", credits: 5000, amount: 50000, currency: "XOF" },
   { id: "basic", name: "Basic", credits: 10000, amount: 100000, currency: "XOF" },
   { id: "standard", name: "Standard", credits: 25000, amount: 250000, currency: "XOF" },
