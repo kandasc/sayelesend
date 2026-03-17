@@ -47,7 +47,7 @@ import {
   ShoppingCart,
   MessageSquare,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -86,52 +86,52 @@ function PaymentsContent() {
   const verifyPayment = useAction(api.payments.verifyPayment);
   const cancelTransaction = useMutation(api.paymentMutations.cancelPendingTransaction);
   const [verifying, setVerifying] = useState(false);
+  const callbackProcessed = useRef(false);
 
   // Support direct navigation to a specific tab via ?tab=buy
   const tabParam = searchParams.get("tab");
   const defaultTab = tabParam === "buy" ? "buy" : tabParam === "history" ? "history" : "usage";
   const [activeTab, setActiveTab] = useState(defaultTab);
 
-  // Check for payment success or cancellation callback
+  // Handle payment gateway callback (success or cancel)
   useEffect(() => {
-    const transactionId = searchParams.get("transaction_id");
     const status = searchParams.get("status");
+    if (!status || callbackProcessed.current) return;
+    callbackProcessed.current = true;
 
-    if (status === "success" && transactionId && !verifying) {
+    const transactionId = searchParams.get("transaction_id");
+    const cleanUrl = () => window.history.replaceState({}, "", `/${lng}/payments`);
+
+    if (status === "success" && transactionId) {
       setVerifying(true);
       verifyPayment({ transactionId })
         .then((result) => {
           if (result.success) {
             toast.success(result.message);
           } else {
-            toast.error(result.message);
+            // Verification failed (e.g. "Transaction not found") — payment was likely cancelled at the gateway
+            toast.info("Payment was not completed.");
+            return cancelTransaction({});
           }
         })
-        .catch((error) => {
-          toast.error(
-            error instanceof Error ? error.message : "Payment verification failed"
-          );
+        .catch(() => {
+          toast.error("Payment verification failed. Please check your payment history.");
+          // Also try to cancel the pending transaction so it doesn't stay "pending"
+          return cancelTransaction({}).catch(() => { /* ignore */ });
         })
         .finally(() => {
           setVerifying(false);
-          window.history.replaceState({}, "", `/${lng}/payments`);
+          cleanUrl();
         });
-    }
-
-    if (status === "cancelled") {
-      // Cancel the pending transaction — pass transactionId if available, otherwise the backend will find the latest pending one
+    } else if (status === "cancelled") {
       cancelTransaction({ transactionId: transactionId ?? undefined })
-        .then(() => {
-          toast.info("Payment was cancelled.");
-        })
-        .catch(() => {
-          // silently ignore if cancel fails
-        })
-        .finally(() => {
-          window.history.replaceState({}, "", `/${lng}/payments`);
-        });
+        .then(() => toast.info("Payment was cancelled."))
+        .catch(() => { /* ignore */ })
+        .finally(cleanUrl);
+    } else {
+      cleanUrl();
     }
-  }, [searchParams, verifyPayment, cancelTransaction, lng, verifying]);
+  }, [searchParams, verifyPayment, cancelTransaction, lng]);
 
   if (!client || !usageStats) {
     return <PaymentsSkeleton />;
