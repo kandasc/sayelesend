@@ -137,6 +137,43 @@ export const completePendingTransaction = mutation({
   },
 });
 
+// Cancel a pending transaction
+export const cancelPendingTransaction = mutation({
+  args: {
+    transactionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "User not logged in",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const transaction = await ctx.db
+      .query("paymentTransactions")
+      .withIndex("by_transaction_id", (q) => q.eq("transactionId", args.transactionId))
+      .unique();
+
+    if (!transaction) {
+      return { success: false, message: "Transaction not found" };
+    }
+
+    if (transaction.status !== "pending") {
+      return { success: false, message: `Transaction is already ${transaction.status}` };
+    }
+
+    await ctx.db.patch(transaction._id, {
+      status: "cancelled",
+      failedAt: Date.now(),
+      failureReason: "Cancelled by user",
+    });
+
+    return { success: true, message: "Transaction cancelled" };
+  },
+});
+
 // Add credits to client (called by action after payment verification)
 export const addCreditsToClient = mutation({
   args: {

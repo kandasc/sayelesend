@@ -1,5 +1,5 @@
 import { Authenticated } from "convex/react";
-import { useQuery, useAction } from "convex/react";
+import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Button } from "@/components/ui/button.tsx";
 import {
@@ -84,6 +84,7 @@ function PaymentsContent() {
   const paymentHistory = useQuery(api.paymentMutations.getPaymentHistory, {});
   const client = useQuery(api.clients.getCurrentClient, {});
   const verifyPayment = useAction(api.payments.verifyPayment);
+  const cancelTransaction = useMutation(api.paymentMutations.cancelPendingTransaction);
   const [verifying, setVerifying] = useState(false);
 
   // Support direct navigation to a specific tab via ?tab=buy
@@ -91,7 +92,7 @@ function PaymentsContent() {
   const defaultTab = tabParam === "buy" ? "buy" : tabParam === "history" ? "history" : "usage";
   const [activeTab, setActiveTab] = useState(defaultTab);
 
-  // Check for payment success callback
+  // Check for payment success or cancellation callback
   useEffect(() => {
     const transactionId = searchParams.get("transaction_id");
     const status = searchParams.get("status");
@@ -116,7 +117,20 @@ function PaymentsContent() {
           window.history.replaceState({}, "", `/${lng}/payments`);
         });
     }
-  }, [searchParams, verifyPayment, lng, verifying]);
+
+    if (transactionId && status === "cancelled" && !verifying) {
+      cancelTransaction({ transactionId })
+        .then(() => {
+          toast.info("Payment was cancelled.");
+        })
+        .catch(() => {
+          // silently ignore if cancel fails
+        })
+        .finally(() => {
+          window.history.replaceState({}, "", `/${lng}/payments`);
+        });
+    }
+  }, [searchParams, verifyPayment, cancelTransaction, lng, verifying]);
 
   if (!client || !usageStats) {
     return <PaymentsSkeleton />;
@@ -564,13 +578,16 @@ function BuyCreditsTab({
     try {
       const baseUrl = window.location.origin;
       const successUrl = `${baseUrl}/${lng}/payments?status=success&transaction_id={transaction_id}`;
-      const cancelUrl = `${baseUrl}/${lng}/payments?status=cancelled`;
+      const cancelUrlTemplate = `${baseUrl}/${lng}/payments?status=cancelled`;
 
-      const { clientSecret } = await createPaymentIntent({
+      const { clientSecret, transactionId } = await createPaymentIntent({
         packageId,
         successUrl,
-        cancelUrl,
+        cancelUrl: cancelUrlTemplate,
       });
+
+      // Include the transaction ID in the cancel URL so we can mark it cancelled
+      const cancelUrl = `${baseUrl}/${lng}/payments?status=cancelled&transaction_id=${transactionId}`;
 
       // Redirect directly to SayeleGate checkout page
       const params = new URLSearchParams({
