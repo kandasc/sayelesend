@@ -137,10 +137,10 @@ export const completePendingTransaction = mutation({
   },
 });
 
-// Cancel a pending transaction
+// Cancel a pending transaction — by ID if provided, otherwise cancels the user's latest pending one
 export const cancelPendingTransaction = mutation({
   args: {
-    transactionId: v.string(),
+    transactionId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -151,13 +151,41 @@ export const cancelPendingTransaction = mutation({
       });
     }
 
-    const transaction = await ctx.db
-      .query("paymentTransactions")
-      .withIndex("by_transaction_id", (q) => q.eq("transactionId", args.transactionId))
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
 
+    if (!user) {
+      throw new ConvexError({ message: "User not found", code: "NOT_FOUND" });
+    }
+
+    let transaction;
+
+    if (args.transactionId) {
+      const txId = args.transactionId;
+      transaction = await ctx.db
+        .query("paymentTransactions")
+        .withIndex("by_transaction_id", (q) => q.eq("transactionId", txId))
+        .unique();
+    }
+
+    // Fallback: find the user's most recent pending transaction
     if (!transaction) {
-      return { success: false, message: "Transaction not found" };
+      transaction = await ctx.db
+        .query("paymentTransactions")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .order("desc")
+        .first();
+
+      // Only cancel if it's actually pending
+      if (transaction && transaction.status !== "pending") {
+        transaction = null;
+      }
+    }
+
+    if (!transaction) {
+      return { success: false, message: "No pending transaction found" };
     }
 
     if (transaction.status !== "pending") {

@@ -97,7 +97,7 @@ function PaymentsContent() {
     const transactionId = searchParams.get("transaction_id");
     const status = searchParams.get("status");
 
-    if (transactionId && status === "success" && !verifying) {
+    if (status === "success" && transactionId && !verifying) {
       setVerifying(true);
       verifyPayment({ transactionId })
         .then((result) => {
@@ -118,8 +118,9 @@ function PaymentsContent() {
         });
     }
 
-    if (transactionId && status === "cancelled" && !verifying) {
-      cancelTransaction({ transactionId })
+    if (status === "cancelled") {
+      // Cancel the pending transaction — pass transactionId if available, otherwise the backend will find the latest pending one
+      cancelTransaction({ transactionId: transactionId ?? undefined })
         .then(() => {
           toast.info("Payment was cancelled.");
         })
