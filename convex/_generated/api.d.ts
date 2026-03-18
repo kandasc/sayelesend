@@ -42,6 +42,7 @@ import type * as marketing from "../marketing.js";
 import type * as marketingActions from "../marketingActions.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
+import type * as paymentEmails from "../paymentEmails.js";
 import type * as paymentMutations from "../paymentMutations.js";
 import type * as payments from "../payments.js";
 import type * as providers from "../providers.js";
@@ -105,6 +106,7 @@ declare const fullApi: ApiFromModules<{
   marketingActions: typeof marketingActions;
   messages: typeof messages;
   migrations: typeof migrations;
+  paymentEmails: typeof paymentEmails;
   paymentMutations: typeof paymentMutations;
   payments: typeof payments;
   providers: typeof providers;

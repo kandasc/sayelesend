@@ -1,7 +1,19 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { ConvexError } from "convex/values";
+import { internal } from "./_generated/api.js";
 import type { Id } from "./_generated/dataModel.d.ts";
+
+// Package display names for email receipts
+const PACKAGE_NAMES: Record<string, string> = {
+  mini: "Mini",
+  starter: "Starter",
+  basic: "Basic",
+  standard: "Standard",
+  premium: "Premium",
+  business: "Business",
+  enterprise: "Enterprise",
+};
 
 // Create a pending transaction record
 export const createPendingTransaction = mutation({
@@ -129,6 +141,19 @@ export const completePendingTransaction = mutation({
       balanceAfter: client.credits + transaction.credits,
     });
 
+    // Send receipt email asynchronously
+    const now = Date.now();
+    await ctx.scheduler.runAfter(0, internal.paymentEmails.sendPaymentReceipt, {
+      to: client.email,
+      customerName: client.contactName,
+      transactionId: args.transactionId,
+      packageName: PACKAGE_NAMES[transaction.packageId] ?? transaction.packageId,
+      credits: transaction.credits,
+      amount: transaction.amount,
+      currency: transaction.currency,
+      completedAt: now,
+    });
+
     return {
       success: true,
       credits: transaction.credits,
@@ -192,11 +217,27 @@ export const cancelPendingTransaction = mutation({
       return { success: false, message: `Transaction is already ${transaction.status}` };
     }
 
+    const now = Date.now();
     await ctx.db.patch(transaction._id, {
       status: "cancelled",
-      failedAt: Date.now(),
+      failedAt: now,
       failureReason: "Cancelled by user",
     });
+
+    // Send cancellation email asynchronously
+    const client = await ctx.db.get(transaction.clientId);
+    if (client) {
+      await ctx.scheduler.runAfter(0, internal.paymentEmails.sendPaymentCancelled, {
+        to: client.email,
+        customerName: client.contactName,
+        transactionId: transaction.transactionId,
+        packageName: PACKAGE_NAMES[transaction.packageId] ?? transaction.packageId,
+        credits: transaction.credits,
+        amount: transaction.amount,
+        currency: transaction.currency,
+        cancelledAt: now,
+      });
+    }
 
     return { success: true, message: "Transaction cancelled" };
   },
