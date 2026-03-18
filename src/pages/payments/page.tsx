@@ -581,7 +581,7 @@ function BuyCreditsTab({
       const successUrl = `${baseUrl}/${lng}/payments?status=success&transaction_id={transaction_id}`;
       const cancelUrlTemplate = `${baseUrl}/${lng}/payments?status=cancelled`;
 
-      const { clientSecret, transactionId } = await createPaymentIntent({
+      const { clientSecret, transactionId, customerName, customerEmail } = await createPaymentIntent({
         packageId,
         successUrl,
         cancelUrl: cancelUrlTemplate,
@@ -590,12 +590,14 @@ function BuyCreditsTab({
       // Include the transaction ID in the cancel URL so we can mark it cancelled
       const cancelUrl = `${baseUrl}/${lng}/payments?status=cancelled&transaction_id=${transactionId}`;
 
-      // Redirect directly to SayeleGate checkout page
+      // Redirect directly to SayeleGate checkout page with customer info pre-filled
       const params = new URLSearchParams({
         client_secret: clientSecret,
         success_url: successUrl,
         cancel_url: cancelUrl,
       });
+      if (customerName) params.set("customer_name", customerName);
+      if (customerEmail) params.set("customer_email", customerEmail);
       window.location.href = `https://gate.sayele.co/checkout?${params.toString()}`;
     } catch (error) {
       toast.error(

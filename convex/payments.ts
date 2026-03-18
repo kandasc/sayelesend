@@ -33,7 +33,7 @@ export const createPaymentIntent = action({
     successUrl: v.string(),
     cancelUrl: v.string(),
   },
-  handler: async (ctx, args): Promise<{ clientSecret: string; transactionId: string }> => {
+  handler: async (ctx, args): Promise<{ clientSecret: string; transactionId: string; customerName: string; customerEmail: string }> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({
@@ -72,6 +72,10 @@ export const createPaymentIntent = action({
 
     const client = await ctx.runQuery(api.clients.getCurrentClient, {});
 
+    // Resolve customer name & email from client or user record
+    const customerName = client?.contactName || user.name || "";
+    const customerEmail = client?.email || user.email || "";
+
     // Build payment intent request per SayeleGate API docs
     const paymentIntentBody = {
       amount: selectedPackage.amount,
@@ -79,6 +83,8 @@ export const createPaymentIntent = action({
       payment_method_types: ["card", "mobile_money"],
       description: `SAYELE Credits - ${selectedPackage.name} Package (${selectedPackage.credits.toLocaleString()} credits)`,
       return_url: args.successUrl,
+      ...(customerName ? { customer_name: customerName } : {}),
+      ...(customerEmail ? { customer_email: customerEmail } : {}),
       metadata: {
         package_id: selectedPackage.id,
         credits: selectedPackage.credits.toString(),
@@ -149,6 +155,8 @@ export const createPaymentIntent = action({
     return {
       clientSecret: result.client_secret,
       transactionId,
+      customerName,
+      customerEmail,
     };
   },
 });
