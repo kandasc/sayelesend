@@ -41,6 +41,7 @@ import {
   ImageIcon,
   Library,
   Menu,
+  Wand2,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
@@ -406,6 +407,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { path: `/${lang}/content-studio`, label: intl.formatMessage({ id: "nav.contentStudio" }), icon: <PenLine className="h-4 w-4" /> },
       { path: `/${lang}/image-creator`, label: intl.formatMessage({ id: "nav.imageCreator" }), icon: <ImageIcon className="h-4 w-4" /> },
       { path: `/${lang}/content-library`, label: intl.formatMessage({ id: "nav.contentLibrary" }), icon: <Library className="h-4 w-4" /> },
+      { path: `/${lang}/document-agent`, label: intl.formatMessage({ id: "nav.documentAgent" }), icon: <Wand2 className="h-4 w-4" /> },
     ],
   };
 

@@ -27,6 +27,8 @@ import type * as contactGroups from "../contactGroups.js";
 import type * as contacts from "../contacts.js";
 import type * as conversations from "../conversations.js";
 import type * as credits from "../credits.js";
+import type * as documentActions from "../documentActions.js";
+import type * as documents from "../documents.js";
 import type * as emailAssistantActions from "../emailAssistantActions.js";
 import type * as http from "../http.js";
 import type * as httpHelpers from "../httpHelpers.js";
@@ -91,6 +93,8 @@ declare const fullApi: ApiFromModules<{
   contacts: typeof contacts;
   conversations: typeof conversations;
   credits: typeof credits;
+  documentActions: typeof documentActions;
+  documents: typeof documents;
   emailAssistantActions: typeof emailAssistantActions;
   http: typeof http;
   httpHelpers: typeof httpHelpers;

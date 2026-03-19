@@ -753,6 +753,30 @@ export default defineSchema({
     .index("by_platform", ["platform"])
     .index("by_status", ["status"]),
 
+  // ─── Generated Documents (AI Document Agent) ───────────────────
+  generatedDocuments: defineTable({
+    clientId: v.id("clients"),
+    userId: v.id("users"),
+    documentType: v.union(
+      v.literal("product_presentation"),
+      v.literal("tender_response"),
+      v.literal("techno_commercial")
+    ),
+    title: v.string(),
+    briefing: v.string(),
+    language: v.string(),
+    sections: v.string(), // JSON stringified array of {title, content}
+    status: v.union(
+      v.literal("generating"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+    isFavorite: v.optional(v.boolean()),
+  })
+    .index("by_client", ["clientId"])
+    .index("by_user", ["userId"])
+    .index("by_type", ["documentType"]),
+
   // ─── Marketing Images ──────────────────────────────────────────
   marketingImages: defineTable({
     clientId: v.id("clients"),
