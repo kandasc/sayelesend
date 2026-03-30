@@ -10,7 +10,7 @@ import type { Id } from "./_generated/dataModel.d.ts";
 // ─── System Prompts per Document Type ────────────────────────
 
 const DOCUMENT_TYPE_PROMPTS: Record<string, string> = {
-  product_presentation: `You are an expert business consultant and presentation designer for SAYELE, a leading multi-channel messaging platform in Africa.
+  product_presentation: `You are an expert business consultant and presentation designer for Sayelesend, a leading multi-channel messaging platform in Africa.
 
 Create a compelling, professional product/service presentation. Structure it with clear sections that would translate beautifully into slides or a PDF document.
 
@@ -36,7 +36,7 @@ Create a comprehensive, professional tender/RFP response document. The response 
 The response should include:
 1. **Cover Letter** - Professional cover letter addressed to the issuing organization
 2. **Executive Summary** - Concise summary of our understanding and proposed solution
-3. **Company Profile** - SAYELE company overview, experience, certifications, and key personnel
+3. **Company Profile** - Sayelesend company overview, experience, certifications, and key personnel
 4. **Understanding of Requirements** - Demonstrate deep understanding of the tender requirements
 5. **Technical Proposal** - Detailed technical solution, architecture, and methodology
 6. **Implementation Plan** - Timeline, phases, milestones, and deliverables

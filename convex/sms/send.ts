@@ -950,7 +950,7 @@ export async function sendBulkViaMTarget(
       return { success: false, error: "No recipients provided" };
     }
 
-    const sender = config.senderId || campaign.sender || "SAYELE";
+    const sender = config.senderId || campaign.sender || "SAYELESEND";
     const serviceId = config.serviceId || "34916";
     
     // Format time for MTarget: yyyy-MM-dd HH:mm:ss
@@ -983,7 +983,7 @@ export async function sendBulkViaMTarget(
           remoteid: String(batchIndex * MTARGET_MAX_BATCH_SIZE + index)
         };
         // Add param with index (param1, param2, etc.)
-        entry[`param${index + 1}`] = "sayele";
+        entry[`param${index + 1}`] = "sayelesend";
         return entry;
       });
 

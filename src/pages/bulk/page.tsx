@@ -559,7 +559,7 @@ function CreateBulkForm({ onSuccess }: { onSuccess: () => void }) {
 
         <div className="space-y-2">
           <Label htmlFor="from">{intl.formatMessage({ id: "page.bulk.senderID" })}</Label>
-          <Input id="from" name="from" placeholder="SAYELE" />
+          <Input id="from" name="from" placeholder="SAYELESEND" />
         </div>
 
         <div className="space-y-4 p-4 border rounded-lg">

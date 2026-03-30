@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { PUBLIC_API_BASE_URL } from "@/lib/public-api.ts";
 
 // ─── Brand colors (matching site oklch(0.50 0.22 25) primary) ──────────────
 const PRIMARY = [143, 39, 25] as const; // Deep terracotta/rust red
@@ -14,8 +15,8 @@ type RGB = readonly [number, number, number];
 
 const LOGO_URL = "https://cdn.hercules.app/file_gLTdUXfPCK1bJYdBbIxIeipb";
 const PHONE = "+225 05 65 44 36 86";
-const EMAIL = "contact@sayele.co";
-const WEBSITE = "www.sayele.co";
+const EMAIL = "contact@sayelesend.com";
+const WEBSITE = "www.sayelesend.com";
 const ADDRESS = "Abidjan, Cote d'Ivoire";
 
 // ─── Helper: load image as base64 ─────────────────────────────────────────
@@ -64,7 +65,7 @@ function addFooterLine(doc: jsPDF) {
   doc.line(20, 282, 190, 282);
   doc.setFontSize(7);
   setColor(doc, GRAY);
-  doc.text(`SAYELE Message | ${WEBSITE} | ${EMAIL}`, 105, 287, { align: "center" });
+  doc.text(`Sayelesend Message | ${WEBSITE} | ${EMAIL}`, 105, 287, { align: "center" });
 }
 
 function sectionTitle(doc: jsPDF, title: string, y: number): number {
@@ -150,20 +151,20 @@ export async function generatePresentationPDF() {
       doc.setFontSize(28);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(PRIMARY[0], PRIMARY[1], PRIMARY[2]);
-      doc.text("SAYELE", 105, 85, { align: "center" });
+      doc.text("Sayelesend", 105, 85, { align: "center" });
     }
   } else {
     doc.setFontSize(28);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(PRIMARY[0], PRIMARY[1], PRIMARY[2]);
-    doc.text("SAYELE", 105, 85, { align: "center" });
+    doc.text("Sayelesend", 105, 85, { align: "center" });
   }
 
   // Brand name under logo
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(PRIMARY[0], PRIMARY[1], PRIMARY[2]);
-  doc.text("SAYELE MESSAGE", 105, 115, { align: "center" });
+  doc.text("SAYELESEND MESSAGE", 105, 115, { align: "center" });
 
   // Title
   doc.setFontSize(38);
@@ -210,14 +211,14 @@ export async function generatePresentationPDF() {
   doc.text("Sommaire", 105, 35, { align: "center" });
 
   const tocItems = [
-    "A Propos de SAYELE",
+    "A Propos de Sayelesend",
     "Messagerie Multi-Canal",
     "Fonctionnalites Cles",
     "Intelligence Artificielle",
     "Securite & Conformite",
     "Administration & Gestion",
     "API & Integration",
-    "Pourquoi Choisir SAYELE ?",
+    "Pourquoi Choisir Sayelesend ?",
     "Offres & Tarification",
     "Contact",
   ];
@@ -257,9 +258,9 @@ export async function generatePresentationPDF() {
   pageNum++;
   drawRect(doc, 0, 0, 210, 8, PRIMARY);
 
-  let y = sectionTitle(doc, "A Propos de SAYELE", 22);
+  let y = sectionTitle(doc, "A Propos de Sayelesend", 22);
 
-  y = subTitle(doc, "SAYELE est une plateforme de messagerie professionnelle multi-canal concue pour les entreprises africaines et internationales. Elle centralise l'envoi, la reception et la gestion de tous vos canaux de communication dans une interface unique et performante.", y);
+  y = subTitle(doc, "Sayelesend est une plateforme de messagerie professionnelle multi-canal concue pour les entreprises africaines et internationales. Elle centralise l'envoi, la reception et la gestion de tous vos canaux de communication dans une interface unique et performante.", y);
 
   y += 6;
 
@@ -405,7 +406,7 @@ export async function generatePresentationPDF() {
   drawRect(doc, 0, 0, 210, 8, PRIMARY);
 
   y = sectionTitle(doc, "Fonctionnalites Cles", 22);
-  y = subTitle(doc, "SAYELE offre un ensemble complet d'outils pour gerer efficacement vos communications professionnelles.", y);
+  y = subTitle(doc, "Sayelesend offre un ensemble complet d'outils pour gerer efficacement vos communications professionnelles.", y);
   y += 2;
 
   const features = [
@@ -415,7 +416,7 @@ export async function generatePresentationPDF() {
     ["Automatisation", "Regles declenchees par mots-cles, premier message ou horaires. Reponses auto, transfert, ajout groupe."],
     ["Analytiques & Rapports", "Tableaux de bord en temps reel. Taux de delivrance, taux d'echec, volume par canal et par periode."],
     ["Webhooks", "Recevez des notifications en temps reel sur vos systemes pour chaque evenement (envoi, delivrance, echec, reception)."],
-    ["API REST", "API complete pour integrer SAYELE a vos applications. Authentification par cle API, documentation Swagger."],
+    ["API REST", "API complete pour integrer Sayelesend a vos applications. Authentification par cle API, documentation Swagger."],
     ["Planification", "Programmez l'envoi de vos messages a une date et heure precises. Ideal pour les rappels et les campagnes."],
   ];
 
@@ -441,7 +442,7 @@ export async function generatePresentationPDF() {
   drawRect(doc, 0, 0, 210, 8, PRIMARY);
 
   y = sectionTitle(doc, "Intelligence Artificielle", 22);
-  y = subTitle(doc, "SAYELE integre des capacites d'IA avancees pour automatiser vos interactions clients et augmenter la productivite de vos equipes.", y);
+  y = subTitle(doc, "Sayelesend integre des capacites d'IA avancees pour automatiser vos interactions clients et augmenter la productivite de vos equipes.", y);
   y += 4;
 
   const aiFeatures = [
@@ -634,7 +635,7 @@ export async function generatePresentationPDF() {
   drawRect(doc, 0, 0, 210, 8, PRIMARY);
 
   y = sectionTitle(doc, "API & Integration", 22);
-  y = subTitle(doc, "Integrez SAYELE a vos applications existantes grace a notre API REST complete et nos webhooks en temps reel.", y);
+  y = subTitle(doc, "Integrez Sayelesend a vos applications existantes grace a notre API REST complete et nos webhooks en temps reel.", y);
   y += 4;
 
   autoTable(doc, {
@@ -684,11 +685,11 @@ export async function generatePresentationPDF() {
   doc.setFontSize(8);
   doc.setFont("courier", "normal");
   doc.setTextColor(180, 100, 80); // Warm code comment color
-  doc.text("// Envoi d'un SMS via l'API SAYELE", 28, y + 8);
+  doc.text("// Envoi d'un SMS via l'API Sayelesend", 28, y + 8);
 
   doc.setTextColor(230, 210, 200);
   const codeLines = [
-    "curl -X POST https://api.sayele.co/api/v1/sms/send \\",
+    `curl -X POST ${PUBLIC_API_BASE_URL}/api/v1/sms/send \\`,
     '  -H "Authorization: Bearer sk_live_votre_cle" \\',
     '  -H "Content-Type: application/json" \\',
     "  -d '{",
@@ -723,13 +724,13 @@ export async function generatePresentationPDF() {
   addPageNumber(doc, pageNum);
 
   // ════════════════════════════════════════════════════════════
-  // PAGE 10 — POURQUOI SAYELE
+  // PAGE 10 — POURQUOI SAYELESEND
   // ════════════════════════════════════════════════════════════
   doc.addPage();
   pageNum++;
   drawRect(doc, 0, 0, 210, 8, PRIMARY);
 
-  y = sectionTitle(doc, "Pourquoi Choisir SAYELE ?", 22);
+  y = sectionTitle(doc, "Pourquoi Choisir Sayelesend ?", 22);
   y += 4;
 
   const advantages = [
@@ -751,7 +752,7 @@ export async function generatePresentationPDF() {
     },
     {
       title: "API Ouverte & Extensible",
-      desc: "API REST complete, webhooks en temps reel, widget embeddable — integrez SAYELE a n'importe quel systeme existant.",
+      desc: "API REST complete, webhooks en temps reel, widget embeddable — integrez Sayelesend a n'importe quel systeme existant.",
     },
     {
       title: "Support & Accompagnement",
@@ -943,7 +944,7 @@ export async function generatePresentationPDF() {
   doc.setFont("helvetica", "normal");
   doc.setTextColor(255, 210, 200);
   doc.text("Contactez-nous pour une demonstration", 105, 85, { align: "center" });
-  doc.text("personnalisee de la plateforme SAYELE.", 105, 95, { align: "center" });
+  doc.text("personnalisee de la plateforme Sayelesend.", 105, 95, { align: "center" });
 
   // Contact cards
   const contactY = 115;
@@ -1019,9 +1020,9 @@ export async function generatePresentationPDF() {
   y = 280;
   doc.setFontSize(8);
   setColor(doc, GRAY);
-  doc.text(`SAYELE Message | Presentation Commerciale | ${formattedDate}`, 105, y, { align: "center" });
+  doc.text(`Sayelesend Message | Presentation Commerciale | ${formattedDate}`, 105, y, { align: "center" });
   doc.text("Document confidentiel — Usage commercial uniquement", 105, y + 5, { align: "center" });
 
   // ─── Save ────────────────────────────────────────────────────────────────
-  doc.save("SAYELE-Presentation-Commerciale.pdf");
+  doc.save("Sayelesend-Presentation-Commerciale.pdf");
 }

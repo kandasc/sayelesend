@@ -179,7 +179,7 @@ export const chatAssistant = action({
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const systemPrompt = `You are a helpful messaging platform assistant for SAYELE Message.
+    const systemPrompt = `You are a helpful messaging platform assistant for Sayelesend Message.
 You help users with:
 - Composing messages for SMS, WhatsApp, Telegram, and Facebook Messenger
 - Best practices for bulk messaging

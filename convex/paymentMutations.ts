@@ -23,6 +23,8 @@ export const createPendingTransaction = mutation({
     credits: v.number(),
     amount: v.number(),
     currency: v.string(),
+    /** Client that will receive credits — must match a client the caller is allowed to pay for. */
+    clientId: v.id("clients"),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -45,17 +47,46 @@ export const createPendingTransaction = mutation({
       });
     }
 
-    // Get client ID
-    let clientId: Id<"clients"> | undefined;
-    if (user.role === "admin" && user.testModeClientId) {
-      clientId = user.testModeClientId;
-    } else if (user.clientId) {
-      clientId = user.clientId;
+    const client = await ctx.db.get(args.clientId);
+    if (!client) {
+      throw new ConvexError({
+        message: "Client not found",
+        code: "NOT_FOUND",
+      });
     }
 
-    if (!clientId) {
+    if (user.role === "client") {
+      if (user.clientId !== args.clientId) {
+        throw new ConvexError({
+          message: "You can only purchase credits for your own organization",
+          code: "FORBIDDEN",
+        });
+      }
+    } else if (user.role === "admin") {
+      if (user.testModeClientId) {
+        if (user.testModeClientId !== args.clientId) {
+          throw new ConvexError({
+            message: "Purchase must be for the client currently selected in Test Mode",
+            code: "FORBIDDEN",
+          });
+        }
+      } else if (user.clientId) {
+        if (user.clientId !== args.clientId) {
+          throw new ConvexError({
+            message: "Not allowed to purchase credits for this client",
+            code: "FORBIDDEN",
+          });
+        }
+      } else {
+        throw new ConvexError({
+          message:
+            "Enable Test Mode and select a client (admin) before purchasing credits, or use a user linked to a client.",
+          code: "FORBIDDEN",
+        });
+      }
+    } else {
       throw new ConvexError({
-        message: "No client associated with user",
+        message: "Payments are not available for this account type",
         code: "FORBIDDEN",
       });
     }
@@ -63,7 +94,7 @@ export const createPendingTransaction = mutation({
     // Store the pending transaction
     await ctx.db.insert("paymentTransactions", {
       transactionId: args.transactionId,
-      clientId,
+      clientId: args.clientId,
       userId: user._id,
       packageId: args.packageId,
       credits: args.credits,

@@ -6,7 +6,7 @@ import { internalAction } from "./_generated/server";
 
 type SendEmailResult = { success: boolean; id?: string; error?: string };
 
-const SENDER = "SAYELE <noreply@sayele.co>";
+const SENDER = "Sayelesend <noreply@sayelesend.com>";
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -96,7 +96,7 @@ function wrapHtml(body: string): string {
         <!-- Header -->
         <tr>
           <td style="background:#7c2d12;padding:24px 32px;">
-            <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">SAYELE</h1>
+            <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">Sayelesend</h1>
           </td>
         </tr>
         <!-- Body -->
@@ -109,12 +109,12 @@ function wrapHtml(body: string): string {
         <tr>
           <td style="padding:24px 32px;background:#fafafa;border-top:1px solid #e4e4e7;text-align:center;">
             <p style="margin:0;font-size:12px;color:#71717a;">
-              &copy; ${new Date().getFullYear()} SAYELE &mdash; Plateforme de messagerie intelligente
+              &copy; ${new Date().getFullYear()} Sayelesend &mdash; Plateforme de messagerie intelligente
             </p>
             <p style="margin:6px 0 0;font-size:12px;color:#a1a1aa;">
-              <a href="https://sayele.co" style="color:#a1a1aa;text-decoration:underline;">sayele.co</a>
+              <a href="https://www.sayelesend.com" style="color:#a1a1aa;text-decoration:underline;">www.sayelesend.com</a>
               &nbsp;&bull;&nbsp;
-              <a href="mailto:support@sayele.co" style="color:#a1a1aa;text-decoration:underline;">support@sayele.co</a>
+              <a href="mailto:support@sayelesend.com" style="color:#a1a1aa;text-decoration:underline;">support@sayelesend.com</a>
             </p>
           </td>
         </tr>
@@ -185,7 +185,7 @@ export const sendPaymentReceipt = internalAction({
       <p style="margin:24px 0 0;font-size:13px;color:#71717a;">
         Vos crédits sont immédiatement disponibles dans votre tableau de bord.
         Si vous avez des questions, contactez-nous à
-        <a href="mailto:support@sayele.co" style="color:#7c2d12;">support@sayele.co</a>.
+        <a href="mailto:support@sayelesend.com" style="color:#7c2d12;">support@sayelesend.com</a>.
       </p>
     `;
 
@@ -264,11 +264,11 @@ export const sendPaymentCancelled = internalAction({
 
       <p style="margin:24px 0 0;font-size:13px;color:#71717a;">
         Aucun montant n'a été débité de votre compte. Si vous souhaitez réessayer,
-        rendez-vous dans votre tableau de bord SAYELE.
+        rendez-vous dans votre tableau de bord Sayelesend.
       </p>
       <p style="margin:12px 0 0;font-size:13px;color:#71717a;">
         Besoin d'aide ? Contactez
-        <a href="mailto:support@sayele.co" style="color:#7c2d12;">support@sayele.co</a>.
+        <a href="mailto:support@sayelesend.com" style="color:#7c2d12;">support@sayelesend.com</a>.
       </p>
     `;
 

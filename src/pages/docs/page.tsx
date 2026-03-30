@@ -7,11 +7,12 @@ import { Copy, CheckCircle2, ExternalLink, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import Logo from "@/components/logo.tsx";
 import { Link } from "react-router-dom";
+import { PUBLIC_API_BASE_URL } from "@/lib/public-api.ts";
 
 export default function PublicApiDocsPage() {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
-  
-  const apiBaseUrl = "https://api.sayele.co";
+
+  const apiBaseUrl = PUBLIC_API_BASE_URL;
 
   const copyToClipboard = (text: string, section: string) => {
     navigator.clipboard.writeText(text);
@@ -44,12 +45,12 @@ export default function PublicApiDocsPage() {
           </div>
           <div className="flex items-center gap-4">
             <a
-              href="https://sayele.co"
+              href="https://www.sayelesend.com"
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              <span className="font-semibold text-primary">SAYELE</span>
+              <span className="font-semibold text-primary">Sayelesend</span>
               <ExternalLink className="h-4 w-4" />
             </a>
             <Link to="/dashboard">
@@ -66,7 +67,7 @@ export default function PublicApiDocsPage() {
       <section className="border-b bg-gradient-to-b from-card to-background py-16">
         <div className="container mx-auto px-6 max-w-7xl">
           <div className="text-center space-y-4">
-            <h1 className="text-4xl md:text-5xl font-bold">SAYELE Messaging API</h1>
+            <h1 className="text-4xl md:text-5xl font-bold">Sayelesend Messaging API</h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Send SMS, WhatsApp, Telegram, and Facebook Messenger messages at scale with our powerful API
             </p>
@@ -86,7 +87,7 @@ export default function PublicApiDocsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Getting Started</CardTitle>
-              <CardDescription>Everything you need to integrate SAYELE messaging into your application</CardDescription>
+              <CardDescription>Everything you need to integrate Sayelesend messaging into your application</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -290,7 +291,7 @@ export default function PublicApiDocsPage() {
                         <code>{`{
   "_id": "j123abc456def789",
   "to": "+1234567890",
-  "message": "Hello from SAYELE!",
+  "message": "Hello from Sayelesend!",
   "status": "delivered",
   "channel": "sms",
   "createdAt": 1699999999999,
@@ -329,7 +330,7 @@ export default function PublicApiDocsPage() {
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -d '{
     "to": "+1234567890",
-    "message": "Hello from SAYELE!",
+    "message": "Hello from Sayelesend!",
     "channel": "sms"
   }'`}</code>
                     </pre>
@@ -342,7 +343,7 @@ export default function PublicApiDocsPage() {
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -d '{
     "to": "+1234567890",
-    "message": "Hello from SAYELE!",
+    "message": "Hello from Sayelesend!",
     "channel": "sms"
   }'`, "curl-example")}
                     >
@@ -364,7 +365,7 @@ $url = '${apiBaseUrl}/api/v1/sms/send';
 
 $data = [
     'to' => '+1234567890',
-    'message' => 'Hello from SAYELE!',
+    'message' => 'Hello from Sayelesend!',
     'channel' => 'sms'
 ];
 
@@ -399,7 +400,7 @@ $url = '${apiBaseUrl}/api/v1/sms/send';
 
 $data = [
     'to' => '+1234567890',
-    'message' => 'Hello from SAYELE!',
+    'message' => 'Hello from Sayelesend!',
     'channel' => 'sms'
 ];
 
@@ -441,7 +442,7 @@ const url = '${apiBaseUrl}/api/v1/sms/send';
 
 const data = {
   to: '+1234567890',
-  message: 'Hello from SAYELE!',
+  message: 'Hello from Sayelesend!',
   channel: 'sms'
 };
 
@@ -472,7 +473,7 @@ const url = '${apiBaseUrl}/api/v1/sms/send';
 
 const data = {
   to: '+1234567890',
-  message: 'Hello from SAYELE!',
+  message: 'Hello from Sayelesend!',
   channel: 'sms'
 };
 
@@ -513,7 +514,7 @@ url = '${apiBaseUrl}/api/v1/sms/send'
 
 data = {
     'to': '+1234567890',
-    'message': 'Hello from SAYELE!',
+    'message': 'Hello from Sayelesend!',
     'channel': 'sms'
 }
 
@@ -541,7 +542,7 @@ url = '${apiBaseUrl}/api/v1/sms/send'
 
 data = {
     'to': '+1234567890',
-    'message': 'Hello from SAYELE!',
+    'message': 'Hello from Sayelesend!',
     'channel': 'sms'
 }
 
@@ -630,12 +631,12 @@ else:
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Developed by</span>
               <a
-                href="https://sayele.co"
+                href="https://www.sayelesend.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-semibold text-primary hover:underline"
               >
-                SAYELE
+                Sayelesend
               </a>
             </div>
             <div className="flex items-center gap-6">
@@ -643,7 +644,7 @@ else:
                 Dashboard
               </Link>
               <a
-                href="https://sayele.co"
+                href="https://www.sayelesend.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"

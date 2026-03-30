@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { toast } from "sonner";
+import { PUBLIC_API_BASE_URL } from "@/lib/public-api.ts";
 import {
   MailOpen,
   Reply,
@@ -717,7 +718,7 @@ function ImproveTab() {
 // ─── API Integration Tab ────────────────────────────────────────────────────
 
 function ApiTab() {
-  const baseUrl = "https://api.sayele.co";
+  const baseUrl = PUBLIC_API_BASE_URL;
 
   const endpoints = [
     {
@@ -923,15 +924,15 @@ async function composeWithAI() {
   }
 }`;
 
-  const manifestSnippet = `<!-- manifest.xml - Key sections for your SAYELE Email Add-in -->
+  const manifestSnippet = `<!-- manifest.xml - Key sections for your Sayelesend Email Add-in -->
 <?xml version="1.0" encoding="UTF-8"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
            xsi:type="MailApp">
   <Id>YOUR-UNIQUE-GUID-HERE</Id>
   <Version>1.0.0</Version>
-  <ProviderName>SAYELE</ProviderName>
+  <ProviderName>Sayelesend</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="SAYELE AI Email Assistant" />
+  <DisplayName DefaultValue="Sayelesend AI Email Assistant" />
   <Description DefaultValue="AI-powered email summarization, replies, and composition" />
   
   <Hosts>
@@ -974,10 +975,10 @@ async function composeWithAI() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5" />
-            SAYELE Email Assistant API
+            Sayelesend Email Assistant API
           </CardTitle>
           <CardDescription>
-            Integrate AI email tools into Outlook, Microsoft 365, or any application using the SAYELE REST API.
+            Integrate AI email tools into Outlook, Microsoft 365, or any application using the Sayelesend REST API.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -1142,7 +1143,7 @@ async function composeWithAI() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>
-              The SAYELE Outlook Add-in is a taskpane that runs inside Outlook and calls the SAYELE API to process emails. It supports <strong>Outlook Desktop</strong> (Windows/Mac), <strong>Outlook Web</strong> (OWA), and <strong>Microsoft 365</strong>.
+              The Sayelesend Outlook Add-in is a taskpane that runs inside Outlook and calls the Sayelesend API to process emails. It supports <strong>Outlook Desktop</strong> (Windows/Mac), <strong>Outlook Web</strong> (OWA), and <strong>Microsoft 365</strong>.
             </p>
             <div className="grid sm:grid-cols-3 gap-3 mt-3">
               <div className="bg-muted/50 rounded-lg p-3 text-center">
@@ -1173,7 +1174,7 @@ async function composeWithAI() {
             <ul className="space-y-2">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500 shrink-0" />
-                <span><strong>SAYELE API Key</strong> &mdash; generate one from the API Keys page in your SAYELE dashboard</span>
+                <span><strong>Sayelesend API Key</strong> &mdash; generate one from the API Keys page in your Sayelesend dashboard</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500 shrink-0" />
@@ -1207,14 +1208,14 @@ async function composeWithAI() {
                 <li>Click <strong>Workers {"&"} Pages</strong> in the left sidebar</li>
                 <li>Click <strong>Create</strong> &rarr; select <strong>Pages</strong></li>
                 <li>Choose <strong>Direct Upload</strong></li>
-                <li>Name your project (e.g. <code className="bg-muted px-1 rounded text-foreground">sayele-email-addin</code>)</li>
+                <li>Name your project (e.g. <code className="bg-muted px-1 rounded text-foreground">sayelesend-email-addin</code>)</li>
                 <li>Drag and drop the folder with <code className="bg-muted px-1 rounded text-foreground">index.html</code> and <code className="bg-muted px-1 rounded text-foreground">taskpane.js</code></li>
                 <li>Click <strong>Deploy</strong></li>
               </ol>
             </div>
             <div className="bg-muted/50 rounded-lg p-3">
               <p className="text-xs">
-                After deployment, Cloudflare gives you a URL like: <code className="bg-muted px-1 rounded text-foreground">https://sayele-email-addin.pages.dev</code>. You will need this URL for the manifest.xml in the next step.
+                After deployment, Cloudflare gives you a URL like: <code className="bg-muted px-1 rounded text-foreground">https://sayelesend-email-addin.pages.dev</code>. You will need this URL for the manifest.xml in the next step.
               </p>
             </div>
           </CardContent>
@@ -1237,7 +1238,7 @@ async function composeWithAI() {
               {manifestSnippet}
             </pre>
             <p className="text-xs text-muted-foreground mt-2">
-              <strong>Important:</strong> Replace both <code className="bg-muted px-1 rounded text-foreground">{"https://your-addin-host.com"}</code> URLs with your Cloudflare Pages URL (e.g. <code className="bg-muted px-1 rounded text-foreground">https://sayele-email-addin.pages.dev/index.html</code>).
+              <strong>Important:</strong> Replace both <code className="bg-muted px-1 rounded text-foreground">{"https://your-addin-host.com"}</code> URLs with your Cloudflare Pages URL (e.g. <code className="bg-muted px-1 rounded text-foreground">https://sayelesend-email-addin.pages.dev/index.html</code>).
             </p>
           </CardContent>
         </Card>
@@ -1305,13 +1306,13 @@ async function composeWithAI() {
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <ol className="list-decimal list-inside space-y-1.5">
               <li>Open any email in Outlook</li>
-              <li>Click the <strong>SAYELE AI</strong> icon in the toolbar (or find it in the three-dot menu)</li>
-              <li>The SAYELE taskpane opens on the right side</li>
-              <li>On first use, the add-in will ask for the <strong>SAYELE API Key</strong> &mdash; enter it once and it is saved locally in the browser</li>
+              <li>Click the <strong>Sayelesend AI</strong> icon in the toolbar (or find it in the three-dot menu)</li>
+              <li>The Sayelesend taskpane opens on the right side</li>
+              <li>On first use, the add-in will ask for the <strong>Sayelesend API Key</strong> &mdash; enter it once and it is saved locally in the browser</li>
               <li>Click <strong>Summarize</strong>, <strong>Reply</strong>, or <strong>Compose</strong> to start using AI</li>
             </ol>
             <p className="text-xs mt-2">
-              The API key is stored securely in the user&apos;s browser localStorage. Each client should use their own SAYELE API key generated from the API Keys page.
+              The API key is stored securely in the user&apos;s browser localStorage. Each client should use their own Sayelesend API key generated from the API Keys page.
             </p>
           </CardContent>
         </Card>
@@ -1320,7 +1321,7 @@ async function composeWithAI() {
         <Card className="mb-4">
           <CardHeader>
             <CardTitle className="text-base">Add-in Source Code: Summarize</CardTitle>
-            <CardDescription>Read the open email and send it to SAYELE for summarization</CardDescription>
+            <CardDescription>Read the open email and send it to Sayelesend for summarization</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between mb-1">
@@ -1383,11 +1384,11 @@ async function composeWithAI() {
               </li>
               <li className="flex items-start gap-2">
                 <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                <span>For extra security, set up a lightweight proxy server that holds the API key and forwards requests to SAYELE</span>
+                <span>For extra security, set up a lightweight proxy server that holds the API key and forwards requests to Sayelesend</span>
               </li>
               <li className="flex items-start gap-2">
                 <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                <span>Restrict your SAYELE API keys to specific IP ranges for internal/org-only deployments</span>
+                <span>Restrict your Sayelesend API keys to specific IP ranges for internal/org-only deployments</span>
               </li>
               <li className="flex items-start gap-2">
                 <ChevronRight className="h-4 w-4 mt-0.5 text-primary shrink-0" />

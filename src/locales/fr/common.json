@@ -1,5 +1,5 @@
 {
-  "app.name": "Sayele Message",
+  "app.name": "Sayelesend Message",
   "app.tagline": "Plateforme de Messagerie Multi-Canal",
 
   "nav.dashboard": "Tableau de bord",
@@ -945,7 +945,7 @@
   "page.docAgent.technoCommercial": "Analyse Technico-Commerciale",
   "page.docAgent.technoCommercialDesc": "Analyses technico-commerciales pour le développement commercial",
   "page.docAgent.title_field": "Titre du document",
-  "page.docAgent.titlePlaceholder": "ex. Plateforme SAYELE Message - Présentation Produit",
+  "page.docAgent.titlePlaceholder": "ex. Plateforme Sayelesend Message - Présentation Produit",
   "page.docAgent.briefing": "Briefing / Détails",
   "page.docAgent.briefingPlaceholder": "Décrivez ce dont vous avez besoin : détails du produit, exigences de l'appel d'offres, public cible, points clés à mettre en avant...",
   "page.docAgent.language": "Langue",

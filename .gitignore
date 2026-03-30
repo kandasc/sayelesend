@@ -31,3 +31,4 @@ tsconfig.tsbuildinfo
 
 # Local exports / snapshots
 snapshot_*.zip
+.vercel

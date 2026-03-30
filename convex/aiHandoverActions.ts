@@ -379,7 +379,7 @@ async function sendHandoverEmailInternal(params: {
         <!-- Footer -->
         <div style="text-align:center;padding:16px;border-radius:0 0 12px 12px;background:#f3f4f6;border:1px solid #e5e7eb;border-top:none;">
           <p style="margin:0;font-size:12px;color:#999;">
-            Sent by SAYELE AI Assistant &bull; ${new Date().toLocaleString()}
+            Sent by Sayelesend AI Assistant &bull; ${new Date().toLocaleString()}
           </p>
         </div>
       </div>
@@ -387,7 +387,7 @@ async function sendHandoverEmailInternal(params: {
     </html>`;
 
   await resend.emails.send({
-    from: "SAYELE AI <onboarding@resend.dev>",
+    from: "Sayelesend AI <onboarding@resend.dev>",
     to: [params.to],
     subject: `[Handover] ${params.visitorName ?? "Visitor"} needs human assistance - ${params.assistantName}`,
     html,

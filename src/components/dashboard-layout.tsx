@@ -298,12 +298,12 @@ function SidebarContent({
         </Button>
         <div className="mt-4 pt-4 border-t text-center">
           <a
-            href="https://sayele.co"
+            href="https://www.sayelesend.com"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
           >
-            {intl.formatMessage({ id: "footer.developedBy" })} <span className="font-semibold text-primary">SAYELE</span>
+            {intl.formatMessage({ id: "footer.developedBy" })} <span className="font-semibold text-primary">Sayelesend</span>
           </a>
         </div>
       </div>

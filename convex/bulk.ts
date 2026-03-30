@@ -307,7 +307,7 @@ export const processBulkMessage = internalMutation({
         },
         campaign: {
           message: bulkMessage.message,
-          sender: client.senderId || provider.config.senderId || "SAYELE",
+          sender: client.senderId || provider.config.senderId || "SAYELESEND",
           recipients: formattedRecipients,
           scheduledAt: bulkMessage.scheduledAt,
         },
@@ -323,7 +323,7 @@ export const processBulkMessage = internalMutation({
         const messageId = await ctx.db.insert("messages", {
           clientId: bulkMessage.clientId,
           to: recipient.phoneNumber,
-          from: client.senderId || bulkMessage.from || provider.config.senderId || "SAYELE",
+          from: client.senderId || bulkMessage.from || provider.config.senderId || "SAYELESEND",
           message: bulkMessage.message,
           channel: provider.channel || "sms",
           status: "pending",

@@ -51,7 +51,7 @@ export const testWebhook = action({
 
     const testPayload = {
       event: "webhook.test",
-      message: "This is a test webhook from Sayele Message",
+      message: "This is a test webhook from Sayelesend Message",
       timestamp: Date.now(),
     };
 

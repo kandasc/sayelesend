@@ -176,7 +176,7 @@ export const exportReportPDF = action({
 
     // Title
     doc.setFontSize(18);
-    doc.text("SAYELE SMS Report", 105, yPosition, { align: "center" });
+    doc.text("Sayelesend SMS Report", 105, yPosition, { align: "center" });
     yPosition += 10;
 
     // Date range

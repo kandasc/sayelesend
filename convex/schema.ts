@@ -21,6 +21,7 @@ export default defineSchema({
     hasSubmittedContactForm: v.optional(v.boolean()),
   })
     .index("by_token", ["tokenIdentifier"])
+    .index("by_email", ["email"])
     .index("by_client", ["clientId"]),
 
   contactFormSubmissions: defineTable({

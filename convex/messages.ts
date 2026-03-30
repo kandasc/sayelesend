@@ -158,7 +158,7 @@ export const sendSms = mutation({
     const messageId = await ctx.db.insert("messages", {
       clientId: clientId,
       to: args.to,
-      from: client.senderId || args.from || provider.config.senderId || "SAYELE",
+      from: client.senderId || args.from || provider.config.senderId || "SAYELESEND",
       message: finalMessage,
       channel,
       status: args.scheduledAt ? "scheduled" : "pending",
@@ -510,7 +510,7 @@ export const sendSmsViaApi = mutation({
     const messageId = await ctx.db.insert("messages", {
       clientId: args.clientId,
       to: args.to,
-      from: client.senderId || args.from || provider.config.senderId || "SAYELE",
+      from: client.senderId || args.from || provider.config.senderId || "SAYELESEND",
       message: sanitizedMessage,
       channel,
       status: args.scheduledAt ? "scheduled" : "pending",

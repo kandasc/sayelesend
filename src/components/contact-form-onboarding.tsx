@@ -136,7 +136,7 @@ export default function ContactFormOnboarding() {
                 <Building2 className="h-8 w-8 text-primary" />
               </div>
             </div>
-            <CardTitle className="text-2xl">Welcome to SAYELE</CardTitle>
+            <CardTitle className="text-2xl">Welcome to Sayelesend</CardTitle>
             <CardDescription className="text-base">
               Please provide your company details so we can set up your account and contact you to get started.
             </CardDescription>
@@ -302,12 +302,12 @@ export default function ContactFormOnboarding() {
       <footer className="border-t bg-card py-4">
         <div className="container mx-auto px-4 text-center">
           <a
-            href="https://sayele.co"
+            href="https://www.sayelesend.com"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
           >
-            Developed by <span className="font-semibold text-primary">SAYELE</span>
+            Developed by <span className="font-semibold text-primary">Sayelesend</span>
           </a>
         </div>
       </footer>

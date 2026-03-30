@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Copy, CheckCircle2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { PUBLIC_API_BASE_URL } from "@/lib/public-api.ts";
 
 export default function ApiDocsPage() {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
-  
-  const apiBaseUrl = "https://api.sayele.co";
+
+  const apiBaseUrl = PUBLIC_API_BASE_URL;
 
   const copyToClipboard = (text: string, section: string) => {
     navigator.clipboard.writeText(text);
@@ -25,16 +26,16 @@ export default function ApiDocsPage() {
         <div>
           <h1 className="text-3xl font-bold">API Documentation</h1>
           <p className="text-muted-foreground mt-1">
-            Complete guide to integrating SAYELE messaging API
+            Complete guide to integrating Sayelesend messaging API
           </p>
         </div>
         <a
-          href="https://sayele.co"
+          href="https://www.sayelesend.com"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          Powered by <span className="font-semibold text-primary">SAYELE</span>
+          Powered by <span className="font-semibold text-primary">Sayelesend</span>
           <ExternalLink className="h-4 w-4" />
         </a>
       </div>
@@ -159,7 +160,7 @@ export default function ApiDocsPage() {
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -d '{
     "to": "+1234567890",
-    "message": "Hello from SAYELE!",
+    "message": "Hello from Sayelesend!",
     "channel": "sms"
   }'`}</code>
                       </pre>
@@ -172,7 +173,7 @@ export default function ApiDocsPage() {
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -d '{
     "to": "+1234567890",
-    "message": "Hello from SAYELE!",
+    "message": "Hello from Sayelesend!",
     "channel": "sms"
   }'`, "curl")}
                       >
@@ -194,7 +195,7 @@ $url = '${apiBaseUrl}/api/v1/sms/send';
 
 $data = [
     'to' => '+1234567890',
-    'message' => 'Hello from SAYELE!',
+    'message' => 'Hello from Sayelesend!',
     'channel' => 'sms'
 ];
 
@@ -229,7 +230,7 @@ $url = '${apiBaseUrl}/api/v1/sms/send';
 
 $data = [
     'to' => '+1234567890',
-    'message' => 'Hello from SAYELE!',
+    'message' => 'Hello from Sayelesend!',
     'channel' => 'sms'
 ];
 
@@ -271,7 +272,7 @@ const url = '${apiBaseUrl}/api/v1/sms/send';
 
 const data = {
   to: '+1234567890',
-  message: 'Hello from SAYELE!',
+  message: 'Hello from Sayelesend!',
   channel: 'sms'
 };
 
@@ -302,7 +303,7 @@ const url = '${apiBaseUrl}/api/v1/sms/send';
 
 const data = {
   to: '+1234567890',
-  message: 'Hello from SAYELE!',
+  message: 'Hello from Sayelesend!',
   channel: 'sms'
 };
 
@@ -344,7 +345,7 @@ url = '${apiBaseUrl}/api/v1/sms/send'
 
 data = {
     'to': '+1234567890',
-    'message': 'Hello from SAYELE!',
+    'message': 'Hello from Sayelesend!',
     'channel': 'sms'
 }
 
@@ -373,7 +374,7 @@ url = '${apiBaseUrl}/api/v1/sms/send'
 
 data = {
     'to': '+1234567890',
-    'message': 'Hello from SAYELE!',
+    'message': 'Hello from Sayelesend!',
     'channel': 'sms'
 }
 
@@ -460,7 +461,7 @@ else:
                     <code>{`{
   "_id": "j123abc456def789",
   "to": "+1234567890",
-  "message": "Hello from SAYELE!",
+  "message": "Hello from Sayelesend!",
   "status": "delivered",
   "channel": "sms",
   "createdAt": 1699999999999,
@@ -788,7 +789,7 @@ const sessionId = textRes.headers.get('X-Session-Id');`, "ai-js")}
                   <pre className="p-4 bg-muted rounded-lg overflow-x-auto text-sm">
                     <code>{`{
   "to": "+1234567890",
-  "message": "Hello from SAYELE via ${item.name}!",
+  "message": "Hello from Sayelesend via ${item.name}!",
   "channel": "${item.channel}"
 }`}</code>
                   </pre>
@@ -798,7 +799,7 @@ const sessionId = textRes.headers.get('X-Session-Id');`, "ai-js")}
                     className="absolute top-2 right-2"
                     onClick={() => copyToClipboard(`{
   "to": "+1234567890",
-  "message": "Hello from SAYELE via ${item.name}!",
+  "message": "Hello from Sayelesend via ${item.name}!",
   "channel": "${item.channel}"
 }`, `channel-${item.id}`)}
                   >
@@ -819,18 +820,18 @@ const sessionId = textRes.headers.get('X-Session-Id');`, "ai-js")}
       <Card>
         <CardHeader>
           <CardTitle>Need Help?</CardTitle>
-          <CardDescription>Get support from the SAYELE team</CardDescription>
+          <CardDescription>Get support from the Sayelesend team</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Website:</span>
             <a
-              href="https://sayele.co"
+              href="https://www.sayelesend.com"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-primary hover:underline"
             >
-              sayele.co
+              www.sayelesend.com
             </a>
           </div>
           <div className="flex items-center gap-2">

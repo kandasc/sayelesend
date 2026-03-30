@@ -65,6 +65,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { SAYELE_PAY_CHECKOUT_URL } from "@/lib/sayelepay.ts";
 
 export default function PaymentsPage() {
   return (
@@ -598,11 +599,25 @@ function BuyCreditsTab({
       });
       if (customerName) params.set("customer_name", customerName);
       if (customerEmail) params.set("customer_email", customerEmail);
-      window.location.href = `https://gate.sayele.co/checkout?${params.toString()}`;
+      window.location.href = `${SAYELE_PAY_CHECKOUT_URL}?${params.toString()}`;
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to initiate payment"
-      );
+      let message = "Failed to initiate payment";
+      if (error && typeof error === "object") {
+        const o = error as Record<string, unknown>;
+        const data = o.data;
+        if (data && typeof data === "object") {
+          const m = (data as Record<string, unknown>).message;
+          if (typeof m === "string" && m.length > 0) message = m;
+        }
+        if (
+          message === "Failed to initiate payment" &&
+          typeof o.message === "string" &&
+          o.message.length > 0
+        ) {
+          message = o.message;
+        }
+      }
+      toast.error(message);
       setProcessingPackage(null);
     }
   };

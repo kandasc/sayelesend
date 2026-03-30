@@ -30,6 +30,12 @@ export const getCurrentClient = query({
       return client ?? null;
     }
 
+    // Admin linked to an organization (same billing context as that client)
+    if (user.role === "admin" && user.clientId) {
+      const client = await ctx.db.get(user.clientId);
+      return client ?? null;
+    }
+
     // Regular client user
     if (user.role !== "client" || !user.clientId) {
       return null;

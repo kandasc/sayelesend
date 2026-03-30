@@ -104,7 +104,7 @@ function MessagesContent() {
     }
 
     try {
-      const companyHeader = ["SAYELE Message - Outgoing Messages Report"];
+      const companyHeader = ["Sayelesend Message - Outgoing Messages Report"];
       const clientInfo = client ? [`Client: ${client.companyName}`] : ["Client: N/A"];
       const dateInfo = [`Generated: ${format(new Date(), "yyyy-MM-dd HH:mm:ss")}`];
       const emptyRow = [""];
@@ -120,7 +120,7 @@ function MessagesContent() {
       ]);
       
       const footer = [""];
-      const madeBy = ["Made by SAYELE"];
+      const madeBy = ["Made by Sayelesend"];
 
       const csvContent = [
         companyHeader.join(","),
@@ -182,7 +182,7 @@ function MessagesContent() {
         // Fallback to text if image fails to load
         doc.setFontSize(18);
         doc.setFont("helvetica", "bold");
-        doc.text("SAYELE Message", margin, 15);
+        doc.text("Sayelesend Message", margin, 15);
       }
       
       doc.setFontSize(10);
@@ -226,7 +226,7 @@ function MessagesContent() {
           // Add footer to current page
           doc.setFontSize(8);
           doc.setFont("helvetica", "italic");
-          doc.text("Made by SAYELE", pageWidth / 2, pageHeight - 10, { align: "center" });
+          doc.text("Made by Sayelesend", pageWidth / 2, pageHeight - 10, { align: "center" });
           
           doc.addPage();
           yPos = 20;
@@ -266,7 +266,7 @@ function MessagesContent() {
             // Add footer to current page
             doc.setFontSize(8);
             doc.setFont("helvetica", "italic");
-            doc.text("Made by SAYELE", pageWidth / 2, pageHeight - 10, { align: "center" });
+            doc.text("Made by Sayelesend", pageWidth / 2, pageHeight - 10, { align: "center" });
             
             doc.addPage();
             yPos = 20;
@@ -290,7 +290,7 @@ function MessagesContent() {
       // Add footer to the last page
       doc.setFontSize(8);
       doc.setFont("helvetica", "italic");
-      doc.text("Made by SAYELE", pageWidth / 2, pageHeight - 10, { align: "center" });
+      doc.text("Made by Sayelesend", pageWidth / 2, pageHeight - 10, { align: "center" });
       
       doc.save(`outgoing_messages_${format(new Date(), "yyyy-MM-dd")}.pdf`);
       toast.success(intl.formatMessage({ id: "page.messages.pdfExported" }));

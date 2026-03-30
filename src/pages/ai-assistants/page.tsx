@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/empty.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { toast } from "sonner";
+import { PUBLIC_API_BASE_URL } from "@/lib/public-api.ts";
 import {
   Bot,
   Plus,
@@ -570,7 +571,7 @@ function ApiIntegrationTab({
   assistantId: Id<"aiAssistants">;
   assistant: Doc<"aiAssistants">;
 }) {
-  const API_BASE = "https://api.sayele.co";
+  const API_BASE = PUBLIC_API_BASE_URL;
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -644,7 +645,7 @@ response = requests.post(
 data = response.json()
 print(data["response"])`;
 
-  const widgetExample = `<!-- SAYELE Chat Widget — Full-Featured -->
+  const widgetExample = `<!-- Sayelesend Chat Widget — Full-Featured -->
 <script>
 (function() {
   var ASSISTANT_ID = "${assistantId}";
@@ -690,7 +691,7 @@ print(data["response"])`;
 
   // ── Build Widget UI ──
   var widget = document.createElement("div");
-  widget.id = "sayele-chat-widget";
+  widget.id = "sayelesend-chat-widget";
   widget.innerHTML =
     '<div style="position:fixed;bottom:20px;right:20px;z-index:9999;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">' +
 
@@ -865,7 +866,7 @@ print(data["response"])`;
     } else if (sender === "bot") {
       div.innerHTML = '<div style="display:flex;align-items:flex-end;gap:6px;max-width:80%;">' +
         '<div style="padding:10px 14px;border-radius:16px 16px 16px 4px;background:#fff;color:#333;line-height:1.5;font-size:13.5px;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1px solid #eee;">' + text.replace(/</g,"&lt;") + '</div>' +
-        '<button onclick="(function(b){window.__sayeleSpeak(b.parentElement.querySelector(\\'div\\').innerText,b);})(this)" style="background:none;border:none;cursor:pointer;opacity:0.5;flex-shrink:0;color:#888;padding:2px;transition:opacity 0.2s;" title="Listen">' + speakerSvg + '</button></div>';
+        '<button onclick="(function(b){window.__sayelesendSpeak(b.parentElement.querySelector(\\'div\\').innerText,b);})(this)" style="background:none;border:none;cursor:pointer;opacity:0.5;flex-shrink:0;color:#888;padding:2px;transition:opacity 0.2s;" title="Listen">' + speakerSvg + '</button></div>';
     } else {
       div.innerHTML = '<div style="max-width:80%;padding:10px 14px;border-radius:16px 16px 4px 16px;background:' + COLOR + ';color:white;line-height:1.5;font-size:13.5px;box-shadow:0 2px 6px rgba(' + colorRgb + ',0.25);">' + text.replace(/</g,"&lt;") + '</div>';
     }
@@ -887,7 +888,7 @@ print(data["response"])`;
   style.textContent = "@keyframes sc-dot{0%,80%,100%{opacity:0.3;transform:scale(0.8);}40%{opacity:1;transform:scale(1.1);}}";
   document.head.appendChild(style);
 
-  window.__sayeleSpeak = speakText;
+  window.__sayelesendSpeak = speakText;
 })();
 </script>`;
 

@@ -1,4 +1,6 @@
-import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
+import { useConvexAuth } from "convex/react";
+import { useAuth as useClerkAuth } from "@clerk/clerk-react";
+import { PUBLIC_API_BASE_URL } from "@/lib/public-api.ts";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Navigate, Link, useParams } from "react-router-dom";
@@ -34,22 +36,39 @@ import {
 
 export default function Index() {
   const { lng } = useParams();
+  const lang = lng || "en";
+  const { isLoading: convexLoading, isAuthenticated: convexAuthed } = useConvexAuth();
+  const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
 
-  return (
-    <>
-      <AuthLoading>
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <Skeleton className="h-20 w-64" />
-        </div>
-      </AuthLoading>
-      <Unauthenticated>
-        <LandingPage />
-      </Unauthenticated>
-      <Authenticated>
-        <Navigate to={`/${lng || "en"}/dashboard`} replace />
-      </Authenticated>
-    </>
-  );
+  if (!clerkLoaded || convexLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Skeleton className="h-20 w-64" />
+      </div>
+    );
+  }
+
+  if (convexAuthed) {
+    return <Navigate to={`/${lang}/dashboard`} replace />;
+  }
+
+  /** Clerk session exists but Convex never receives a JWT (missing "convex" JWT template or issuer mismatch). */
+  if (isSignedIn && !convexAuthed) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background p-6 text-center">
+        <p className="text-lg font-medium text-foreground">Signed in, but the app can’t open your workspace yet</p>
+        <p className="text-muted-foreground text-sm max-w-lg">
+          Clerk and Convex must share a JWT: in the Clerk dashboard create a JWT template named{" "}
+          <strong>convex</strong> (Convex’s guide). In Convex, set{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">CLERK_JWT_ISSUER_DOMAIN</code> to the template’s
+          issuer (exactly). Then refresh this page.
+        </p>
+        <SignInButton signOutText="Sign out" />
+      </div>
+    );
+  }
+
+  return <LandingPage />;
 }
 
 // ─── Animation wrapper ──────────────────────────────────────────────────────
@@ -558,12 +577,12 @@ function AdminSection() {
 function IntegrationSection({ lng }: { lng?: string }) {
   const intl = useIntl();
 
-  const codeSnippet = `curl -X POST https://api.sayele.co/api/v1/sms/send \\
+  const codeSnippet = `curl -X POST ${PUBLIC_API_BASE_URL}/api/v1/sms/send \\
   -H "Authorization: Bearer sk_live_xxx" \\
   -H "Content-Type: application/json" \\
   -d '{
     "to": "+22890001234",
-    "message": "Hello from SAYELE!",
+    "message": "Hello from Sayelesend!",
     "channel": "sms"
   }'`;
 
@@ -734,7 +753,7 @@ function Footer({ lng }: { lng?: string }) {
 
         <div className="border-t border-border mt-10 pt-6 text-center">
           <p className="text-sm text-muted-foreground">
-            &copy; {year} Sayele Message.{" "}
+            &copy; {year} Sayelesend Message.{" "}
             <FormattedMessage id="home.footer.copyright" />
           </p>
         </div>

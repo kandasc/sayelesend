@@ -146,10 +146,10 @@ export default function PendingActivation({ rejected = false }: PendingActivatio
               <p className="text-sm text-center text-muted-foreground">
                 Need help? Contact our support team at{" "}
                 <a 
-                  href="mailto:support@sayele.co" 
+                  href="mailto:support@sayelesend.com" 
                   className="text-primary hover:underline font-medium"
                 >
-                  support@sayele.co
+                  support@sayelesend.com
                 </a>
               </p>
             </div>
@@ -161,12 +161,12 @@ export default function PendingActivation({ rejected = false }: PendingActivatio
       <footer className="border-t bg-card py-4">
         <div className="container mx-auto px-4 text-center">
           <a
-            href="https://sayele.co"
+            href="https://www.sayelesend.com"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
           >
-            Developed by <span className="font-semibold text-primary">SAYELE</span>
+            Developed by <span className="font-semibold text-primary">Sayelesend</span>
           </a>
         </div>
       </footer>

@@ -31,7 +31,9 @@ import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import { usePagination } from "@/hooks/use-pagination.ts";
 import PaginationControls from "@/components/ui/pagination-controls.tsx";
 
-const CONVEX_SITE_URL = "https://api.sayele.co";
+import { PUBLIC_API_BASE_URL } from "@/lib/public-api.ts";
+
+const CONVEX_SITE_URL = PUBLIC_API_BASE_URL;
 
 function MTargetWebhookInfo() {
   const [copied, setCopied] = useState(false);
@@ -508,7 +510,7 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
         <>
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
-            <Input id="username" name="username" defaultValue="sayele" required />
+            <Input id="username" name="username" defaultValue="sayelesend" required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
@@ -605,7 +607,7 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
                 <li>Important: Phone numbers must be in E.164 format (e.g., +15551234567)</li>
               </ol>
               <p className="text-xs text-amber-700 dark:text-amber-300 mt-3 font-medium">
-                💰 Pricing: Messages are billed by Meta based on country and conversation type. No markup added by SAYELE.
+                💰 Pricing: Messages are billed by Meta based on country and conversation type. No markup added by Sayelesend.
               </p>
             </CardContent>
           </Card>
@@ -680,7 +682,7 @@ function CreateProviderForm({ onSuccess }: { onSuccess: () => void }) {
 
       <div className="space-y-2">
         <Label htmlFor="senderId">Sender ID / From Number</Label>
-        <Input id="senderId" name="senderId" placeholder="SAYELE" required />
+        <Input id="senderId" name="senderId" placeholder="SAYELESEND" required />
       </div>
 
       <DialogFooter>

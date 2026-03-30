@@ -173,7 +173,7 @@ function ApiKeysContent() {
 {`{
   "to": "+1234567890",
   "message": "Hello World",
-  "from": "SAYELE" // optional
+  "from": "SAYELESEND" // optional
 }`}
             </pre>
           </div>

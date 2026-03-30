@@ -32,13 +32,13 @@ export default function Logo({ size = "md", showText = true, variant = "default"
     <div className="flex items-center gap-3">
       <img 
         src="https://cdn.hercules.app/file_gLTdUXfPCK1bJYdBbIxIeipb" 
-        alt="Sayele Message Logo"
+        alt="Sayelesend Message Logo"
         className={`${sizeClasses[size]} ${variant === "light" ? "brightness-0 invert" : "dark:brightness-0 dark:invert"}`}
       />
       {showText && (
         <div className="flex flex-col">
           <h1 className={`${textSizeClasses[size]} font-bold leading-tight ${textColor}`}>
-            Sayele Message
+            Sayelesend Message
           </h1>
           <p className={`${subtextSizeClasses[size]} text-muted-foreground leading-tight`}>
             Messaging Platform

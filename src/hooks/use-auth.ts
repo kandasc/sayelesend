@@ -32,7 +32,7 @@ export function useAuth(): UseAuthHook {
   const { user: clerkUser, isLoaded: userLoaded } = useClerkUser();
 
   const signinRedirect = useCallback(async () => {
-    openSignIn({});
+    openSignIn({ redirectUrl: typeof window !== "undefined" ? window.location.href : "/" });
   }, [openSignIn]);
 
   const signoutRedirect = useCallback(async () => {
