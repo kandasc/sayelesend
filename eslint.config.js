@@ -30,4 +30,11 @@ export default tseslint.config([
       globals: globals.browser,
     },
   },
+  {
+    files: ["middleware.ts"],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: { ...globals.node },
+    },
+  },
 ]);
