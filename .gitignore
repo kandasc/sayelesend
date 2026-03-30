@@ -28,3 +28,6 @@ tsconfig.tsbuildinfo
 
 # Environment variables
 .env*
+
+# Local exports / snapshots
+snapshot_*.zip

@@ -1,31 +1,92 @@
+import {
+  useAuth as useClerkAuth,
+  useClerk,
+  useUser as useClerkUser,
+} from "@clerk/clerk-react";
 import { useCallback, useEffect, useMemo } from "react";
-import { useAuth as useOidcAuth } from "react-oidc-context";
 
-type UseAuthHook = {
-  fetchAccessToken: (args: {
-    forceRefreshToken: boolean;
-  }) => Promise<string | null>;
-} & ReturnType<typeof useOidcAuth>;
+export type AuthUser = {
+  id_token?: string;
+  profile: {
+    sub?: string;
+    name?: string;
+    email?: string;
+    picture?: string;
+  };
+} | null;
+
+export type UseAuthHook = {
+  user: AuthUser;
+  isLoading: boolean;
+  error: Error | undefined;
+  isAuthenticated: boolean;
+  signinRedirect: () => Promise<void>;
+  signoutRedirect: () => Promise<void>;
+  removeUser: () => Promise<void>;
+  fetchAccessToken: (args: { forceRefreshToken: boolean }) => Promise<string | null>;
+};
 
 export function useAuth(): UseAuthHook {
-  const oidcAuth = useOidcAuth();
+  const { isLoaded, isSignedIn, signOut, getToken } = useClerkAuth();
+  const { openSignIn } = useClerk();
+  const { user: clerkUser, isLoaded: userLoaded } = useClerkUser();
 
-  const idToken = oidcAuth.user?.id_token;
+  const signinRedirect = useCallback(async () => {
+    openSignIn({});
+  }, [openSignIn]);
+
+  const signoutRedirect = useCallback(async () => {
+    await signOut();
+  }, [signOut]);
+
+  const removeUser = useCallback(async () => {
+    await signOut();
+  }, [signOut]);
+
   const fetchAccessToken = useCallback(
-    // eslint-disable-next-line no-empty-pattern
-    async ({}: { forceRefreshToken: boolean }) => {
-      // TODO: refresh token if needed
-      return idToken ?? null;
+    async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
+      return getToken({ template: "convex", skipCache: forceRefreshToken });
     },
-    [idToken],
+    [getToken],
   );
+
+  const user = useMemo((): AuthUser => {
+    if (!isSignedIn || !userLoaded || !clerkUser) return null;
+    return {
+      profile: {
+        sub: clerkUser.id,
+        name:
+          clerkUser.fullName ??
+          ([clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") ||
+            undefined),
+        email: clerkUser.primaryEmailAddress?.emailAddress,
+        picture: clerkUser.imageUrl ?? undefined,
+      },
+    };
+  }, [isSignedIn, userLoaded, clerkUser]);
+
+  const isLoading = !isLoaded || (!!isSignedIn && !userLoaded);
 
   return useMemo(
     () => ({
-      ...oidcAuth,
+      user,
+      isLoading,
+      error: undefined,
+      isAuthenticated: !!isSignedIn,
+      signinRedirect,
+      signoutRedirect,
+      removeUser,
       fetchAccessToken,
     }),
-    [oidcAuth, fetchAccessToken],
+    [
+      user,
+      isLoading,
+      isSignedIn,
+      signinRedirect,
+      signoutRedirect,
+      removeUser,
+      fetchAccessToken,
+    ],
   );
 }
 

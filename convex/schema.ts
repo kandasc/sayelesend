@@ -7,7 +7,14 @@ export default defineSchema({
     name: v.optional(v.string()),
     email: v.optional(v.string()),
     role: v.optional(v.union(v.literal("admin"), v.literal("client"), v.literal("viewer"))),
-    status: v.optional(v.union(v.literal("active"), v.literal("rejected"))),
+    status: v.optional(
+      v.union(
+        v.literal("active"),
+        v.literal("rejected"),
+        v.literal("approved"),
+      ),
+    ),
+    permissions: v.optional(v.array(v.string())),
     clientId: v.optional(v.id("clients")),
     testModeClientId: v.optional(v.id("clients")),
     testModeExpiresAt: v.optional(v.number()),

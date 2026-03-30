@@ -247,8 +247,8 @@ async function generateConversationSummary(
 ): Promise<string> {
   try {
     const openai = new OpenAI({
-      baseURL: "http://ai-gateway.hercules.app/v1",
-      apiKey: process.env.HERCULES_API_KEY,
+      baseURL: process.env.AI_API_BASE_URL,
+      apiKey: process.env.AI_API_KEY ?? process.env.HERCULES_API_KEY,
     });
 
     const conversationText = messages

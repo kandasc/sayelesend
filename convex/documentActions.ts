@@ -84,8 +84,8 @@ export const generateDocument = action({
   },
   handler: async (ctx, args): Promise<void> => {
     const openai = new OpenAI({
-      baseURL: "http://ai-gateway.hercules.app/v1",
-      apiKey: process.env.HERCULES_API_KEY,
+      baseURL: process.env.AI_API_BASE_URL,
+      apiKey: process.env.AI_API_KEY ?? process.env.HERCULES_API_KEY,
     });
 
     const typePrompt = DOCUMENT_TYPE_PROMPTS[args.documentType] || DOCUMENT_TYPE_PROMPTS.product_presentation;
@@ -168,8 +168,8 @@ export const regenerateSection = action({
   },
   handler: async (ctx, args): Promise<{ content: string }> => {
     const openai = new OpenAI({
-      baseURL: "http://ai-gateway.hercules.app/v1",
-      apiKey: process.env.HERCULES_API_KEY,
+      baseURL: process.env.AI_API_BASE_URL,
+      apiKey: process.env.AI_API_KEY ?? process.env.HERCULES_API_KEY,
     });
 
     const systemPrompt = `You are an expert document editor. You are editing a section of a ${args.documentType.replace("_", " ")} document.

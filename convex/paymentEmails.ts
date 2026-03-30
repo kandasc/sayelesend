@@ -1,18 +1,71 @@
 "use node";
 
-import { Hercules } from "@usehercules/sdk";
 import escapeHtml from "escape-html";
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 
-const hercules = new Hercules({
-  apiKey: process.env.HERCULES_API_KEY!,
-  apiVersion: "2025-12-09",
-});
+type SendEmailResult = { success: boolean; id?: string; error?: string };
 
 const SENDER = "SAYELE <noreply@sayele.co>";
 
 // ─── Helpers ──────────────────────────────────────────────────
+
+async function sendEmailViaCustomApi(args: {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<SendEmailResult> {
+  const url = process.env.CUSTOM_EMAIL_API_URL;
+  if (!url) {
+    return { success: false, error: "CUSTOM_EMAIL_API_URL is not configured" };
+  }
+
+  const apiKey = process.env.CUSTOM_EMAIL_API_KEY;
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (apiKey) headers.authorization = `Bearer ${apiKey}`;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        from: args.from,
+        to: args.to,
+        subject: args.subject,
+        html: args.html,
+      }),
+    });
+
+    const raw = await res.text();
+    const data = raw ? (safeJsonParse(raw) as unknown) : undefined;
+
+    if (!res.ok) {
+      const error =
+        (isRecord(data) && typeof data.error === "string" && data.error) ||
+        raw ||
+        `Email API request failed with status ${res.status}`;
+      return { success: false, error };
+    }
+
+    const id = isRecord(data) && typeof data.id === "string" ? data.id : undefined;
+    return { success: true, id };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+function safeJsonParse(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
 function formatXOF(amount: number): string {
   return new Intl.NumberFormat("fr-FR", {
@@ -137,15 +190,21 @@ export const sendPaymentReceipt = internalAction({
     `;
 
     try {
-      await hercules.email.send({
+      const result = await sendEmailViaCustomApi({
         from: SENDER,
         to: args.to,
         subject: `Reçu de paiement – ${safePackage} (${args.credits.toLocaleString("fr-FR")} crédits)`,
         html: wrapHtml(body),
       });
+      if (!result.success) {
+        console.error("[PaymentEmail] Failed to send receipt:", result.error);
+        return result;
+      }
       console.log(`[PaymentEmail] Receipt sent to ${args.to} for tx ${args.transactionId}`);
+      return result;
     } catch (err) {
       console.error("[PaymentEmail] Failed to send receipt:", err);
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   },
 });
@@ -214,15 +273,21 @@ export const sendPaymentCancelled = internalAction({
     `;
 
     try {
-      await hercules.email.send({
+      const result = await sendEmailViaCustomApi({
         from: SENDER,
         to: args.to,
         subject: `Paiement annulé – ${safePackage}`,
         html: wrapHtml(body),
       });
+      if (!result.success) {
+        console.error("[PaymentEmail] Failed to send cancellation:", result.error);
+        return result;
+      }
       console.log(`[PaymentEmail] Cancellation sent to ${args.to} for tx ${args.transactionId}`);
+      return result;
     } catch (err) {
       console.error("[PaymentEmail] Failed to send cancellation:", err);
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   },
 });

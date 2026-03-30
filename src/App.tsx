@@ -36,6 +36,12 @@ import ContentStudio from "./pages/content-studio/page.tsx";
 import ImageCreator from "./pages/image-creator/page.tsx";
 import ContentLibrary from "./pages/content-library/page.tsx";
 import DocumentAgent from "./pages/document-agent/page.tsx";
+import { useUserSync } from "./hooks/use-user-sync.ts";
+
+function UserSyncEffect() {
+  useUserSync();
+  return null;
+}
 
 function LanguageWrapper({ children }: { children: React.ReactNode }) {
   const { lng } = useParams();
@@ -64,6 +70,7 @@ export default function App() {
 
   return (
     <DefaultProviders>
+      <UserSyncEffect />
       <BrowserRouter>
         <Routes>
           {/* Redirect root to preferred language */}
